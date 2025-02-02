@@ -1,4 +1,4 @@
-#CS Engine
+# CS Engine
 CS - CubeSauce
 Amalgation of various project over the years
 Current version supports DirectX and Windows only, Vulkan and OpenGL with Linux/MacOs coming soon
@@ -6,7 +6,7 @@ Build using CMake
 
 Proper game examples coming soon
 
-##TODO:
+## TODO:
 ### Engine
 - [x] Basic resources
 - [x] Event system (signal/brodcast-listener)
