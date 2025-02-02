@@ -3,15 +3,17 @@
 
 #include <cstdio>
 
-Socket::Socket(Family fam, Type type, bool non_blocking)
+Socket::Socket(Socket::Family fam, Socket::Type type, bool non_blocking)
 {
-#ifdef CS_PLATFORM_LINUX
-    file_descriptor = ::socket(fam, type | non_blocking ? SOCK_NONBLOCK : 0, 0);
+#ifdef CS_PLATFORM_UNIX
+    //file_descriptor = ::socket(fam, type | non_blocking ? SOCK_NONBLOCK : 0, 0);
     if (file_descriptor < 0)
     {
         //Error
         return;
     }
+    
+    server_addr.sin_family = static_cast<sa_family_t>(fam);
 #elif defined CS_PLATFORM_WINDOWS
     int32 result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != NO_ERROR)
@@ -35,8 +37,8 @@ Socket::Socket(Family fam, Type type, bool non_blocking)
         ioctlsocket(sock, FIONBIO, &mode);
     }
 
-#endif
     server_addr.sin_family = static_cast<ADDRESS_FAMILY>(fam);
+#endif
 }
 
 Socket::~Socket() 

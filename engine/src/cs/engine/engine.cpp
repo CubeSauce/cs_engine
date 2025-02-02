@@ -2,8 +2,12 @@
 #include "cs/engine/cvar.hpp"
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/engine/window/glfw/glfw_window.hpp"
+
 #include "cs/engine/renderer/directx/directx_renderer.hpp"
+#include "cs/engine/renderer/opengl/opengl_renderer.hpp"
+
 #include "cs/engine/game/game_instance.hpp"
+
 
 void Engine::initialize(const Dynamic_Array<std::string>& args)
 {
@@ -59,8 +63,6 @@ void Engine::run()
 
         if (_renderer)
         {
-            _renderer->window->poll_events();
-
             _renderer->begin_frame();
             
             if (game_instance)
@@ -70,6 +72,9 @@ void Engine::run()
 
             _renderer->end_frame();
             _renderer->render_frame();
+            
+            _renderer->window->swap_buffers();
+            _renderer->window->poll_events();
         }
     }
 
@@ -78,9 +83,6 @@ void Engine::run()
         game_instance->shutdown();
     }
 }
-
-// 0123456
-// abc=123
 
 Dynamic_Array<std::string> split(const std::string& str, char delim)
 {
@@ -147,7 +149,7 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
         backend = Shared_Ptr<DirectX_Renderer_Backend>::create();
     #else
         //TODO: Warn
-        backend = Shared_Ptr<OpenGL_Renderer_Backend>();
+        backend = Shared_Ptr<OpenGL_Renderer_Backend>::create();
     #endif //CS_PLATFORM_WINDOWS
 
     backend->initialize(window);

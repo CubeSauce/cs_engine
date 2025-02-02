@@ -8,8 +8,30 @@
 
 #include <functional>
 
+// Template magic for placeholders from: 
+//  https://stackoverflow.com/questions/21192659/variadic-templates-and-stdbind
+template<int...> struct int_sequence {};
+template<int N, int... Is> struct make_int_sequence
+    : make_int_sequence<N-1, N-1, Is...> {};
+template<int... Is> struct make_int_sequence<0, Is...>
+    : int_sequence<Is...> {};
+template<int> // begin with 0 here!
+struct placeholder_template
+{};
+
+#include <functional>
+#include <type_traits>
+
+namespace std
+{
+    template<int N>
+    struct is_placeholder<placeholder_template<N> >
+        : integral_constant<int, N+1> // the one is important
+    {};
+}
+
 // Currently supports up to 6 arguments
-template<int32 n, class...Args>
+template<int32 N, class...Args>
 class Event
 {
 public:
@@ -17,18 +39,11 @@ public:
     {
         _events.add(func);
     }
-
+    
     template<typename T, typename F>
     void bind(T *obj, F func)
     {
-        if (N == 0)
-        {
-            _events.add(std::bind(func, obj));
-        }
-        else
-        {
-            _events.add(std::bind(func, obj, _generate_placeholders<N>()));
-        }
+        _events.add(std::bind(func, obj, make_int_sequence<sizeof...(Args)>{}));
     }
 
     void broadcast(Args...args)
@@ -44,10 +59,4 @@ public:
 
 protected:
     Dynamic_Array<std::function<void(Args...)>> _events;
-
-private:
-    template <std::size_t... S>
-    auto _generate_placeholders(std::index_sequence<S...>) {
-        return std::make_tuple(_Ph<S>...);
-    }
 };

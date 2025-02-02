@@ -3,8 +3,8 @@
 #include "cs/cs.hpp"
 
 #include <cstdint>
-#include <sys/types.h>          /* See NOTES */
-#ifdef CS_PLATFORM_LINUX
+#include <sys/types.h>
+#ifdef CS_PLATFORM_UNIX
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -31,7 +31,7 @@ struct Socket
         RAW = SOCK_RAW
     };
 
-#ifdef CS_PLATFORM_LINUX
+#ifdef CS_PLATFORM_UNIX
     int file_descriptor = -1;
 #elif defined CS_PLATFORM_WINDOWS
     WSADATA wsaData;
@@ -39,7 +39,7 @@ struct Socket
 #endif
     sockaddr_in server_addr;
 
-    Socket(Family fam, Type type, bool non_blocking = true);
+    Socket(Socket::Family fam, Socket::Type type, bool non_blocking = true);
     ~Socket();
 
     void bind(unsigned port);
@@ -49,9 +49,8 @@ struct Socket
     template <typename Type>
     void send(Type data) 
     {
-#ifdef CS_PLATFORM_LINUX
-        sendto(file_descriptor, (void*)(&data), sizeof(a),
-            MSG_CONFIRM, (sockaddr*)&server_addr, sizeof(server_addr));
+#ifdef CS_PLATFORM_UNIX
+        //sendto(file_descriptor, (void*)(&data), sizeof(Type), MSG_CONFIRM, (sockaddr*)&server_addr, sizeof(server_addr));
 #elif defined CS_PLATFORM_WINDOWS
         int32 result = sendto(sock, (char*)(void*)&data, sizeof(data), 0, (SOCKADDR*)&server_addr, sizeof(server_addr));
         if (result == SOCKET_ERROR)
@@ -67,9 +66,9 @@ struct Socket
     template <typename Type>
     int recieve(sockaddr_in* cliaddr, Type *data)
     {
-#ifdef CS_PLATFORM_LINUX
+#ifdef CS_PLATFORM_UNIX
         socklen_t clen = sizeof(*cliaddr);
-        return recvfrom(file_descriptor, data, sizeof(a), MSG_WAITALL, (sockaddr*)cliaddr, &clen);
+        return recvfrom(file_descriptor, data, sizeof(Type), MSG_WAITALL, (sockaddr*)cliaddr, &clen);
 #elif defined CS_PLATFORM_WINDOWS
         int clen = sizeof(*cliaddr);
         int result = recvfrom(sock, (char*)(void*)data, sizeof(*data), 0, (SOCKADDR*)cliaddr, &clen);

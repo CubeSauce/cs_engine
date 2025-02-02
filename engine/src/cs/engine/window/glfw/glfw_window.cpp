@@ -3,7 +3,11 @@
 #include <cstring>
 
 #include <GLFW/glfw3.h>
+#ifdef CS_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(CS_PLATFORM_APPLE)
+#define GLFW_EXPOSE_NATIVE_COCOA
+#endif //CS_PLATFORM_WINDOWS
 #include <GLFW/glfw3native.h>
 
 GLFW_Window::~GLFW_Window()
@@ -26,26 +30,16 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 bool GLFW_Window::initialize(int width, int height, const char* title) 
 {
-    if (!glfwInit()) 
-    {
-        //std::cerr << "Failed to initialize GLFW!" << std::endl;
-        return false;
-    }
+    assert(glfwInit() == GLFW_TRUE);
 
     // DEFAULT SUPPORT FOR OpenGL - TODO: custom context from renderer
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL version 4.x
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5); // OpenGL version 4.5
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0); // OpenGL version 4.5
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     //glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     _window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-
-    if (!_window) 
-    {
-        //std::cerr << "Failed to create GLFW window!" << std::endl;
-        glfwTerminate();
-        return false;
-    }
+    assert(_window);
 
     glfwSetWindowUserPointer(_window, this);
 
@@ -75,8 +69,7 @@ void* GLFW_Window::native_handle() const
 {
     #ifdef CS_PLATFORM_WINDOWS
         return static_cast<void*>(glfwGetWin32Window(_window));
-    #else
-        //TODO: Warn
-        //return static_cast<void*>(_window);
+    #elif defined(CS_PLATFORM_APPLE)
+        return static_cast<void*>(glfwGetCocoaWindow(_window));
     #endif //CS_PLATFORM_WINDOWS
 }

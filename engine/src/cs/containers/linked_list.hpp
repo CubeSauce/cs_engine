@@ -9,7 +9,7 @@ template <typename Type>
 class Linked_List
 {
 public:
-    struct Node
+    typedef struct Node
     {
         Type data;
         Node *next;
@@ -25,7 +25,7 @@ public:
                 next(other_next) 
         {
         }
-    };
+    } Node;
 
 public:
     Linked_List()
@@ -161,3 +161,6 @@ private:
 
     int32 _size;
 };
+
+template<typename Type>
+using Linked_List_Node = Linked_List<Type>::Node;

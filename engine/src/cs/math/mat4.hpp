@@ -29,9 +29,9 @@ public:
     mat4 inverse() const;
 };
 
-mat4 translate(mat4& other, const vec3& translation);
-mat4 rotate(mat4& other, float angle, const vec3& rotation_axis);
-mat4 scale(mat4& other, const vec3& scaling);
-mat4 orthographic_matrix(vec4 frustum, float near, float far);
+mat4 translate(const mat4& other, const vec3& translation);
+mat4 rotate(const mat4& other, float angle, const vec3& rotation_axis);
+mat4 scale(const mat4& other, const vec3& scaling);
+mat4 orthographic_matrix(const vec4& frustum, float near, float far);
 mat4 perspective_matrix(float angle, float aspect_ratio, float near, float far);
 mat4 look_at(vec3 const& eye, vec3 const& center, vec3 const& up);

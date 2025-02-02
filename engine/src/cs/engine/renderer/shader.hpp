@@ -8,7 +8,6 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/engine/resource.hpp"
-#include "cs/containers/hash_table.hpp"
 
 class Shader_Resource : public Resource
 {

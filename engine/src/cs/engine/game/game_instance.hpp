@@ -39,12 +39,12 @@ struct Component_Container
         if (index != last_index) {
             components[index] = components[last_index];
             Name_Id& id = index_to_id[last_index];
-            id_to_index[lastEntity] = index;
-            index_to_id[index] = lastEntity;
+            id_to_index[last_index] = index;
+            index_to_id[index] = last_index;
         }
 
-        id_to_index.erase(entity);
-        index_to_id.erase(last_index);
+        id_to_index[last_index] = -1;
+        index_to_id[last_index] = 0;
         components.pop_back();
     }
 

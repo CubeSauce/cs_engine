@@ -9,13 +9,19 @@
 #include <cassert>
 #include <cstdio>
 
-#if defined __ANDROID__
+#if defined(__ANDROID__)
 	// Should break
 	#define CS_PLATFORM_ANDROID
+	#define CS_PLATFORM_UNIX
+	#define CS_BREAK() raise(SIGTRAP)
+#elif defined __APPLE__
+	#define CS_PLATFORM_APPLE
+	#define CS_PLATFORM_UNIX
+	#include "signal.h"
 	#define CS_BREAK() raise(SIGTRAP)
 #elif defined __linux__
 	#define CS_PLATFORM_LINUX
-
+	#define CS_PLATFORM_UNIX
 	#include "signal.h"
 	#define CS_BREAK() raise(SIGTRAP)
 #elif defined _WIN64 || defined _WIN32

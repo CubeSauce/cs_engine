@@ -181,14 +181,14 @@ mat4 mat4::inverse() const
 	return Inverse * OneOverDeterminant;
 }
 
-mat4 translate(mat4& other, const vec3& translation)
+mat4 translate(const mat4& other, const vec3& translation)
 {
 	mat4 result(other);
 	result[3] = other[0] * translation[0] + other[1] * translation[1] + other[2] * translation[2] + other[3];
 	return result;
 }
 
-mat4 rotate(mat4& other, float angle, const vec3& rotation_axis)
+mat4 rotate(const mat4& other, float angle, const vec3& rotation_axis)
 {
 	mat4 Rotate(1.0f);
 
@@ -218,7 +218,7 @@ mat4 rotate(mat4& other, float angle, const vec3& rotation_axis)
 	return result;
 }
 
-mat4 scale(mat4& other, const vec3& scaling)
+mat4 scale(const mat4& other, const vec3& scaling)
 {
 	mat4 result;
 	result[0] = other[0] * scaling[0];
@@ -228,7 +228,7 @@ mat4 scale(mat4& other, const vec3& scaling)
 	return result;
 }
 
-mat4 orthographic_matrix(vec4 frustum, float near, float far)
+mat4 orthographic_matrix(const vec4& frustum, float near, float far)
 {
 	mat4 ret(1.0f);
 

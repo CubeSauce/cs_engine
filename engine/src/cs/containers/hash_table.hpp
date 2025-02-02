@@ -71,15 +71,9 @@ public:
                 continue;
             }
 
-            for (Linked_List<Hash_Pair>::Node* it = _pair_linked_lists[i].get_first(); it != nullptr;)
+            for (Linked_List_Node<Hash_Pair>* it = _pair_linked_lists[i].get_first(); it != nullptr;)
             {
-                if (it == nullptr)
-                {
-                    continue;
-                }
-
                 f(it->data);
-
                 it = it->next;
             }
         }
