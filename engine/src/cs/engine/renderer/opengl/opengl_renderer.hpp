@@ -11,12 +11,27 @@ class OpenGL_Buffer : public Buffer
 public:
     virtual ~OpenGL_Buffer() = default;
     virtual void bind() const override {}
-    virtual void unbind() const override {};
+    virtual void unbind() const override {}
     virtual void set_data(const void *data, uint32 size, uint32 offset = 0) override {}
+};
+
+class OpenGL_Uniform_Buffer : public OpenGL_Buffer
+{
+public:
+    GLuint buffer;
+
+public:
+    virtual ~OpenGL_Uniform_Buffer() = default;
+    virtual void bind() const override;
+    virtual void unbind() const override;
+    virtual void set_data(const void *data, uint32 size, uint32 offset = 0) override;
 };
 
 class OpenGL_Shader : public Shader
 {
+public:
+    GLuint shader;
+
 public:
     virtual ~OpenGL_Shader() override {}
     OpenGL_Shader() = default;
@@ -51,7 +66,7 @@ class Camera;
 class OpenGL_Renderer_Backend : public Renderer_Backend
 {
 public:
-    virtual ~OpenGL_Renderer_Backend() override;
+    virtual ~OpenGL_Renderer_Backend() override {}
     virtual void initialize(const Shared_Ptr<Window> &window) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 

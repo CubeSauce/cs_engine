@@ -73,7 +73,7 @@ void Engine::run()
             _renderer->end_frame();
             _renderer->render_frame();
             
-            _renderer->window->swap_buffers();
+            //_renderer->window->swap_buffers();
             _renderer->window->poll_events();
         }
     }
@@ -131,7 +131,7 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
 }
 
 Shared_Ptr<Window> Engine::_create_window()
@@ -145,12 +145,21 @@ Shared_Ptr<Window> Engine::_create_window()
 Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window)
 {
     Shared_Ptr<Renderer_Backend> backend;
+    switch(api)
+    {
     #ifdef CS_PLATFORM_WINDOWS
-        backend = Shared_Ptr<DirectX_Renderer_Backend>::create();
-    #else
-        //TODO: Warn
-        backend = Shared_Ptr<OpenGL_Renderer_Backend>::create();
+        case Renderer_API::DirectX12:
+        case Renderer_API::DirectX11:
+        {
+            backend = Shared_Ptr<DirectX_Renderer_Backend>::create();
+            break;
+        }
     #endif //CS_PLATFORM_WINDOWS
+        default:
+        {
+            backend = Shared_Ptr<OpenGL_Renderer_Backend>::create();
+        } 
+    }
 
     backend->initialize(window);
 

@@ -90,14 +90,16 @@ void Test_Game_Instance::init()
 {
   //TODO: Engine defaults
   Shared_Ptr<Shader_Resource> shader_resource = Shared_Ptr<Shader_Resource>::create();
-  shader_resource->vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
-  shader_resource->pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+  //shader_resource->vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
+  //shader_resource->pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+  shader_resource->vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
+  shader_resource->pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
 
   default_material = Shared_Ptr<Material_Resource>::create();
   default_material->shader_resource = shader_resource;
 
   game_state.transform_components.add("player", {vec3(0.0f), quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))});
-  game_state.render_components.add("player", {import("assets/mesh/kimono.obj")});
+  game_state.render_components.add("player", { import("assets/mesh/kimono.obj") });
 }
 
 float times = 0.0f;
