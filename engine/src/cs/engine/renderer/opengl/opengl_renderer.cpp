@@ -45,7 +45,7 @@ struct
     mat4 projection { mat4(1.0f) };
 } data;
 
-void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
+void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system)
 {
     assert(window);
     _window = window;
@@ -65,7 +65,7 @@ void OpenGL_Renderer_Backend::render_frame()
 
 }
 
-void OpenGL_Renderer_Backend::begin_frame()
+void OpenGL_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
     glClearColor(0.05f, 0.05f, 0.75f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -82,7 +82,7 @@ void OpenGL_Renderer_Backend::begin_frame()
     }
 }
 
-void OpenGL_Renderer_Backend::end_frame()
+void OpenGL_Renderer_Backend::end_frame(VR_Eye::Type eye)
 {
     _window->swap_buffers();
 }
@@ -92,7 +92,7 @@ void OpenGL_Renderer_Backend::shutdown()
 
 }
 
-void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform)
+void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye)
 {
     Shared_Ptr<OpenGL_Mesh> gl_mesh = mesh;
     if (!gl_mesh)

@@ -7,7 +7,7 @@
 #include "cs/engine/renderer/opengl/opengl_renderer.hpp"
 
 #include "cs/engine/game/game_instance.hpp"
-
+#include "cs/engine/vr/vr_system.hpp"
 
 void Engine::initialize(const Dynamic_Array<std::string>& args)
 {
@@ -18,17 +18,24 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
 
     if (_net_instance->is_local())
     {
+        if (_cvar_vr_support->get() && !_vr_system)
+        {
+            _vr_system = Shared_Ptr<VR_System>::create();
+            _vr_system->initialize();
+        }
+
         _renderer = Shared_Ptr<Renderer>::create();
         _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _create_window());
 
-        Shared_Ptr<Perspective_Camera> p_camera = Shared_Ptr<Perspective_Camera>::create();
-        p_camera->FOV_deg = 45.0f;
-        p_camera->near_d = 0.0f;
-        p_camera->far_d = 10.0f;
-        p_camera->position = {0.0f, -18.0f, 3.0f};
-        p_camera->target = {0.0f, 0.0f, 3.0f};
+        Shared_Ptr<Perspective_Camera> default_camera = Shared_Ptr<Perspective_Camera>::create();
+        default_camera->FOV_deg = 45.0f;
+        default_camera->near_d = 0.0f;
+        default_camera->far_d = 1000.0f;
+        default_camera->position = {0.0f, 0.0f, -3.0f};
+        default_camera->target = {0.0f, 1.0f, 0.0f};
 
-        _renderer->set_active_camera(p_camera);
+        _renderer->set_active_camera(default_camera);
+
     }
 }
 
@@ -56,26 +63,46 @@ void Engine::run()
     {
         _net_instance->update(dt);
 
+        if (_vr_system)
+        {
+            _vr_system->poll_events();
+            _vr_system->update(dt);
+        }
+
+        if (_renderer)
+        {
+            _renderer->window->poll_events();
+            
+            if (_vr_system)
+            {
+                _renderer->backend->begin_frame(VR_Eye::Left);
+            
+                if (game_instance)
+                {
+                    game_instance->render(_renderer, VR_Eye::Left);
+                }
+    
+                _renderer->backend->end_frame(VR_Eye::Left);
+                
+                _renderer->backend->begin_frame(VR_Eye::Right);
+            
+                if (game_instance)
+                {
+                    game_instance->render(_renderer, VR_Eye::Right);
+                }
+    
+                _renderer->backend->end_frame(VR_Eye::Right);
+            }
+            
+            _renderer->render_frame();
+            //_renderer->window->swap_buffers();
+        }
+
         if (game_instance)
         {
             game_instance->update(dt);
         }
 
-        if (_renderer)
-        {
-            _renderer->begin_frame();
-            
-            if (game_instance)
-            {
-                game_instance->render(_renderer);
-            }
-
-            _renderer->end_frame();
-            _renderer->render_frame();
-            
-            //_renderer->window->swap_buffers();
-            _renderer->window->poll_events();
-        }
     }
 
     if (game_instance)
@@ -131,7 +158,9 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
+    _cvar_vr_support = _cvar_registry->register_cvar<bool>(
+        "cs_vr_support", true, "Turn VR support on/off");
 }
 
 Shared_Ptr<Window> Engine::_create_window()
@@ -161,9 +190,7 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
         } 
     }
 
-    backend->initialize(window);
-
-    _renderer->initialize(window, backend);
+    _renderer->initialize(window, backend, _vr_system);
 
     return backend;
 }

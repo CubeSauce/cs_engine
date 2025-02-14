@@ -91,15 +91,15 @@ class DirectX_Renderer_Backend : public Renderer_Backend
 {
 public:
     virtual ~DirectX_Renderer_Backend() override;
-    virtual void initialize(const Shared_Ptr<Window> &window) override;
+    virtual void initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 
+    virtual void begin_frame(VR_Eye::Type eye = VR_Eye::None) override;
+    virtual void end_frame(VR_Eye::Type eye = VR_Eye::None) override;
     virtual void render_frame() override;
-    virtual void begin_frame() override;
-    virtual void end_frame() override;
     virtual void shutdown() override;
-    virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform) override;
-    //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
+    virtual void draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye = VR_Eye::None) override;
+    // virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
 
     virtual Shared_Ptr<Buffer> create_vertex_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_index_buffer(void *data, uint32 size);
@@ -111,12 +111,20 @@ public:
 
 private:
     Shared_Ptr<Window> _window;
+    Shared_Ptr<VR_System> _vr_system;
 
     ComPtr<ID3D11Device> _device;
     ComPtr<ID3D11DeviceContext> _device_context;
     ComPtr<IDXGISwapChain> _swapchain;
-    ComPtr<ID3D11RenderTargetView> _render_target_view;
-    ComPtr<ID3D11DepthStencilView> _depth_stencil_view;
+
+    struct Direct_X_Framebuffer
+    {
+        ComPtr<ID3D11Texture2D> texture;
+        ComPtr<ID3D11RenderTargetView> render_target_view;
+        ComPtr<ID3D11DepthStencilView> depth_stencil_view;
+    };
+
+    Shared_Ptr<Direct_X_Framebuffer> _left_eye, _right_eye, _basic;
 
     D3D11_VIEWPORT _viewport{};
 
@@ -130,6 +138,7 @@ private:
     ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
     ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
 
+    void _initialize_framebuffer(Direct_X_Framebuffer &framebuffer);
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
 };

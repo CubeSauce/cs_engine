@@ -9,6 +9,11 @@ Camera::Camera(const mat4& projection, const mat4& view)
 {
 }
 
+mat4 Camera::get_world()
+{
+	return _world;
+}
+
 mat4 Camera::get_view()
 {
 	return _view;

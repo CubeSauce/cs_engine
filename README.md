@@ -3,6 +3,7 @@ CS - CubeSauce
 Amalgation of various project over the years
 Current version supports DirectX and Windows only, Vulkan and OpenGL with Linux/MacOs coming soon
 Build using CMake 
+OpenVR needs to be in `tempBeta` branch
 
 Proper game examples coming soon
 
@@ -18,13 +19,19 @@ Proper game examples coming soon
 ### Rendering api
 - [x] DirectX
 - [ ] Vulkan
-- [ ] OpenGL
+- [-] OpenGL
 ### Window framework
 - [x] GLFW
 - [ ] SDL
 - [ ] Native Windows
 - [ ] Native Linux
 - [ ] Native MacOS
+### OpenVR integration
+- [x] Get a headset to connect (PSVR)
+- [x] Make it work in my coordinate space (right handed +Z as up)
+- [x] Orientation tracking
+- [ ] Movement tracking
+- [ ] Hand tracking
 ### Networking
 - [x] Basic sockets
 - [ ] Data serialization

@@ -22,10 +22,12 @@ public:
 
 	mat4 get_projection();
 	mat4 get_view();
+	mat4 get_world();
 
 protected:
 	mat4 _projection { mat4(1.0f) };
 	mat4 _view { mat4(1.0f) };
+	mat4 _world { mat4(1.0f) };
 };
 
 class Orthographic_Camera : public Camera

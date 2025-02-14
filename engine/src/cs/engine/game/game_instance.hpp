@@ -6,6 +6,7 @@
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/hash_table.hpp"
 #include "cs/containers/dynamic_array.hpp"
+#include "cs/engine/vr/vr_system.hpp"
 
 template<typename Type>
 struct Component_Container
@@ -23,6 +24,7 @@ struct Component_Container
 
         int32 new_index = components.size();
         id_to_index[id] = new_index;
+        index_to_id[new_index] = id;
         components.add(type);
     }
 
@@ -68,6 +70,6 @@ public:
 
     virtual void init() = 0;
     virtual void update(float dt) = 0;
-    virtual void render(const Shared_Ptr<Renderer>& renderer) = 0;
+    virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) = 0;
     virtual void shutdown() = 0;
 };

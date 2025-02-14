@@ -17,6 +17,7 @@ Shared_Ptr<Material_Resource> default_material;
 Shared_Ptr<Mesh_Resource> import(const char* filepath)
 {
   Shared_Ptr<Mesh_Resource> mesh_resource = Shared_Ptr<Mesh_Resource>::create();
+  mesh_resource->name = filepath;
 
   mat4 qmat = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f)).to_mat4();
 
@@ -82,7 +83,7 @@ public:
 
   virtual void init() override;
   virtual void update(float dt) override;
-  virtual void render(const Shared_Ptr<Renderer>& renderer) override;
+  virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override;
   virtual void shutdown() override;
 };
 
@@ -90,16 +91,52 @@ void Test_Game_Instance::init()
 {
   //TODO: Engine defaults
   Shared_Ptr<Shader_Resource> shader_resource = Shared_Ptr<Shader_Resource>::create();
-  //shader_resource->vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
-  //shader_resource->pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
-  shader_resource->vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
-  shader_resource->pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
+  shader_resource->vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
+  shader_resource->pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+  //shader_resource->vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
+  //shader_resource->pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
 
   default_material = Shared_Ptr<Material_Resource>::create();
   default_material->shader_resource = shader_resource;
 
-  game_state.transform_components.add("player", {vec3(0.0f), quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))});
-  game_state.render_components.add("player", { import("assets/mesh/kimono.obj") });
+  Shared_Ptr<Mesh_Resource> kimono = import("assets/mesh/kimono.obj");
+  Shared_Ptr<Mesh_Resource> plane = import("assets/mesh/plane.obj");
+
+  game_state.transform_components.add("player", {
+    .position = vec3(-5.0f, 5.0f, .0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("player", { .mesh = kimono });
+
+  game_state.transform_components.add("npc1", {
+    .position = vec3(-5.0f, 5.0f, 0.0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("npc1", { .mesh = kimono });
+
+  game_state.transform_components.add("npc2", {
+    .position = vec3(5.0f, -5.0f, 0.0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("npc2", { .mesh = kimono });
+  
+  game_state.transform_components.add("npc3", {
+    .position = vec3(-5.0f, -5.0f, 0.0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("npc3", { .mesh = kimono });
+
+  game_state.transform_components.add("npc4", {
+    .position = vec3(5.0f, 5.0f, 0.0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("npc4", { .mesh = kimono });
+
+  game_state.transform_components.add("plane", {
+    .position = vec3(0.0f, 0.0f, -2.0f), 
+    .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  });
+  game_state.render_components.add("plane", { .mesh = plane });
 }
 
 float times = 0.0f;
@@ -110,9 +147,9 @@ void Test_Game_Instance::update(float dt)
 
     if (Transform_Component* component = game_state.transform_components.get("player"))
     {
-      component->position.x = sinf(times) * 5.0f;
-      component->position.y = cosf(times) * 5.0f;
-      component->position.z = cosf(times * 2.0f) * 5.0f + 2.5f;
+      component->position.x = sinf(times) * 15.0f;
+      component->position.y = cosf(times) * 15.0f;
+      component->position.z = cosf(times * 2.0f) * 2.0f + 2.0f;
     }
 
     for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
@@ -127,7 +164,7 @@ void Test_Game_Instance::update(float dt)
 }
 
 Hash_Table<Shared_Ptr<Mesh>> meshes;
-void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer)
+void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye)
 {
     Shared_Ptr<Renderer_Backend> renderer_backend = renderer->backend;
 

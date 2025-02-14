@@ -6,11 +6,11 @@ Renderer::Renderer()
 {
 }
 
-void Renderer::initialize(const Shared_Ptr<Window>& in_window, const Shared_Ptr<Renderer_Backend>& in_backend)
+void Renderer::initialize(const Shared_Ptr<Window>& in_window, const Shared_Ptr<Renderer_Backend>& in_backend, const Shared_Ptr<VR_System>& in_vr_system)
 {
     window = in_window;
     backend = in_backend;
-    backend->initialize(window);
+    backend->initialize(window, in_vr_system);
 }
 
 void Renderer::begin_frame()

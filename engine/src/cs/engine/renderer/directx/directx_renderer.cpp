@@ -1,8 +1,10 @@
 #include "cs/engine/renderer/directx/directx_renderer.hpp"
 #include "cs/engine/renderer/camera.hpp"
 #include "cs/engine/renderer/mesh.hpp"
+#include "cs/engine/vr/vr_system.hpp"
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/engine/window.hpp"
+
 #include <GL/glew.h>
 
 #include <memory>
@@ -31,7 +33,7 @@ void DirectX_Uniform_Buffer::bind() const
     device_context->VSSetConstantBuffers(0, 1, buffer.GetAddressOf());
 }
 
-void DirectX_Uniform_Buffer::set_data(const void* data, uint32 size, uint32 offset)
+void DirectX_Uniform_Buffer::set_data(const void *data, uint32 size, uint32 offset)
 {
     D3D11_MAPPED_SUBRESOURCE mapped_constant_buffer;
     HRESULT hr = device_context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_constant_buffer);
@@ -66,7 +68,7 @@ void DirectX_Shader::unbind() const
     device_context->PSSetShader(nullptr, nullptr, 0);
 }
 
-DirectX_Mesh::DirectX_Mesh(const Shared_Ptr<Mesh_Resource>& in_mesh_resource)
+DirectX_Mesh::DirectX_Mesh(const Shared_Ptr<Mesh_Resource> &in_mesh_resource)
     : Mesh(in_mesh_resource)
 {
 }
@@ -75,13 +77,13 @@ void DirectX_Mesh::upload_data()
 {
     for (int32 s = 0; s < submeshes.size(); ++s)
     {
-        DirectX_Submesh& submesh = submeshes[s];
-        const Submesh_Data& submesh_data = mesh_resource->submeshes[s];
+        DirectX_Submesh &submesh = submeshes[s];
+        const Submesh_Data &submesh_data = mesh_resource->submeshes[s];
 
         submesh.vertices_count = submesh_data.vertices.size();
 
         D3D11_BUFFER_DESC buffer_desc = {};
-        
+
         buffer_desc.ByteWidth = submesh_data.vertices.size_in_bytes();
         buffer_desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
         buffer_desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
@@ -94,27 +96,28 @@ void DirectX_Mesh::upload_data()
 
 DirectX_Renderer_Backend::~DirectX_Renderer_Backend()
 {
-
 }
 
 struct
 {
-    mat4 world { mat4(1.0f) };
-    mat4 world_inv_tran { mat4(1.0f) };
-    mat4 view { mat4(1.0f) };
-    mat4 projection { mat4(1.0f) };
+    mat4 world{mat4(1.0f)};
+    mat4 world_inv_tran{mat4(1.0f)};
+    mat4 view{mat4(1.0f)};
+    mat4 projection{mat4(1.0f)};
 } data;
 
-void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window>& window)
+void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system)
 {
     _window = window;
     _hwnd = static_cast<HWND>(window->native_handle());
 
+    _vr_system = vr_system;
+
     // Create the Direct3D device and swap chain
     DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
     swap_chain_desc.BufferCount = 1;
-    swap_chain_desc.BufferDesc.Width = (uint32) _viewport.Width;
-    swap_chain_desc.BufferDesc.Height = (uint32) _viewport.Height;
+    swap_chain_desc.BufferDesc.Width = (uint32)_viewport.Width;
+    swap_chain_desc.BufferDesc.Height = (uint32)_viewport.Height;
     swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swap_chain_desc.OutputWindow = _hwnd;
@@ -122,55 +125,101 @@ void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window>& window)
     swap_chain_desc.Windowed = TRUE;
 
     HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-        nullptr, 0, D3D11_SDK_VERSION, &swap_chain_desc, &_swapchain, &_device, nullptr, &_device_context
-    );
-    assert(SUCCEEDED( hr ));
+                                               nullptr, 0, D3D11_SDK_VERSION, &swap_chain_desc, &_swapchain, &_device, nullptr, &_device_context);
+    assert(SUCCEEDED(hr));
 
-    _window->on_window_resize.bind([&](uint32 width, uint32 height) {
+    _window->on_window_resize.bind([&](uint32 width, uint32 height)
+                                   {
         _cleanup_render_stuff();
-        _initialize_render_stuff();
-    });
-    
+        _initialize_render_stuff(); });
+
     _uniform_buffer = create_uniform_buffer(&data, sizeof(data));
 
     _initialize_render_stuff();
 }
 
-void DirectX_Renderer_Backend::set_camera(const Shared_Ptr<Camera>& camera)
+void DirectX_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 {
     _camera = camera;
 }
 
-void DirectX_Renderer_Backend::begin_frame()
+void DirectX_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
-    constexpr float clearColor[] = { 0.1f, 0.3f, 0.1f, 1.0f };
-    _device_context->ClearRenderTargetView(_render_target_view.Get(), clearColor);
-    _device_context->ClearDepthStencilView(_depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
+    constexpr float clearColor[] = {0.1f, 0.3f, 0.1f, 1.0f};
     _device_context->RSSetViewports(1, &_viewport);
-    _device_context->OMSetRenderTargets(1, _render_target_view.GetAddressOf(), _depth_stencil_view.Get());
+
+    switch(eye)
+    {
+        case VR_Eye::None:
+        {
+            if (_basic)
+            {
+                _device_context->ClearRenderTargetView(_basic->render_target_view.Get(), clearColor);
+                _device_context->ClearDepthStencilView(_basic->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+                _device_context->OMSetRenderTargets(1, _basic->render_target_view.GetAddressOf(), _basic->depth_stencil_view.Get());
+            }
+            break;
+        }
+        case VR_Eye::Left:
+        {
+            if (_left_eye)
+            {
+                _device_context->ClearRenderTargetView(_left_eye->render_target_view.Get(), clearColor);
+                _device_context->ClearDepthStencilView(_left_eye->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+                _device_context->OMSetRenderTargets(1, _left_eye->render_target_view.GetAddressOf(), _left_eye->depth_stencil_view.Get());
+            }
+            break;
+        }
+        case VR_Eye::Right:
+        {
+            if (_right_eye)
+            {
+                _device_context->ClearRenderTargetView(_right_eye->render_target_view.Get(), clearColor);
+                _device_context->ClearDepthStencilView(_right_eye->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+                _device_context->OMSetRenderTargets(1, _right_eye->render_target_view.GetAddressOf(), _right_eye->depth_stencil_view.Get());
+            }
+            break;
+        }
+    }
 }
 
-void DirectX_Renderer_Backend::end_frame()
+void DirectX_Renderer_Backend::end_frame(VR_Eye::Type eye)
 {
 }
 
 void DirectX_Renderer_Backend::render_frame()
 {
+    if (_vr_system && _vr_system->is_valid())
+    {
+        vr::VRTextureBounds_t bounds;
+        bounds.uMin = 0.0f;
+        bounds.uMax = 1.0f;
+        bounds.vMin = 0.0f;
+        bounds.vMax = 1.0f;
+    
+        vr::Texture_t leftEyeTexture = { ( void * ) _left_eye->texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
+        vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture, &bounds, vr::Submit_Default );
+    
+        vr::Texture_t rightEyeTexture = { ( void * ) _right_eye->texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
+        vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture, &bounds, vr::Submit_Default );
+    }
+
     _swapchain->Present(1, 0);
 }
 
 void DirectX_Renderer_Backend::shutdown()
 {
-    if (_swapchain) _swapchain->Release();
-    if (_device) _device->Release();
-    if (_device_context) _device_context->Release();
+    if (_swapchain)
+        _swapchain->Release();
+    if (_device)
+        _device->Release();
+    if (_device_context)
+        _device_context->Release();
 }
 
-UINT vertex_stride              = sizeof( Vertex_Data );
-UINT vertex_offset              = 0;
-float angle = 0;
-void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform)
+UINT vertex_stride = sizeof(Vertex_Data);
+UINT vertex_offset = 0;
+void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye)
 {
     Shared_Ptr<DirectX_Mesh> dx_mesh = mesh;
     if (!dx_mesh)
@@ -178,28 +227,36 @@ void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat
         return;
     }
 
-    //TODO: Change only when needed and per shader that needs it
-    if (_camera)
+    data = {};
+
+    if (_vr_system && _vr_system->is_valid())
+    {
+        Shared_Ptr<Camera> camera = _vr_system->get_camera(eye);
+
+        data.view = camera->get_view();
+        data.projection = camera->get_projection();
+        static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
+        data.view = _vr_system->_get_eye_pose(eye) * _vr_system->_head_view_matrix * toZup;
+        data.projection =_vr_system->_get_eye_projection(eye);
+    }
+    else if (_camera)
     {
         _camera->aspect_ratio = _viewport.Width / _viewport.Height;
         _camera->calculate_projection();
         _camera->calculate_view();
 
-        data.projection = _camera->get_projection();
         data.view = _camera->get_view();
+        data.projection = _camera->get_projection();
     }
 
     data.world = world_transform;
-    //data.world = rotate(data.world, MATH_DEG_TO_RAD(angle), {0.0f, 0.0f, 1.0f});
-    //data.world = rotate(data.world, MATH_DEG_TO_RAD(90.0), {1.0f, 0.0f, 0.0f});
-    //angle += 1.0f;
 
     data.world_inv_tran = data.world.inverse();
     data.world.transpose();
     data.view.transpose();
     data.projection.transpose();
 
-    for (const DirectX_Submesh& submesh : dx_mesh->submeshes)
+    for (const DirectX_Submesh &submesh : dx_mesh->submeshes)
     {
         // TODO: Change only when needed
         _uniform_buffer->set_data(&data, sizeof(data), 0);
@@ -216,15 +273,15 @@ void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat
 
 Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_vertex_buffer(void *data, uint32 size)
 {
-    //TODO: Won't work
+    // TODO: Won't work
     Shared_Ptr<DirectX_Buffer> buffer = Shared_Ptr<DirectX_Buffer>::create();
     buffer->device_context = _device_context;
 
     D3D11_BUFFER_DESC buffer_desc{0};
     buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;// | D3D11_CPU_ACCESS_READ;
+    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // | D3D11_CPU_ACCESS_READ;
     buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;
-    buffer_desc.ByteWidth = (uint32) size;
+    buffer_desc.ByteWidth = (uint32)size;
 
     D3D11_SUBRESOURCE_DATA subresource_data{0};
     subresource_data.pSysMem = data;
@@ -240,7 +297,7 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_index_buffer(void *data, uin
     Shared_Ptr<DirectX_Index_Buffer> buffer = Shared_Ptr<DirectX_Index_Buffer>::create();
     D3D11_BUFFER_DESC buffer_desc{0};
     buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;// | D3D11_CPU_ACCESS_READ;
+    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // | D3D11_CPU_ACCESS_READ;
     buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;
     buffer_desc.ByteWidth = size;
 
@@ -249,7 +306,7 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_index_buffer(void *data, uin
 
     HRESULT hr = _device->CreateBuffer(&buffer_desc, &subresource_data, &buffer->buffer);
     assert(SUCCEEDED(hr));
-    
+
     return buffer;
 }
 
@@ -258,7 +315,7 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_uniform_buffer(void *data, u
     Shared_Ptr<DirectX_Uniform_Buffer> buffer = Shared_Ptr<DirectX_Uniform_Buffer>::create();
     buffer->device_context = _device_context;
 
-    D3D11_BUFFER_DESC buffer_desc = { 0 };
+    D3D11_BUFFER_DESC buffer_desc = {0};
     buffer_desc.ByteWidth = size;
     buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
     buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -266,7 +323,7 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_uniform_buffer(void *data, u
     buffer_desc.MiscFlags = 0;
     buffer_desc.StructureByteStride = 0;
 
-    D3D11_SUBRESOURCE_DATA resource_data = { 0 };
+    D3D11_SUBRESOURCE_DATA resource_data = {0};
     resource_data.pSysMem = data;
 
     HRESULT hr = _device->CreateBuffer(&buffer_desc, &resource_data, &buffer->buffer);
@@ -277,7 +334,7 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_uniform_buffer(void *data, u
     return buffer;
 }
 
-Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource>& shader_resource)
+Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
     Shared_Ptr<DirectX_Shader> shader = Shared_Ptr<DirectX_Shader>::create();
 
@@ -289,24 +346,23 @@ Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shad
 
     // TODO: From Shader definition
     constexpr D3D11_INPUT_ELEMENT_DESC input_element_desc[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
+        {
+            {"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0}};
 
     assert(SUCCEEDED(_device->CreateInputLayout(input_element_desc, ARRAYSIZE(input_element_desc),
-        vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(), &shader->vertex_layout)));
+                                                vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(), &shader->vertex_layout)));
 
     return shader;
 }
 
-Shared_Ptr<Mesh> DirectX_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource>& mesh_resource)
+Shared_Ptr<Mesh> DirectX_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
 {
     Shared_Ptr<DirectX_Mesh> dx_mesh = Shared_Ptr<DirectX_Mesh>::create(mesh_resource);
     dx_mesh->device = _device;
 
-    for (const Submesh_Data& submesh : mesh_resource->submeshes)
+    for (const Submesh_Data &submesh : mesh_resource->submeshes)
     {
         DirectX_Submesh dx_submesh;
 
@@ -319,7 +375,7 @@ Shared_Ptr<Mesh> DirectX_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Res
 }
 
 #include <iostream>
-bool DirectX_Renderer_Backend::_compile_shader(const char* filename, const char* entry_point, const char* profile, ComPtr<ID3DBlob>& shader_blob)
+bool DirectX_Renderer_Backend::_compile_shader(const char *filename, const char *entry_point, const char *profile, ComPtr<ID3DBlob> &shader_blob)
 {
     constexpr UINT compile_flags = D3DCOMPILE_ENABLE_STRICTNESS;
 
@@ -327,15 +383,15 @@ bool DirectX_Renderer_Backend::_compile_shader(const char* filename, const char*
     ComPtr<ID3DBlob> error_blob = nullptr;
 
     size_t num_chars;
-    std::wstring w_filename( strlen(filename), L'#' );
+    std::wstring w_filename(strlen(filename), L'#');
     mbstowcs_s(&num_chars, &w_filename[0], w_filename.capacity(), filename, strlen(filename));
-    
-    HRESULT hr = D3DCompileFromFile( w_filename.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entry_point, profile, 
-        compile_flags, 0, &temp_shader_blob, &error_blob);
+
+    HRESULT hr = D3DCompileFromFile(w_filename.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entry_point, profile,
+                                    compile_flags, 0, &temp_shader_blob, &error_blob);
 
     if (FAILED(hr))
     {
-        std::string e((char*)error_blob->GetBufferPointer());
+        std::string e((char *)error_blob->GetBufferPointer());
         assert(false);
     }
 
@@ -343,7 +399,7 @@ bool DirectX_Renderer_Backend::_compile_shader(const char* filename, const char*
     return true;
 }
 
-ComPtr<ID3D11VertexShader> DirectX_Renderer_Backend::_create_vertex_shader(const char* filename, ComPtr<ID3DBlob>& vertex_shader_blob)
+ComPtr<ID3D11VertexShader> DirectX_Renderer_Backend::_create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob)
 {
     if (!_compile_shader(filename, "main", "vs_5_0", vertex_shader_blob))
     {
@@ -359,7 +415,7 @@ ComPtr<ID3D11VertexShader> DirectX_Renderer_Backend::_create_vertex_shader(const
     return vertex_shader;
 }
 
-ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const char* filename)
+ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const char *filename)
 {
     ComPtr<ID3DBlob> pixel_shader_blob = nullptr;
     if (!_compile_shader(filename, "main", "ps_5_0", pixel_shader_blob))
@@ -368,7 +424,7 @@ ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const c
     }
 
     ComPtr<ID3D11PixelShader> pixel_shader;
-    assert (SUCCEEDED(_device->CreatePixelShader(
+    assert(SUCCEEDED(_device->CreatePixelShader(
         pixel_shader_blob->GetBufferPointer(),
         pixel_shader_blob->GetBufferSize(),
         nullptr, &pixel_shader)));
@@ -376,27 +432,19 @@ ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const c
     return pixel_shader;
 }
 
-void DirectX_Renderer_Backend::_initialize_render_stuff()
+void DirectX_Renderer_Backend::_initialize_framebuffer(Direct_X_Framebuffer &framebuffer)
 {
-    RECT win_rect;
-    GetClientRect( _hwnd, &win_rect );
-    _viewport = { 0.0f, 0.0f, ( FLOAT )( win_rect.right - win_rect.left ), ( FLOAT )( win_rect.bottom - win_rect.top ), 0.0f, 1.0f };
+    HRESULT hr = _swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)framebuffer.texture.GetAddressOf());
+    assert(SUCCEEDED(hr));
 
-    _device_context->Flush();
-
-    ComPtr<ID3D11Texture2D> framebuffer_texture;
-    HRESULT hr = _swapchain->GetBuffer(0, __uuidof( ID3D11Texture2D ), (void**)framebuffer_texture.GetAddressOf());
-    assert(SUCCEEDED( hr ));
-
-    hr = _device->CreateRenderTargetView(framebuffer_texture.Get(), 0, &_render_target_view );
-    assert(SUCCEEDED( hr ));
-    framebuffer_texture->Release();
+    hr = _device->CreateRenderTargetView(framebuffer.texture.Get(), 0, &framebuffer.render_target_view);
+    assert(SUCCEEDED(hr));
 
     // TODO: Update on resize
     D3D11_TEXTURE2D_DESC depth_texture_desc;
     ZeroMemory(&depth_texture_desc, sizeof(depth_texture_desc));
-    depth_texture_desc.Width = (uint32) _viewport.Width;
-    depth_texture_desc.Height = (uint32) _viewport.Height;
+    depth_texture_desc.Width = (uint32)_viewport.Width;
+    depth_texture_desc.Height = (uint32)_viewport.Height;
     depth_texture_desc.MipLevels = 1;
     depth_texture_desc.ArraySize = 1;
     depth_texture_desc.SampleDesc.Count = 1;
@@ -413,15 +461,58 @@ void DirectX_Renderer_Backend::_initialize_render_stuff()
     depth_stencil_view_desc.Format = depth_texture_desc.Format;
     depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 
-    hr = _device->CreateDepthStencilView(depth_stencil_texture, &depth_stencil_view_desc, &_depth_stencil_view);
+    hr = _device->CreateDepthStencilView(depth_stencil_texture, &depth_stencil_view_desc, &framebuffer.depth_stencil_view);
     assert(SUCCEEDED(hr));
     depth_stencil_texture->Release();
 }
 
-void DirectX_Renderer_Backend::_cleanup_render_stuff()
+void DirectX_Renderer_Backend::_initialize_render_stuff()
 {
-    _render_target_view.Reset();
-    _depth_stencil_view.Reset();
+    RECT win_rect;
+    GetClientRect(_hwnd, &win_rect);
+    _viewport = {0.0f, 0.0f, (FLOAT)(win_rect.right - win_rect.left), (FLOAT)(win_rect.bottom - win_rect.top), 0.0f, 1.0f};
+
+    _device_context->Flush();
+
+    _basic = Shared_Ptr<Direct_X_Framebuffer>::create();
+    if (_basic)
+    {
+        _initialize_framebuffer(*_basic.get());
+    }
+
+    // TODO: Connect to _vr_system events for connecting/disconnecting hardware
+    _left_eye = Shared_Ptr<Direct_X_Framebuffer>::create();
+    if (_left_eye)
+    {
+        _initialize_framebuffer(*_left_eye.get());
+    }
+
+    _right_eye = Shared_Ptr<Direct_X_Framebuffer>::create();
+    if (_right_eye)
+    {
+        _initialize_framebuffer(*_right_eye.get());
+    }
 }
 
-#endif //CS_PLATFORM_WINDOWS
+void DirectX_Renderer_Backend::_cleanup_render_stuff()
+{
+    if (_basic)
+    {
+        _basic->render_target_view.Reset();
+        _basic->depth_stencil_view.Reset();
+    }
+
+    if (_left_eye)
+    {
+        _left_eye->render_target_view.Reset();
+        _left_eye->depth_stencil_view.Reset();
+    }
+
+    if (_right_eye)
+    {
+        _right_eye->render_target_view.Reset();
+        _right_eye->depth_stencil_view.Reset();
+    }
+}
+
+#endif // CS_PLATFORM_WINDOWS

@@ -14,6 +14,8 @@
 
 #include <string>
 
+#include "openvr.h"
+
 namespace Renderer_API
 {
     enum Type : uint8
@@ -48,6 +50,7 @@ struct Engine_Create_Descriptor
 class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
+class VR_System;
 class Engine
 {
 public:
@@ -65,6 +68,9 @@ private:
     Shared_Ptr<CVar_Registry> _cvar_registry;
     Shared_Ptr<Net_Instance> _net_instance;
     Shared_Ptr<Renderer> _renderer;
+    Shared_Ptr<VR_System> _vr_system;
+
+    // TODO: Add these as a separate system
 
     bool _should_close { false };
 
@@ -74,6 +80,7 @@ private:
     Shared_Ptr<CVar_T<uint32>> _cvar_window_height;
     Shared_Ptr<CVar_T<std::string>> _cvar_window_title;
     Shared_Ptr<CVar_T<uint8>> _cvar_renderer_api;
+    Shared_Ptr<CVar_T<bool>> _cvar_vr_support;
 
 private:
     void _parse_args(const Dynamic_Array<std::string>& args);

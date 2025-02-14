@@ -67,14 +67,14 @@ class OpenGL_Renderer_Backend : public Renderer_Backend
 {
 public:
     virtual ~OpenGL_Renderer_Backend() override {}
-    virtual void initialize(const Shared_Ptr<Window> &window) override;
+    virtual void initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 
     virtual void render_frame() override;
-    virtual void begin_frame() override;
-    virtual void end_frame() override;
+    virtual void begin_frame(VR_Eye::Type eye = VR_Eye::None) override;
+    virtual void end_frame(VR_Eye::Type eye = VR_Eye::None) override;
     virtual void shutdown() override;
-    virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform) override;
+    virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye = VR_Eye::None) override;
     //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
 
     virtual Shared_Ptr<Buffer> create_vertex_buffer(void *data, uint32 size);

@@ -4,3 +4,6 @@
 [submodule "engine/third_party/assimp"]
 	path = engine/third_party/assimp
 	url = https://github.com/assimp/assimp
+[submodule "engine/third_party/openvr"]
+	path = engine/third_party/openvr
+	url = https://github.com/ValveSoftware/openvr
