@@ -137,6 +137,10 @@ void VR_System::render()
 {
 }
 
+void VR_System::get_viewport(uint32& width, uint32& height)
+{
+    _vr_system->GetRecommendedRenderTargetSize(&width, &height);
+}
 
 mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
 {

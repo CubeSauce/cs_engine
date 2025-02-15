@@ -31,6 +31,10 @@ class OpenGL_Shader : public Shader
 {
 public:
     GLuint shader;
+    GLint world_location { -1 };
+    GLint world_inv_location { -1 };
+    GLint view_location { -1 };
+    GLint projection_location { -1 };
 
 public:
     virtual ~OpenGL_Shader() override {}
@@ -87,6 +91,20 @@ public:
 
 private:
     Shared_Ptr<Window> _window;
+    Shared_Ptr<VR_System> _vr_system;
+
+	struct OpenGL_Framebuffer
+	{
+		GLuint m_nDepthBufferId;
+		GLuint m_nRenderTextureId;
+		GLuint m_nRenderFramebufferId;
+		GLuint m_nResolveTextureId;
+		GLuint m_nResolveFramebufferId;
+	};
+	OpenGL_Framebuffer _left_eye, _right_eye, _basic;
+
+    GLint m_viewport[4];
+    uint32 vr_render_viewport[2];
 
     Shared_Ptr<Camera> _camera;
     Shared_Ptr<OpenGL_Buffer> _uniform_buffer;
@@ -98,4 +116,7 @@ private:
 
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
+
+    OpenGL_Framebuffer _create_framebuffer(int nWidth, int nHeight);
+    void _destroy_framebuffer(OpenGL_Framebuffer& framebuffer);
 };

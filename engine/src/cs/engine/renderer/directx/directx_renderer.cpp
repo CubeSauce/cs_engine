@@ -432,7 +432,7 @@ ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const c
     return pixel_shader;
 }
 
-void DirectX_Renderer_Backend::_initialize_framebuffer(Direct_X_Framebuffer &framebuffer)
+void DirectX_Renderer_Backend::_initialize_framebuffer(DirectX_Framebuffer &framebuffer)
 {
     HRESULT hr = _swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)framebuffer.texture.GetAddressOf());
     assert(SUCCEEDED(hr));
@@ -474,20 +474,20 @@ void DirectX_Renderer_Backend::_initialize_render_stuff()
 
     _device_context->Flush();
 
-    _basic = Shared_Ptr<Direct_X_Framebuffer>::create();
+    _basic = Shared_Ptr<DirectX_Framebuffer>::create();
     if (_basic)
     {
         _initialize_framebuffer(*_basic.get());
     }
 
     // TODO: Connect to _vr_system events for connecting/disconnecting hardware
-    _left_eye = Shared_Ptr<Direct_X_Framebuffer>::create();
+    _left_eye = Shared_Ptr<DirectX_Framebuffer>::create();
     if (_left_eye)
     {
         _initialize_framebuffer(*_left_eye.get());
     }
 
-    _right_eye = Shared_Ptr<Direct_X_Framebuffer>::create();
+    _right_eye = Shared_Ptr<DirectX_Framebuffer>::create();
     if (_right_eye)
     {
         _initialize_framebuffer(*_right_eye.get());

@@ -73,6 +73,15 @@ void Engine::run()
         {
             _renderer->window->poll_events();
             
+            _renderer->backend->begin_frame(VR_Eye::None);
+            
+            if (game_instance)
+            {
+                game_instance->render(_renderer, VR_Eye::None);
+            }
+
+            _renderer->backend->end_frame(VR_Eye::None);
+
             if (_vr_system)
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
@@ -158,7 +167,7 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>(
         "cs_vr_support", true, "Turn VR support on/off");
 }

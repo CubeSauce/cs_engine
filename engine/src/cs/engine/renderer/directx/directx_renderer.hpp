@@ -117,14 +117,14 @@ private:
     ComPtr<ID3D11DeviceContext> _device_context;
     ComPtr<IDXGISwapChain> _swapchain;
 
-    struct Direct_X_Framebuffer
+    struct DirectX_Framebuffer
     {
         ComPtr<ID3D11Texture2D> texture;
         ComPtr<ID3D11RenderTargetView> render_target_view;
         ComPtr<ID3D11DepthStencilView> depth_stencil_view;
     };
 
-    Shared_Ptr<Direct_X_Framebuffer> _left_eye, _right_eye, _basic;
+    Shared_Ptr<DirectX_Framebuffer> _left_eye, _right_eye, _basic;
 
     D3D11_VIEWPORT _viewport{};
 
@@ -138,7 +138,7 @@ private:
     ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
     ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
 
-    void _initialize_framebuffer(Direct_X_Framebuffer &framebuffer);
+    void _initialize_framebuffer(DirectX_Framebuffer &framebuffer);
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
 };

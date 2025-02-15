@@ -52,39 +52,118 @@ void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const
     assert(glewInit() == GLEW_OK);
     glEnable(GL_DEPTH_TEST);
     
+    _window->on_window_resize.bind([&](uint32 width, uint32 height)
+    {
+        _cleanup_render_stuff();
+        _initialize_render_stuff(); 
+    });
+
     _uniform_buffer = create_uniform_buffer(&data, sizeof(data));
+
+    _vr_system = vr_system;
+    _initialize_render_stuff();
 }
 
 void OpenGL_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 {
-
+    _camera = camera;
 }
 
 void OpenGL_Renderer_Backend::render_frame()
-{
-
+{ 
+    
+    if (_vr_system && _vr_system->is_valid())
+    {
+        vr::VRTextureBounds_t bounds;
+        bounds.uMin = 0.0f;
+        bounds.uMax = 1.0f;
+        bounds.vMin = 0.0f;
+        bounds.vMax = 1.0f;
+    
+        vr::Texture_t leftEyeTexture = {(void*)(uintptr_t)_left_eye.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture );
+        vr::Texture_t rightEyeTexture = {(void*)(uintptr_t)_right_eye.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture );
+    }
+    
+    _window->swap_buffers();
 }
 
 void OpenGL_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
+
+    switch(eye)
+    {
+        case VR_Eye::None:
+        {
+            glViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
+            //glBindFramebuffer( GL_FRAMEBUFFER, _basic.m_nRenderFramebufferId );
+            break;
+        }
+        case VR_Eye::Left:
+        {
+            glViewport(0, 0, vr_render_viewport[0], vr_render_viewport[1]);
+            glBindFramebuffer( GL_FRAMEBUFFER, _left_eye.m_nRenderFramebufferId );
+            break;
+        }
+        case VR_Eye::Right:
+        {
+            glViewport(0, 0, vr_render_viewport[0], vr_render_viewport[1]);
+            glBindFramebuffer( GL_FRAMEBUFFER, _right_eye.m_nRenderFramebufferId );
+            break;
+        }
+    }
+
     glClearColor(0.05f, 0.05f, 0.75f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    if (_camera)
-    {
-        //TODO: _camera->aspect_ratio = _viewport.Width / _viewport.Height;
-        _camera->aspect_ratio = 16.0/9.0f;
-        _camera->calculate_projection();
-        _camera->calculate_view();
-
-        data.projection = _camera->get_projection();
-        data.view = _camera->get_view();
-    }
 }
 
 void OpenGL_Renderer_Backend::end_frame(VR_Eye::Type eye)
 {
-    _window->swap_buffers();
+    switch(eye)
+    {
+        case VR_Eye::None:
+        {
+            //glBindFramebuffer( GL_FRAMEBUFFER, _basic.m_nRenderFramebufferId );
+            break;
+        }
+        case VR_Eye::Left:
+        {
+            glDisable( GL_MULTISAMPLE );
+                 
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, _left_eye.m_nRenderFramebufferId);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _left_eye.m_nResolveFramebufferId );
+            
+            glBlitFramebuffer( 0, 0, vr_render_viewport[0],  vr_render_viewport[1], 0, 0,  vr_render_viewport[0],  vr_render_viewport[1], 
+                GL_COLOR_BUFFER_BIT,
+                    GL_LINEAR );
+            
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );	
+            
+            glEnable( GL_MULTISAMPLE );
+            break;
+        }
+        case VR_Eye::Right:
+        {
+            glDisable( GL_MULTISAMPLE );
+                 
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, _right_eye.m_nRenderFramebufferId);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _right_eye.m_nResolveFramebufferId );
+            
+            glBlitFramebuffer( 0, 0, vr_render_viewport[0],  vr_render_viewport[1], 0, 0,  vr_render_viewport[0],  vr_render_viewport[1], 
+                GL_COLOR_BUFFER_BIT,
+                    GL_LINEAR );
+            
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );	
+            
+            glEnable( GL_MULTISAMPLE );
+            break;
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void OpenGL_Renderer_Backend::shutdown()
@@ -100,8 +179,29 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         return;
     }
 
+    if (_vr_system && _vr_system->is_valid())
+    {
+        Shared_Ptr<Camera> camera = _vr_system->get_camera(eye);
+
+        data.view = camera->get_view();
+        data.projection = camera->get_projection();
+        static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
+        data.view = _vr_system->_get_eye_pose(eye) * _vr_system->_head_view_matrix * toZup;
+        data.projection =_vr_system->_get_eye_projection(eye);
+    }
+    else if (_camera)
+    {
+        _camera->aspect_ratio = 16.0f/9.0f;
+        _camera->calculate_projection();
+        _camera->calculate_view();
+
+        data.view = _camera->get_view();
+        data.projection = _camera->get_projection();
+    }
+
     data.world = world_transform;
     data.world_inv_tran = data.world.inverse();
+
     // data.world.transpose();
     // data.view.transpose();
     // data.projection.transpose();
@@ -112,8 +212,12 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         submesh.shader->bind();
         
         // TODO: Change only when needed
-        _uniform_buffer->bind();
-        _uniform_buffer->set_data(&data, sizeof(data), 0);
+        //_uniform_buffer->bind();
+        //_uniform_buffer->set_data(&data, sizeof(data), 0);
+		glUniformMatrix4fv(submesh.shader->world_location, 1, GL_FALSE, (GLfloat*)&data.world);
+		glUniformMatrix4fv(submesh.shader->world_inv_location, 1, GL_FALSE, (GLfloat*)&data.world_inv_tran);
+		glUniformMatrix4fv(submesh.shader->view_location, 1, GL_FALSE, (GLfloat*)&data.view);
+		glUniformMatrix4fv(submesh.shader->projection_location, 1, GL_FALSE, (GLfloat*)&data.projection);
 
         glDrawArrays(GL_TRIANGLES, 0, submesh.vertices_count);
         submesh.shader->unbind();
@@ -179,9 +283,7 @@ void checkCompileErrors(GLuint shader, std::string type)
 Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
     Shared_Ptr<OpenGL_Shader> gl_shader = Shared_Ptr<OpenGL_Shader>::create();
-
-    shader_resource->vertex_filepath;
-    shader_resource->pixel_filepath;
+    gl_shader->shader_resource = shader_resource;
 
     // 1. retrieve the vertex/fragment source code from filePath
     std::ifstream vShaderFile;
@@ -231,6 +333,13 @@ Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shade
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
+    glUseProgram(gl_shader->shader);
+	gl_shader->world_location = glGetUniformLocation(gl_shader->shader, "World");
+	gl_shader->world_inv_location = glGetUniformLocation(gl_shader->shader, "WorldInverseTranspose");
+	gl_shader->view_location = glGetUniformLocation(gl_shader->shader, "View");
+	gl_shader->projection_location = glGetUniformLocation(gl_shader->shader, "Projection");
+    glUseProgram(0);
+
     return gl_shader;
 }
 
@@ -273,10 +382,63 @@ Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Reso
 
 void OpenGL_Renderer_Backend::_initialize_render_stuff()
 {
+    glGetIntegerv( GL_VIEWPORT, m_viewport );
     
+    vr_render_viewport;
+    _vr_system->get_viewport(vr_render_viewport[0], vr_render_viewport[1]);
+
+    _left_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
+    _right_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
+    _basic = _create_framebuffer(m_viewport[2], m_viewport[3]);
 }
 
 void OpenGL_Renderer_Backend::_cleanup_render_stuff()
 {
-    
+    _destroy_framebuffer(_left_eye);
+    _destroy_framebuffer(_right_eye);
+    _destroy_framebuffer(_basic);
+}
+
+OpenGL_Renderer_Backend::OpenGL_Framebuffer OpenGL_Renderer_Backend::_create_framebuffer(int nWidth, int nHeight)
+{
+    OpenGL_Framebuffer gl_framebuffer;
+
+	glGenFramebuffers(1, &gl_framebuffer.m_nRenderFramebufferId );
+	glBindFramebuffer(GL_FRAMEBUFFER, gl_framebuffer.m_nRenderFramebufferId);
+
+	glGenRenderbuffers(1, &gl_framebuffer.m_nDepthBufferId);
+	glBindRenderbuffer(GL_RENDERBUFFER, gl_framebuffer.m_nDepthBufferId);
+	glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	gl_framebuffer.m_nDepthBufferId );
+
+	glGenTextures(1, &gl_framebuffer.m_nRenderTextureId );
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, gl_framebuffer.m_nRenderTextureId );
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, nWidth, nHeight, true);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, gl_framebuffer.m_nRenderTextureId, 0);
+
+	glGenFramebuffers(1, &gl_framebuffer.m_nResolveFramebufferId );
+	glBindFramebuffer(GL_FRAMEBUFFER, gl_framebuffer.m_nResolveFramebufferId);
+
+	glGenTextures(1, &gl_framebuffer.m_nResolveTextureId );
+	glBindTexture(GL_TEXTURE_2D, gl_framebuffer.m_nResolveTextureId );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_framebuffer.m_nResolveTextureId, 0);
+
+	// check FBO status
+	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+	return gl_framebuffer;
+}
+
+void OpenGL_Renderer_Backend::_destroy_framebuffer(OpenGL_Renderer_Backend::OpenGL_Framebuffer& framebuffer)
+{
+    glDeleteRenderbuffers( 1, &framebuffer.m_nDepthBufferId );
+    glDeleteTextures( 1, &framebuffer.m_nRenderTextureId );
+    glDeleteFramebuffers( 1, &framebuffer.m_nRenderFramebufferId );
+    glDeleteTextures( 1, &framebuffer.m_nResolveTextureId );
+    glDeleteFramebuffers( 1, &framebuffer.m_nResolveFramebufferId );
 }

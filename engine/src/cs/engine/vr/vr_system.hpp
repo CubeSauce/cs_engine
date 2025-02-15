@@ -66,6 +66,8 @@ public:
 
     Shared_Ptr<Camera> get_camera(VR_Eye::Type eye) const { return _camera[eye]; }
 
+    void get_viewport(uint32& width, uint32& height);
+
 private:
     vr::IVRSystem* _vr_system { nullptr };
 	vr::IVRRenderModels* _vr_render_models { nullptr };
