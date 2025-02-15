@@ -57,6 +57,8 @@ public:
 
 public:
     void initialize();
+    void shutdown();
+
     void poll_events();
 
     void update(float dt);

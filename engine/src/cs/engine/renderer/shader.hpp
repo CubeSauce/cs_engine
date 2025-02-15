@@ -12,9 +12,12 @@
 class Shader_Resource : public Resource
 {
 public:
-    const char* vertex_filepath = "";
-    const char* geometry_filepath = "";
-    const char* pixel_filepath = "";
+    struct
+    {
+        const char* vertex_filepath = "";
+        const char* geometry_filepath = "";
+        const char* pixel_filepath = "";
+    } source_paths [5]; // TODO: This would be nicer if we could compile from one source
 };
 
 class Shader

@@ -27,7 +27,11 @@ void VR_System::initialize()
 
     vr::EVRInitError vr_error = vr::VRInitError_None;
     _vr_system = vr::VR_Init( &vr_error, vr::VRApplication_Scene );	
-    assert(vr_error == vr::VRInitError_None);
+    if (vr_error != vr::VRInitError_None)
+    {
+        shutdown();
+        return;
+    }
     
     _vr_render_models = (vr::IVRRenderModels *)vr::VR_GetGenericInterface(
         vr::IVRRenderModels_Version, &vr_error);
@@ -46,6 +50,12 @@ void VR_System::initialize()
     _camera[2]->aspect_ratio = 1.0f;
     _camera[2]->position = {0.0f, 0.0f, -3.0f};
     _camera[2]->target = {0.0f, 1.0f, 0.0f};
+}
+
+void VR_System::shutdown()
+{
+    vr::VR_Shutdown();
+    _vr_system = nullptr;
 }
 
 void VR_System::poll_events()
@@ -94,7 +104,7 @@ void VR_System::poll_events()
 
 void VR_System::update(float dt)
 {
-    if (!_vr_system)
+    if (!is_valid())
     {
         return;
     }

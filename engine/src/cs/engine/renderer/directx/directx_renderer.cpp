@@ -106,12 +106,10 @@ struct
     mat4 projection{mat4(1.0f)};
 } data;
 
-void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system)
+void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
 {
     _window = window;
     _hwnd = static_cast<HWND>(window->native_handle());
-
-    _vr_system = vr_system;
 
     // Create the Direct3D device and swap chain
     DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
@@ -148,39 +146,10 @@ void DirectX_Renderer_Backend::begin_frame(VR_Eye::Type eye)
     constexpr float clearColor[] = {0.1f, 0.3f, 0.1f, 1.0f};
     _device_context->RSSetViewports(1, &_viewport);
 
-    switch(eye)
-    {
-        case VR_Eye::None:
-        {
-            if (_basic)
-            {
-                _device_context->ClearRenderTargetView(_basic->render_target_view.Get(), clearColor);
-                _device_context->ClearDepthStencilView(_basic->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-                _device_context->OMSetRenderTargets(1, _basic->render_target_view.GetAddressOf(), _basic->depth_stencil_view.Get());
-            }
-            break;
-        }
-        case VR_Eye::Left:
-        {
-            if (_left_eye)
-            {
-                _device_context->ClearRenderTargetView(_left_eye->render_target_view.Get(), clearColor);
-                _device_context->ClearDepthStencilView(_left_eye->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-                _device_context->OMSetRenderTargets(1, _left_eye->render_target_view.GetAddressOf(), _left_eye->depth_stencil_view.Get());
-            }
-            break;
-        }
-        case VR_Eye::Right:
-        {
-            if (_right_eye)
-            {
-                _device_context->ClearRenderTargetView(_right_eye->render_target_view.Get(), clearColor);
-                _device_context->ClearDepthStencilView(_right_eye->depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-                _device_context->OMSetRenderTargets(1, _right_eye->render_target_view.GetAddressOf(), _right_eye->depth_stencil_view.Get());
-            }
-            break;
-        }
-    }
+    // TODO: Some error checking
+    _device_context->ClearRenderTargetView(_framebuffers[eye].render_target_view.Get(), clearColor);
+    _device_context->ClearDepthStencilView(_framebuffers[eye].depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    _device_context->OMSetRenderTargets(1, _framebuffers[eye].render_target_view.GetAddressOf(), _framebuffers[eye].depth_stencil_view.Get());
 }
 
 void DirectX_Renderer_Backend::end_frame(VR_Eye::Type eye)
@@ -189,7 +158,8 @@ void DirectX_Renderer_Backend::end_frame(VR_Eye::Type eye)
 
 void DirectX_Renderer_Backend::render_frame()
 {
-    if (_vr_system && _vr_system->is_valid())
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
         vr::VRTextureBounds_t bounds;
         bounds.uMin = 0.0f;
@@ -197,10 +167,10 @@ void DirectX_Renderer_Backend::render_frame()
         bounds.vMin = 0.0f;
         bounds.vMax = 1.0f;
     
-        vr::Texture_t leftEyeTexture = { ( void * ) _left_eye->texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
+        vr::Texture_t leftEyeTexture = { ( void * ) _framebuffers[VR_Eye::Left].texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
         vr::VRCompositor()->Submit( vr::Eye_Left, &leftEyeTexture, &bounds, vr::Submit_Default );
     
-        vr::Texture_t rightEyeTexture = { ( void * ) _right_eye->texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
+        vr::Texture_t rightEyeTexture = { ( void * ) _framebuffers[VR_Eye::Right].texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
         vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture, &bounds, vr::Submit_Default );
     }
 
@@ -229,15 +199,16 @@ void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat
 
     data = {};
 
-    if (_vr_system && _vr_system->is_valid())
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
-        Shared_Ptr<Camera> camera = _vr_system->get_camera(eye);
+        Shared_Ptr<Camera> camera = vr_system.get_camera(eye);
 
         data.view = camera->get_view();
         data.projection = camera->get_projection();
         static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
-        data.view = _vr_system->_get_eye_pose(eye) * _vr_system->_head_view_matrix * toZup;
-        data.projection =_vr_system->_get_eye_projection(eye);
+        data.view = vr_system._get_eye_pose(eye) * vr_system._head_view_matrix * toZup;
+        data.projection =vr_system._get_eye_projection(eye);
     }
     else if (_camera)
     {
@@ -341,8 +312,8 @@ Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shad
     shader->device_context = _device_context;
 
     ComPtr<ID3DBlob> vertex_shader_blob = nullptr;
-    shader->vertex_shader = _create_vertex_shader(shader_resource->vertex_filepath, vertex_shader_blob);
-    shader->pixel_shader = _create_pixel_shader(shader_resource->pixel_filepath);
+    shader->vertex_shader = _create_vertex_shader(shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath, vertex_shader_blob);
+    shader->pixel_shader = _create_pixel_shader(shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath);
 
     // TODO: From Shader definition
     constexpr D3D11_INPUT_ELEMENT_DESC input_element_desc[] =
@@ -432,8 +403,10 @@ ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const c
     return pixel_shader;
 }
 
-void DirectX_Renderer_Backend::_initialize_framebuffer(DirectX_Framebuffer &framebuffer)
+DirectX_Renderer_Backend::DirectX_Framebuffer DirectX_Renderer_Backend::_create_framebuffer()
 {
+    DirectX_Framebuffer framebuffer;
+
     HRESULT hr = _swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)framebuffer.texture.GetAddressOf());
     assert(SUCCEEDED(hr));
 
@@ -464,6 +437,14 @@ void DirectX_Renderer_Backend::_initialize_framebuffer(DirectX_Framebuffer &fram
     hr = _device->CreateDepthStencilView(depth_stencil_texture, &depth_stencil_view_desc, &framebuffer.depth_stencil_view);
     assert(SUCCEEDED(hr));
     depth_stencil_texture->Release();
+
+    return framebuffer;
+}
+
+void DirectX_Renderer_Backend::_destroy_framebuffer(DirectX_Framebuffer& framebuffer)
+{
+    framebuffer.depth_stencil_view.Reset();
+    framebuffer.render_target_view.Reset();
 }
 
 void DirectX_Renderer_Backend::_initialize_render_stuff()
@@ -474,44 +455,25 @@ void DirectX_Renderer_Backend::_initialize_render_stuff()
 
     _device_context->Flush();
 
-    _basic = Shared_Ptr<DirectX_Framebuffer>::create();
-    if (_basic)
-    {
-        _initialize_framebuffer(*_basic.get());
-    }
+    _framebuffers[VR_Eye::None] = _create_framebuffer();
 
-    // TODO: Connect to _vr_system events for connecting/disconnecting hardware
-    _left_eye = Shared_Ptr<DirectX_Framebuffer>::create();
-    if (_left_eye)
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
-        _initialize_framebuffer(*_left_eye.get());
-    }
-
-    _right_eye = Shared_Ptr<DirectX_Framebuffer>::create();
-    if (_right_eye)
-    {
-        _initialize_framebuffer(*_right_eye.get());
+        _framebuffers[VR_Eye::Left] = _create_framebuffer();
+        _framebuffers[VR_Eye::Right] = _create_framebuffer();
     }
 }
 
 void DirectX_Renderer_Backend::_cleanup_render_stuff()
 {
-    if (_basic)
-    {
-        _basic->render_target_view.Reset();
-        _basic->depth_stencil_view.Reset();
-    }
+    _destroy_framebuffer(_framebuffers[VR_Eye::None]);
 
-    if (_left_eye)
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
-        _left_eye->render_target_view.Reset();
-        _left_eye->depth_stencil_view.Reset();
-    }
-
-    if (_right_eye)
-    {
-        _right_eye->render_target_view.Reset();
-        _right_eye->depth_stencil_view.Reset();
+        _destroy_framebuffer(_framebuffers[VR_Eye::Left]);
+        _destroy_framebuffer(_framebuffers[VR_Eye::Right]);
     }
 }
 

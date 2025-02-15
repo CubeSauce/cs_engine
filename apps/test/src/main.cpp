@@ -12,7 +12,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-Shared_Ptr<Material_Resource> default_material;
+Shared_Ptr<Material_Resource> default_material_resource;
 
 Shared_Ptr<Mesh_Resource> import(const char* filepath)
 {
@@ -35,7 +35,7 @@ Shared_Ptr<Mesh_Resource> import(const char* filepath)
 
     Submesh_Data submesh_data;
 
-    submesh_data.material_resource = default_material;
+    submesh_data.material_resource = default_material_resource;
     
     const uint32 num_vertices = (int32)(ai_mesh->mNumFaces * 3);
     for (uint32 f = 0; f < ai_mesh->mNumFaces; ++f)
@@ -89,16 +89,6 @@ public:
 
 void Test_Game_Instance::init()
 {
-  //TODO: Engine defaults
-  Shared_Ptr<Shader_Resource> shader_resource = Shared_Ptr<Shader_Resource>::create();
-  shader_resource->vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
-  shader_resource->pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
-  //shader_resource->vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
-  //shader_resource->pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
-
-  default_material = Shared_Ptr<Material_Resource>::create();
-  default_material->shader_resource = shader_resource;
-
   Shared_Ptr<Mesh_Resource> kimono = import("assets/mesh/kimono.obj");
   Shared_Ptr<Mesh_Resource> plane = import("assets/mesh/plane.obj");
 
@@ -201,6 +191,7 @@ int main(int argc, char** argv)
 
   Engine engine;
   engine.initialize(args);
+  default_material_resource = engine.default_material_resource; // Currently just to get it somehow
   engine.game_instance = Shared_Ptr<Test_Game_Instance>::create();
   engine.run();
   engine.shutdown();

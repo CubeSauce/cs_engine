@@ -45,7 +45,7 @@ struct
     mat4 projection { mat4(1.0f) };
 } data;
 
-void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system)
+void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
 {
     assert(window);
     _window = window;
@@ -60,7 +60,6 @@ void OpenGL_Renderer_Backend::initialize(const Shared_Ptr<Window> &window, const
 
     _uniform_buffer = create_uniform_buffer(&data, sizeof(data));
 
-    _vr_system = vr_system;
     _initialize_render_stuff();
 }
 
@@ -72,7 +71,8 @@ void OpenGL_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 void OpenGL_Renderer_Backend::render_frame()
 { 
     
-    if (_vr_system && _vr_system->is_valid())
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
         vr::VRTextureBounds_t bounds;
         bounds.uMin = 0.0f;
@@ -179,15 +179,17 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         return;
     }
 
-    if (_vr_system && _vr_system->is_valid())
+    
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
     {
-        Shared_Ptr<Camera> camera = _vr_system->get_camera(eye);
+        Shared_Ptr<Camera> camera = vr_system.get_camera(eye);
 
         data.view = camera->get_view();
         data.projection = camera->get_projection();
         static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
-        data.view = _vr_system->_get_eye_pose(eye) * _vr_system->_head_view_matrix * toZup;
-        data.projection =_vr_system->_get_eye_projection(eye);
+        data.view = vr_system._get_eye_pose(eye) * vr_system._head_view_matrix * toZup;
+        data.projection = vr_system._get_eye_projection(eye);
     }
     else if (_camera)
     {
@@ -296,8 +298,8 @@ Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shade
     fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
 
     // open files
-    vShaderFile.open(shader_resource->vertex_filepath);
-    fShaderFile.open(shader_resource->pixel_filepath);
+    vShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath);
+    fShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].pixel_filepath);
     std::stringstream vShaderStream, fShaderStream;
     // read file's buffer contents into streams
     vShaderStream << vShaderFile.rdbuf();
@@ -384,12 +386,16 @@ void OpenGL_Renderer_Backend::_initialize_render_stuff()
 {
     glGetIntegerv( GL_VIEWPORT, m_viewport );
     
-    vr_render_viewport;
-    _vr_system->get_viewport(vr_render_viewport[0], vr_render_viewport[1]);
-
-    _left_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
-    _right_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
     _basic = _create_framebuffer(m_viewport[2], m_viewport[3]);
+ 
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
+    {
+        vr_system.get_viewport(vr_render_viewport[0], vr_render_viewport[1]);
+        
+        _left_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
+        _right_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
+    }
 }
 
 void OpenGL_Renderer_Backend::_cleanup_render_stuff()

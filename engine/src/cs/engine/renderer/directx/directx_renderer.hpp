@@ -91,7 +91,7 @@ class DirectX_Renderer_Backend : public Renderer_Backend
 {
 public:
     virtual ~DirectX_Renderer_Backend() override;
-    virtual void initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system) override;
+    virtual void initialize(const Shared_Ptr<Window> &window) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 
     virtual void begin_frame(VR_Eye::Type eye = VR_Eye::None) override;
@@ -111,7 +111,6 @@ public:
 
 private:
     Shared_Ptr<Window> _window;
-    Shared_Ptr<VR_System> _vr_system;
 
     ComPtr<ID3D11Device> _device;
     ComPtr<ID3D11DeviceContext> _device_context;
@@ -124,7 +123,7 @@ private:
         ComPtr<ID3D11DepthStencilView> depth_stencil_view;
     };
 
-    Shared_Ptr<DirectX_Framebuffer> _left_eye, _right_eye, _basic;
+    DirectX_Framebuffer _framebuffers[3];
 
     D3D11_VIEWPORT _viewport{};
 
@@ -138,7 +137,8 @@ private:
     ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
     ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
 
-    void _initialize_framebuffer(DirectX_Framebuffer &framebuffer);
+    DirectX_Framebuffer _create_framebuffer();
+    void _destroy_framebuffer(DirectX_Framebuffer& framebuffer);
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
 };

@@ -16,28 +16,6 @@
 
 #include "openvr.h"
 
-namespace Renderer_API
-{
-    enum Type : uint8
-    {
-        None,
-        OpenGL,
-        Vulkan,
-        DirectX11,
-        DirectX12,
-    };
-}
-
-namespace Window_Framework
-{
-    enum Type : uint8
-    {
-        None,
-        GLFW,
-        SDL
-    };
-}
-
 struct Engine_Create_Descriptor
 {
     Window_Framework::Type window_framework { Window_Framework::GLFW };
@@ -55,6 +33,7 @@ class Engine
 {
 public:
     Shared_Ptr<Game_Instance> game_instance;
+    Shared_Ptr<Material_Resource> default_material_resource;
 
 public:
     Engine() = default;
@@ -68,6 +47,7 @@ private:
     Shared_Ptr<CVar_Registry> _cvar_registry;
     Shared_Ptr<Net_Instance> _net_instance;
     Shared_Ptr<Renderer> _renderer;
+    Shared_Ptr<Window> _window;
     Shared_Ptr<VR_System> _vr_system;
 
     // TODO: Add these as a separate system
@@ -88,4 +68,6 @@ private:
 
     Shared_Ptr<Window> _create_window();
     Shared_Ptr<Renderer_Backend> _create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window);
+
+    void _initialize_defaults();
 };

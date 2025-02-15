@@ -8,6 +8,19 @@
 #include "cs/engine/renderer/material.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 
+namespace Renderer_API
+{
+    enum Type : uint8
+    {
+        None,
+        OpenGL,
+        Vulkan,
+        DirectX11,
+        DirectX12,
+        COUNT
+    };
+}
+
 class Buffer
 {
 public:
@@ -23,7 +36,7 @@ class Renderer_Backend
 {
 public:
     virtual ~Renderer_Backend() = default;
-    virtual void initialize(const Shared_Ptr<Window>& window, const Shared_Ptr<VR_System>& vr_system) = 0;
+    virtual void initialize(const Shared_Ptr<Window>& window) = 0;
     virtual void set_camera(const Shared_Ptr<Camera>& camera) = 0;
     
     virtual void begin_frame(VR_Eye::Type eye = VR_Eye::None) = 0;
@@ -31,7 +44,6 @@ public:
     virtual void render_frame() = 0;
     virtual void shutdown() = 0;
     virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye = VR_Eye::None) = 0;
-    //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource>& mesh) = 0;
 
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource>& shader_resource) = 0;
     virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource>& mesh) = 0;
@@ -47,7 +59,7 @@ public:
 public:
     Renderer();
     
-    void initialize(const Shared_Ptr<Window>& window, const Shared_Ptr<Renderer_Backend>& backend, const Shared_Ptr<VR_System>& vr_system);
+    void initialize(const Shared_Ptr<Window>& window, const Shared_Ptr<Renderer_Backend>& backend);
 
     void begin_frame();
     void end_frame();

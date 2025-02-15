@@ -14,43 +14,34 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _initialize_cvars();
     _parse_args(args);
 
+    _vr_system = Shared_Ptr<VR_System>::create();
+    if (_cvar_vr_support->get())
+    {
+        _vr_system->initialize();
+    }
+
+    _window = _create_window();
+
+    _renderer = Shared_Ptr<Renderer>::create();
+    _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _window);
+
     _net_instance = Shared_Ptr<Net_Instance>::create((Net_Role::Type)_cvar_net_role->get());
 
-    if (_net_instance->is_local())
-    {
-        if (_cvar_vr_support->get() && !_vr_system)
-        {
-            _vr_system = Shared_Ptr<VR_System>::create();
-            _vr_system->initialize();
-        }
-
-        _renderer = Shared_Ptr<Renderer>::create();
-        _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _create_window());
-
-        Shared_Ptr<Perspective_Camera> default_camera = Shared_Ptr<Perspective_Camera>::create();
-        default_camera->FOV_deg = 45.0f;
-        default_camera->near_d = 0.0f;
-        default_camera->far_d = 1000.0f;
-        default_camera->position = {0.0f, -5.0f, 2.0f};
-        default_camera->target = {0.0f, 0.0f, 1.0f};
-
-        _renderer->set_active_camera(default_camera);
-    }
+    _initialize_defaults();
 }
 
 void Engine::shutdown()
 {
+    _vr_system->shutdown();
 }
 
 void Engine::run()
 {
-    // TODO: Separate game and editor instances
-    if (_net_instance->is_local())
-    {
-        _renderer->window->on_window_should_close.bind([&](){
-            _should_close = true;
-        });
-    }
+    VR_System& vr_system = VR_System::get();
+
+    _renderer->window->on_window_should_close.bind([&](){
+        _should_close = true;
+    });
 
     if (game_instance)
     {
@@ -62,26 +53,30 @@ void Engine::run()
     {
         _net_instance->update(dt);
 
-        if (_vr_system)
+        if (vr_system.is_valid())
         {
-            _vr_system->poll_events();
-            _vr_system->update(dt);
+            vr_system.poll_events();
+            vr_system.update(dt);
+        }
+
+        if (game_instance)
+        {
+            game_instance->update(dt);
         }
 
         if (_renderer)
         {
             _renderer->window->poll_events();
             
+            // Render normal view
             _renderer->backend->begin_frame(VR_Eye::None);
-            
             if (game_instance)
             {
                 game_instance->render(_renderer, VR_Eye::None);
             }
-
             _renderer->backend->end_frame(VR_Eye::None);
 
-            if (_vr_system)
+            if (vr_system.is_valid())
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
             
@@ -103,14 +98,7 @@ void Engine::run()
             }
             
             _renderer->render_frame();
-            //_renderer->window->swap_buffers();
         }
-
-        if (game_instance)
-        {
-            game_instance->update(dt);
-        }
-
     }
 
     if (game_instance)
@@ -166,9 +154,9 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>(
-        "cs_vr_support", false, "Turn VR support on/off");
+        "cs_vr_support", true, "Turn VR support on/off");
 }
 
 Shared_Ptr<Window> Engine::_create_window()
@@ -198,7 +186,30 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
         } 
     }
 
-    _renderer->initialize(window, backend, _vr_system);
+    _renderer->initialize(window, backend);
+
+    Shared_Ptr<Perspective_Camera> default_camera = Shared_Ptr<Perspective_Camera>::create();
+    default_camera->FOV_deg = 45.0f;
+    default_camera->near_d = 0.0f;
+    default_camera->far_d = 1000.0f;
+    default_camera->position = {0.0f, -5.0f, 2.0f};
+    default_camera->target = {0.0f, 0.0f, 1.0f};
+
+    _renderer->set_active_camera(default_camera);
 
     return backend;
+}
+
+void Engine::_initialize_defaults()
+{
+    Shared_Ptr<Shader_Resource> default_shader_resource = Shared_Ptr<Shader_Resource>::create();
+    default_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
+    default_shader_resource->source_paths[Renderer_API::OpenGL].pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
+    default_shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
+    default_shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+    default_shader_resource->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
+    default_shader_resource->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+    
+    default_material_resource = Shared_Ptr<Material_Resource>::create();
+    default_material_resource->shader_resource = default_shader_resource;
 }

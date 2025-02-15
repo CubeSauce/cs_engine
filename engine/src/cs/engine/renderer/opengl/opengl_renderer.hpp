@@ -71,7 +71,7 @@ class OpenGL_Renderer_Backend : public Renderer_Backend
 {
 public:
     virtual ~OpenGL_Renderer_Backend() override {}
-    virtual void initialize(const Shared_Ptr<Window> &window, const Shared_Ptr<VR_System>& vr_system) override;
+    virtual void initialize(const Shared_Ptr<Window> &window) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 
     virtual void render_frame() override;
@@ -91,7 +91,6 @@ public:
 
 private:
     Shared_Ptr<Window> _window;
-    Shared_Ptr<VR_System> _vr_system;
 
 	struct OpenGL_Framebuffer
 	{
@@ -108,12 +107,8 @@ private:
 
     Shared_Ptr<Camera> _camera;
     Shared_Ptr<OpenGL_Buffer> _uniform_buffer;
-
+    
 private:
-    //bool _compile_shader(const char *filename, const char *entry_point, const char *profile, ComPtr<ID3DBlob> &shader_blob);
-    //ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
-    //ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
-
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
 

@@ -6,6 +6,16 @@
 #include "cs/cs.hpp"
 #include "cs/engine/event.hpp"
 
+namespace Window_Framework
+{
+    enum Type : uint8
+    {
+        None,
+        GLFW,
+        SDL
+    };
+}
+
 class Window
 {
 public:
