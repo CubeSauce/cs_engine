@@ -12,27 +12,24 @@ Proper game examples coming soon
 - [x] Basic resources
 - [x] Event system (signal/brodcast-listener)
 - [x] Name_Id (string - int32 - FName from unreal engine)
-- [x] Basic containers (Dynamic_Array, Linked_List, Hash_Table)
+- [x] Basic containers (Dynamic_Array, Linked_List, Hash_Table) - needs improvement
 - [x] CVar parsing
 - [ ] CVar serializing
-- [x] Basic math (vec2-4, mat4, quat)
-### Rendering api
+- [x] Basic math (vec2-4, mat4, quat) - needs improvement
+### Rendering api - needs improvement
 - [x] DirectX
 - [ ] Vulkan
-- [-] OpenGL
+- [x] OpenGL
 ### Window framework
 - [x] GLFW
 - [ ] SDL
-- [ ] Native Windows
-- [ ] Native Linux
-- [ ] Native MacOS
-### OpenVR integration
+### OpenVR integration - needs improvement
 - [x] Get a headset to connect (PSVR)
 - [x] Make it work in my coordinate space (right handed +Z as up)
 - [x] Orientation tracking
 - [ ] Movement tracking
 - [ ] Hand tracking
-### Networking
+### Networking - needs improvement
 - [x] Basic sockets
 - [ ] Data serialization
 - [x] Net roles (Server/Client/Offline) - although not happy with it

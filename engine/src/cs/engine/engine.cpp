@@ -31,11 +31,10 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
         default_camera->FOV_deg = 45.0f;
         default_camera->near_d = 0.0f;
         default_camera->far_d = 1000.0f;
-        default_camera->position = {0.0f, 0.0f, -3.0f};
-        default_camera->target = {0.0f, 1.0f, 0.0f};
+        default_camera->position = {0.0f, -5.0f, 2.0f};
+        default_camera->target = {0.0f, 0.0f, 1.0f};
 
         _renderer->set_active_camera(default_camera);
-
     }
 }
 
@@ -167,9 +166,9 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>(
-        "cs_vr_support", true, "Turn VR support on/off");
+        "cs_vr_support", false, "Turn VR support on/off");
 }
 
 Shared_Ptr<Window> Engine::_create_window()
