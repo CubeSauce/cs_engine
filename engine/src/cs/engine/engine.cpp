@@ -3,7 +3,7 @@
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/engine/window/glfw/glfw_window.hpp"
 
-#include "cs/engine/renderer/directx/directx_renderer.hpp"
+#include "cs/engine/renderer/directx/directx11_renderer.hpp"
 #include "cs/engine/renderer/opengl/opengl_renderer.hpp"
 
 #include "cs/engine/game/game_instance.hpp"
@@ -154,7 +154,7 @@ void Engine::_initialize_cvars()
     _cvar_window_title = _cvar_registry->register_cvar<std::string>(
         "cs_window_title", "CS Engine app", "Title of the instance window");
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::OpenGL, "Which API are we using for rendering");
+        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>(
         "cs_vr_support", true, "Turn VR support on/off");
 }
@@ -176,7 +176,7 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
         case Renderer_API::DirectX12:
         case Renderer_API::DirectX11:
         {
-            backend = Shared_Ptr<DirectX_Renderer_Backend>::create();
+            backend = Shared_Ptr<DirectX11_Renderer_Backend>::create();
             break;
         }
     #endif //CS_PLATFORM_WINDOWS

@@ -1,4 +1,4 @@
-#include "cs/engine/renderer/directx/directx_renderer.hpp"
+#include "cs/engine/renderer/directx/directx11_renderer.hpp"
 #include "cs/engine/renderer/camera.hpp"
 #include "cs/engine/renderer/mesh.hpp"
 #include "cs/engine/vr/vr_system.hpp"
@@ -11,7 +11,7 @@
 
 #ifdef CS_PLATFORM_WINDOWS
 #include <d3d11.h>       // D3D interface
-#include <dxgi.h>        // DirectX driver interface
+#include <dxgi.h>        // DirectX11 driver interface
 #include <d3dcompiler.h> // shader compiler
 #include <DirectXMath.h>
 
@@ -21,19 +21,19 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "dxguid.lib")
 
-void DirectX_Buffer::unbind() const
+void DirectX11_Buffer::unbind() const
 {
     device_context->PSSetConstantBuffers(0, 1, nullptr);
     device_context->VSSetConstantBuffers(0, 1, nullptr);
 }
 
-void DirectX_Uniform_Buffer::bind() const
+void DirectX11_Uniform_Buffer::bind() const
 {
     device_context->PSSetConstantBuffers(0, 1, buffer.GetAddressOf());
     device_context->VSSetConstantBuffers(0, 1, buffer.GetAddressOf());
 }
 
-void DirectX_Uniform_Buffer::set_data(const void *data, uint32 size, uint32 offset)
+void DirectX11_Uniform_Buffer::set_data(const void *data, uint32 size, uint32 offset)
 {
     D3D11_MAPPED_SUBRESOURCE mapped_constant_buffer;
     HRESULT hr = device_context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_constant_buffer);
@@ -42,42 +42,42 @@ void DirectX_Uniform_Buffer::set_data(const void *data, uint32 size, uint32 offs
     device_context->Unmap(buffer.Get(), 0);
 }
 
-void DirectX_Vertex_Buffer::bind() const
+void DirectX11_Vertex_Buffer::bind() const
 {
     // TODO: Get topology from class
     device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     device_context->IASetVertexBuffers(0, 1, buffer.GetAddressOf(), &stride, &offset);
 }
 
-void DirectX_Index_Buffer::bind() const
+void DirectX11_Index_Buffer::bind() const
 {
     device_context->IASetIndexBuffer(buffer.Get(), DXGI_FORMAT_R32_UINT, offset);
 }
 
-void DirectX_Shader::bind() const
+void DirectX11_Shader::bind() const
 {
     device_context->IASetInputLayout(vertex_layout.Get());
     device_context->VSSetShader(vertex_shader.Get(), nullptr, 0);
     device_context->PSSetShader(pixel_shader.Get(), nullptr, 0);
 }
 
-void DirectX_Shader::unbind() const
+void DirectX11_Shader::unbind() const
 {
     device_context->IASetInputLayout(nullptr);
     device_context->VSSetShader(nullptr, nullptr, 0);
     device_context->PSSetShader(nullptr, nullptr, 0);
 }
 
-DirectX_Mesh::DirectX_Mesh(const Shared_Ptr<Mesh_Resource> &in_mesh_resource)
+DirectX11_Mesh::DirectX11_Mesh(const Shared_Ptr<Mesh_Resource> &in_mesh_resource)
     : Mesh(in_mesh_resource)
 {
 }
 
-void DirectX_Mesh::upload_data()
+void DirectX11_Mesh::upload_data()
 {
     for (int32 s = 0; s < submeshes.size(); ++s)
     {
-        DirectX_Submesh &submesh = submeshes[s];
+        DirectX11_Submesh &submesh = submeshes[s];
         const Submesh_Data &submesh_data = mesh_resource->submeshes[s];
 
         submesh.vertices_count = submesh_data.vertices.size();
@@ -94,7 +94,7 @@ void DirectX_Mesh::upload_data()
     }
 }
 
-DirectX_Renderer_Backend::~DirectX_Renderer_Backend()
+DirectX11_Renderer_Backend::~DirectX11_Renderer_Backend()
 {
 }
 
@@ -106,7 +106,7 @@ struct
     mat4 projection{mat4(1.0f)};
 } data;
 
-void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
+void DirectX11_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
 {
     _window = window;
     _hwnd = static_cast<HWND>(window->native_handle());
@@ -127,21 +127,22 @@ void DirectX_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
     assert(SUCCEEDED(hr));
 
     _window->on_window_resize.bind([&](uint32 width, uint32 height)
-                                   {
+    {
         _cleanup_render_stuff();
-        _initialize_render_stuff(); });
+        _initialize_render_stuff(); 
+    });
 
     _uniform_buffer = create_uniform_buffer(&data, sizeof(data));
 
     _initialize_render_stuff();
 }
 
-void DirectX_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
+void DirectX11_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 {
     _camera = camera;
 }
 
-void DirectX_Renderer_Backend::begin_frame(VR_Eye::Type eye)
+void DirectX11_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
     constexpr float clearColor[] = {0.1f, 0.3f, 0.1f, 1.0f};
     _device_context->RSSetViewports(1, &_viewport);
@@ -152,11 +153,11 @@ void DirectX_Renderer_Backend::begin_frame(VR_Eye::Type eye)
     _device_context->OMSetRenderTargets(1, _framebuffers[eye].render_target_view.GetAddressOf(), _framebuffers[eye].depth_stencil_view.Get());
 }
 
-void DirectX_Renderer_Backend::end_frame(VR_Eye::Type eye)
+void DirectX11_Renderer_Backend::end_frame(VR_Eye::Type eye)
 {
 }
 
-void DirectX_Renderer_Backend::render_frame()
+void DirectX11_Renderer_Backend::render_frame()
 {
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
@@ -177,7 +178,7 @@ void DirectX_Renderer_Backend::render_frame()
     _swapchain->Present(1, 0);
 }
 
-void DirectX_Renderer_Backend::shutdown()
+void DirectX11_Renderer_Backend::shutdown()
 {
     if (_swapchain)
         _swapchain->Release();
@@ -189,9 +190,9 @@ void DirectX_Renderer_Backend::shutdown()
 
 UINT vertex_stride = sizeof(Vertex_Data);
 UINT vertex_offset = 0;
-void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye)
+void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye)
 {
-    Shared_Ptr<DirectX_Mesh> dx_mesh = mesh;
+    Shared_Ptr<DirectX11_Mesh> dx_mesh = mesh;
     if (!dx_mesh)
     {
         return;
@@ -227,7 +228,7 @@ void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat
     data.view.transpose();
     data.projection.transpose();
 
-    for (const DirectX_Submesh &submesh : dx_mesh->submeshes)
+    for (const DirectX11_Submesh &submesh : dx_mesh->submeshes)
     {
         // TODO: Change only when needed
         _uniform_buffer->set_data(&data, sizeof(data), 0);
@@ -242,10 +243,10 @@ void DirectX_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat
     }
 }
 
-Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_vertex_buffer(void *data, uint32 size)
+Shared_Ptr<Buffer> DirectX11_Renderer_Backend::create_vertex_buffer(void *data, uint32 size)
 {
     // TODO: Won't work
-    Shared_Ptr<DirectX_Buffer> buffer = Shared_Ptr<DirectX_Buffer>::create();
+    Shared_Ptr<DirectX11_Buffer> buffer = Shared_Ptr<DirectX11_Buffer>::create();
     buffer->device_context = _device_context;
 
     D3D11_BUFFER_DESC buffer_desc{0};
@@ -263,9 +264,9 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_vertex_buffer(void *data, ui
     return buffer;
 }
 
-Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_index_buffer(void *data, uint32 size)
+Shared_Ptr<Buffer> DirectX11_Renderer_Backend::create_index_buffer(void *data, uint32 size)
 {
-    Shared_Ptr<DirectX_Index_Buffer> buffer = Shared_Ptr<DirectX_Index_Buffer>::create();
+    Shared_Ptr<DirectX11_Index_Buffer> buffer = Shared_Ptr<DirectX11_Index_Buffer>::create();
     D3D11_BUFFER_DESC buffer_desc{0};
     buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
     buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // | D3D11_CPU_ACCESS_READ;
@@ -281,9 +282,9 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_index_buffer(void *data, uin
     return buffer;
 }
 
-Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_uniform_buffer(void *data, uint32 size)
+Shared_Ptr<Buffer> DirectX11_Renderer_Backend::create_uniform_buffer(void *data, uint32 size)
 {
-    Shared_Ptr<DirectX_Uniform_Buffer> buffer = Shared_Ptr<DirectX_Uniform_Buffer>::create();
+    Shared_Ptr<DirectX11_Uniform_Buffer> buffer = Shared_Ptr<DirectX11_Uniform_Buffer>::create();
     buffer->device_context = _device_context;
 
     D3D11_BUFFER_DESC buffer_desc = {0};
@@ -305,9 +306,9 @@ Shared_Ptr<Buffer> DirectX_Renderer_Backend::create_uniform_buffer(void *data, u
     return buffer;
 }
 
-Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
+Shared_Ptr<Shader> DirectX11_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
-    Shared_Ptr<DirectX_Shader> shader = Shared_Ptr<DirectX_Shader>::create();
+    Shared_Ptr<DirectX11_Shader> shader = Shared_Ptr<DirectX11_Shader>::create();
 
     shader->device_context = _device_context;
 
@@ -328,14 +329,14 @@ Shared_Ptr<Shader> DirectX_Renderer_Backend::create_shader(const Shared_Ptr<Shad
     return shader;
 }
 
-Shared_Ptr<Mesh> DirectX_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
+Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
 {
-    Shared_Ptr<DirectX_Mesh> dx_mesh = Shared_Ptr<DirectX_Mesh>::create(mesh_resource);
+    Shared_Ptr<DirectX11_Mesh> dx_mesh = Shared_Ptr<DirectX11_Mesh>::create(mesh_resource);
     dx_mesh->device = _device;
 
     for (const Submesh_Data &submesh : mesh_resource->submeshes)
     {
-        DirectX_Submesh dx_submesh;
+        DirectX11_Submesh dx_submesh;
 
         // TODO: map with materials and existing shaders so we don't duplicate
         dx_submesh.shader = create_shader(submesh.material_resource->shader_resource);
@@ -346,7 +347,7 @@ Shared_Ptr<Mesh> DirectX_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Res
 }
 
 #include <iostream>
-bool DirectX_Renderer_Backend::_compile_shader(const char *filename, const char *entry_point, const char *profile, ComPtr<ID3DBlob> &shader_blob)
+bool DirectX11_Renderer_Backend::_compile_shader(const char *filename, const char *entry_point, const char *profile, ComPtr<ID3DBlob> &shader_blob)
 {
     constexpr UINT compile_flags = D3DCOMPILE_ENABLE_STRICTNESS;
 
@@ -370,7 +371,7 @@ bool DirectX_Renderer_Backend::_compile_shader(const char *filename, const char 
     return true;
 }
 
-ComPtr<ID3D11VertexShader> DirectX_Renderer_Backend::_create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob)
+ComPtr<ID3D11VertexShader> DirectX11_Renderer_Backend::_create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob)
 {
     if (!_compile_shader(filename, "main", "vs_5_0", vertex_shader_blob))
     {
@@ -386,7 +387,7 @@ ComPtr<ID3D11VertexShader> DirectX_Renderer_Backend::_create_vertex_shader(const
     return vertex_shader;
 }
 
-ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const char *filename)
+ComPtr<ID3D11PixelShader> DirectX11_Renderer_Backend::_create_pixel_shader(const char *filename)
 {
     ComPtr<ID3DBlob> pixel_shader_blob = nullptr;
     if (!_compile_shader(filename, "main", "ps_5_0", pixel_shader_blob))
@@ -403,9 +404,9 @@ ComPtr<ID3D11PixelShader> DirectX_Renderer_Backend::_create_pixel_shader(const c
     return pixel_shader;
 }
 
-DirectX_Renderer_Backend::DirectX_Framebuffer DirectX_Renderer_Backend::_create_framebuffer()
+DirectX11_Renderer_Backend::DirectX11_Framebuffer DirectX11_Renderer_Backend::_create_framebuffer()
 {
-    DirectX_Framebuffer framebuffer;
+    DirectX11_Framebuffer framebuffer;
 
     HRESULT hr = _swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)framebuffer.texture.GetAddressOf());
     assert(SUCCEEDED(hr));
@@ -441,13 +442,13 @@ DirectX_Renderer_Backend::DirectX_Framebuffer DirectX_Renderer_Backend::_create_
     return framebuffer;
 }
 
-void DirectX_Renderer_Backend::_destroy_framebuffer(DirectX_Framebuffer& framebuffer)
+void DirectX11_Renderer_Backend::_destroy_framebuffer(DirectX11_Framebuffer& framebuffer)
 {
     framebuffer.depth_stencil_view.Reset();
     framebuffer.render_target_view.Reset();
 }
 
-void DirectX_Renderer_Backend::_initialize_render_stuff()
+void DirectX11_Renderer_Backend::_initialize_render_stuff()
 {
     RECT win_rect;
     GetClientRect(_hwnd, &win_rect);
@@ -465,7 +466,7 @@ void DirectX_Renderer_Backend::_initialize_render_stuff()
     }
 }
 
-void DirectX_Renderer_Backend::_cleanup_render_stuff()
+void DirectX11_Renderer_Backend::_cleanup_render_stuff()
 {
     _destroy_framebuffer(_framebuffers[VR_Eye::None]);
 

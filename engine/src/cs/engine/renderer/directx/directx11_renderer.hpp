@@ -10,26 +10,26 @@
 
 using Microsoft::WRL::ComPtr;
 
-class DirectX_Buffer : public Buffer
+class DirectX11_Buffer : public Buffer
 {
 public:
     ComPtr<ID3D11DeviceContext> device_context;
     ComPtr<ID3D11Buffer> buffer;
 
-    virtual ~DirectX_Buffer() = default;
+    virtual ~DirectX11_Buffer() = default;
     virtual void bind() const override {}
     virtual void unbind() const override;
     virtual void set_data(const void *data, uint32 size, uint32 offset = 0) override {}
 };
 
-class DirectX_Uniform_Buffer : public DirectX_Buffer
+class DirectX11_Uniform_Buffer : public DirectX11_Buffer
 {
 public:
     virtual void bind() const override;
     virtual void set_data(const void *data, uint32 size, uint32 offset = 0) override;
 };
 
-class DirectX_Vertex_Buffer : public DirectX_Buffer
+class DirectX11_Vertex_Buffer : public DirectX11_Buffer
 {
 public:
     uint32 stride{sizeof(Vertex_Data)};
@@ -39,7 +39,7 @@ public:
     virtual void bind() const override;
 };
 
-class DirectX_Index_Buffer : public DirectX_Buffer
+class DirectX11_Index_Buffer : public DirectX11_Buffer
 {
 public:
     DXGI_FORMAT format{DXGI_FORMAT_R32_UINT};
@@ -49,7 +49,7 @@ public:
     virtual void bind() const override;
 };
 
-class DirectX_Shader : public Shader
+class DirectX11_Shader : public Shader
 {
 public:
     ComPtr<ID3D11DeviceContext> device_context;
@@ -58,39 +58,39 @@ public:
     ComPtr<ID3D11InputLayout> vertex_layout;
 
 public:
-    virtual ~DirectX_Shader() override {}
-    DirectX_Shader() = default;
+    virtual ~DirectX11_Shader() override {}
+    DirectX11_Shader() = default;
 
     virtual void bind() const override;
     virtual void unbind() const override;
 };
 
-struct DirectX_Submesh
+struct DirectX11_Submesh
 {
-    Shared_Ptr<DirectX_Shader> shader;
+    Shared_Ptr<DirectX11_Shader> shader;
     ComPtr<ID3D11Buffer> vertex_buffer;
     int32 vertices_count{0};
 };
 
-class DirectX_Mesh : public Mesh
+class DirectX11_Mesh : public Mesh
 {
 public:
     ComPtr<ID3D11Device> device;
-    Dynamic_Array<DirectX_Submesh> submeshes;
+    Dynamic_Array<DirectX11_Submesh> submeshes;
 
 public:
-    DirectX_Mesh() = default;
-    DirectX_Mesh(const Shared_Ptr<Mesh_Resource> &in_mesh_resource);
+    DirectX11_Mesh() = default;
+    DirectX11_Mesh(const Shared_Ptr<Mesh_Resource> &in_mesh_resource);
 
-    virtual ~DirectX_Mesh() override {}
+    virtual ~DirectX11_Mesh() override {}
     virtual void upload_data() override;
 };
 
 class Camera;
-class DirectX_Renderer_Backend : public Renderer_Backend
+class DirectX11_Renderer_Backend : public Renderer_Backend
 {
 public:
-    virtual ~DirectX_Renderer_Backend() override;
+    virtual ~DirectX11_Renderer_Backend() override;
     virtual void initialize(const Shared_Ptr<Window> &window) override;
     virtual void set_camera(const Shared_Ptr<Camera> &camera) override;
 
@@ -116,19 +116,19 @@ private:
     ComPtr<ID3D11DeviceContext> _device_context;
     ComPtr<IDXGISwapChain> _swapchain;
 
-    struct DirectX_Framebuffer
+    struct DirectX11_Framebuffer
     {
         ComPtr<ID3D11Texture2D> texture;
         ComPtr<ID3D11RenderTargetView> render_target_view;
         ComPtr<ID3D11DepthStencilView> depth_stencil_view;
     };
 
-    DirectX_Framebuffer _framebuffers[3];
+    DirectX11_Framebuffer _framebuffers[3];
 
     D3D11_VIEWPORT _viewport{};
 
     Shared_Ptr<Camera> _camera;
-    Shared_Ptr<DirectX_Buffer> _uniform_buffer;
+    Shared_Ptr<DirectX11_Buffer> _uniform_buffer;
 
 private:
     HWND _hwnd;
@@ -137,8 +137,8 @@ private:
     ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
     ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
 
-    DirectX_Framebuffer _create_framebuffer();
-    void _destroy_framebuffer(DirectX_Framebuffer& framebuffer);
+    DirectX11_Framebuffer _create_framebuffer();
+    void _destroy_framebuffer(DirectX11_Framebuffer& framebuffer);
     void _initialize_render_stuff();
     void _cleanup_render_stuff();
 };
