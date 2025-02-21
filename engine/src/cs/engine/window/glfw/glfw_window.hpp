@@ -1,10 +1,18 @@
 #pragma once
 
 #include "cs/engine/window.hpp"
+#include "cs/memory/shared_ptr.hpp"
+
+class Input_Source;
 
 struct GLFWwindow;
+struct GLFWgamepadstate;
+
 class GLFW_Window : public Window 
 {
+public:
+    Shared_Ptr<Input_Source> input_source;
+
 public:
     virtual ~GLFW_Window();
     
@@ -15,5 +23,9 @@ public:
     virtual void* native_handle() const override;
 
 private:
-    GLFWwindow* _window = nullptr;
+    GLFWwindow* _window { nullptr };
+    GLFWgamepadstate *_gamepad_state { nullptr };
+    GLFWgamepadstate *_previous_gamepad_state { nullptr };
+
+    void _poll_analog_inputs();
 };

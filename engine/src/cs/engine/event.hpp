@@ -30,8 +30,7 @@ namespace std
     {};
 }
 
-// Currently supports up to 6 arguments
-template<int32 N, class...Args>
+template<class...Args>
 class Event
 {
 public:

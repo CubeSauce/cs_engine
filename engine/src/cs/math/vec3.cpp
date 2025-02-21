@@ -45,8 +45,6 @@ float& vec3::operator[](int32 index)
 
 vec3& vec3::operator+=(float v)
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     x += v;
     y += v;
     z += v;
@@ -56,8 +54,6 @@ vec3& vec3::operator+=(float v)
 
 vec3 vec3::operator+(float v) const
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     return vec3(
         x + v,
         y + v,
@@ -67,8 +63,6 @@ vec3 vec3::operator+(float v) const
 
 vec3& vec3::operator-=(float v)
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     x -= v;
     y -= v;
     z -= v;
@@ -78,8 +72,6 @@ vec3& vec3::operator-=(float v)
 
 vec3 vec3::operator-(float v) const
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     return vec3(
         x - v,
         y - v,
@@ -89,8 +81,6 @@ vec3 vec3::operator-(float v) const
 
 vec3& vec3::operator*=(float v)
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     x *= v;
     y *= v;
     z *= v;
@@ -100,8 +90,6 @@ vec3& vec3::operator*=(float v)
 
 vec3 vec3::operator*(float v) const
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     return vec3(
         x * v,
         y * v,
@@ -111,8 +99,6 @@ vec3 vec3::operator*(float v) const
 
 vec3& vec3::operator/=(float v)
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     x /= v;
     y /= v;
     z /= v;
@@ -122,8 +108,6 @@ vec3& vec3::operator/=(float v)
 
 vec3 vec3::operator/(float v) const
 {
-    if(v < NEARLY_ZERO) v = NEARLY_ZERO;
-
     return vec3(
         x / v,
         y / v,
@@ -169,9 +153,9 @@ vec3 vec3::operator-(const vec3& other) const
 
 vec3& vec3::operator*=(const vec3& other)
 {
-    x *= ((other.x < NEARLY_ZERO) ? NEARLY_ZERO : other.x);
-    y *= ((other.y < NEARLY_ZERO) ? NEARLY_ZERO : other.y);
-    z *= ((other.z < NEARLY_ZERO) ? NEARLY_ZERO : other.z);
+    x *= other.x;
+    y *= other.y;
+    z *= other.z;
 
     return *this;
 }
@@ -179,17 +163,18 @@ vec3& vec3::operator*=(const vec3& other)
 vec3 vec3::operator*(const vec3& other) const
 {
     return vec3(
-        x * ((other.x < NEARLY_ZERO) ? NEARLY_ZERO : other.x),
-        y * ((other.y < NEARLY_ZERO) ? NEARLY_ZERO : other.y),
-        z * ((other.z < NEARLY_ZERO) ? NEARLY_ZERO : other.z)
+        x * other.x,
+        y * other.y,
+        z * other.z
     );
 }
 
+
 vec3& vec3::operator/=(const vec3& other)
 {
-    x /= ((other.x < NEARLY_ZERO) ? NEARLY_ZERO : other.x);
-    y /= ((other.y < NEARLY_ZERO) ? NEARLY_ZERO : other.y);
-    z /= ((other.z < NEARLY_ZERO) ? NEARLY_ZERO : other.z);
+    x /= NEAR_ZERO_CHECK(other.x);
+    y /= NEAR_ZERO_CHECK(other.y);
+    z /= NEAR_ZERO_CHECK(other.z);
 
     return *this;
 }
@@ -197,9 +182,9 @@ vec3& vec3::operator/=(const vec3& other)
 vec3 vec3::operator/(const vec3& other) const
 {
     return vec3(
-        x / ((other.x < NEARLY_ZERO) ? NEARLY_ZERO : other.x),
-        y / ((other.y < NEARLY_ZERO) ? NEARLY_ZERO : other.y),
-        z / ((other.z < NEARLY_ZERO) ? NEARLY_ZERO : other.z)
+        x / NEAR_ZERO_CHECK(other.x),
+        y / NEAR_ZERO_CHECK(other.y),
+        z / NEAR_ZERO_CHECK(other.z)
     );
 }
 
@@ -211,15 +196,13 @@ float vec3::length() const
 vec3& vec3::normalize()
 {
     float len = length();
-    if(len < NEARLY_ZERO) len = NEARLY_ZERO;
-    *this /= len;
+    *this /= NEAR_ZERO_CHECK(len);
     return *this;
 }
 
 vec3 vec3::normalized() const
 {
-    float len = length();
-    if(len < NEARLY_ZERO) len = NEARLY_ZERO;
+    float len = NEAR_ZERO_CHECK(length());
     return *this / len;
 }
 

@@ -20,7 +20,7 @@ public:
     Name_Id name;
     std::string description;
 
-    Event<0> on_change_event;
+    Event<> on_change_event;
 
 public:
     CVar() = default;

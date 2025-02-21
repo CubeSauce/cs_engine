@@ -5,6 +5,8 @@
 
 #include "cs/cs.hpp"
 
+#include <initializer_list>
+
 template<typename Type>
 class Dynamic_Array
 {
@@ -34,6 +36,20 @@ public:
             _size(0)
     {
         *this = other;
+    }
+
+    Dynamic_Array(std::initializer_list<Type> in_initializer_list)
+        :   _data(nullptr),
+            _capacity(0),
+            _size(0)
+    {
+        resize((int32)in_initializer_list.size());
+        int32 index = 0;
+        for (const Type& value : in_initializer_list)
+        {
+            _data[index] = value;
+            ++index;
+        }
     }
 
     ~Dynamic_Array()

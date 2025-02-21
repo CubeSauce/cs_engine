@@ -29,6 +29,7 @@ class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
 class VR_System;
+class Input_System;
 class Engine
 {
 public:
@@ -45,12 +46,13 @@ public:
 
 private:
     Shared_Ptr<CVar_Registry> _cvar_registry;
-    Shared_Ptr<Net_Instance> _net_instance;
     Shared_Ptr<Renderer> _renderer;
     Shared_Ptr<Window> _window;
-    Shared_Ptr<VR_System> _vr_system;
+    Shared_Ptr<Input_System> _input_system;
 
     // TODO: Add these as a separate system
+    Shared_Ptr<VR_System> _vr_system;
+    Shared_Ptr<Net_Instance> _net_instance;
 
     bool _should_close { false };
 

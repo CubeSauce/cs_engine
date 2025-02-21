@@ -19,8 +19,8 @@ namespace Window_Framework
 class Window
 {
 public:
-    Event<0> on_window_should_close;
-    Event<2, uint32, uint32> on_window_resize;
+    Event<> on_window_should_close;
+    Event<uint32, uint32> on_window_resize;
 
 public:
     virtual ~Window() = default;

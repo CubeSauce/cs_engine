@@ -53,7 +53,7 @@ class VR_System : public Singleton<VR_System>
 {
 public:
     // Device Index, 
-    Event<2, int32, VR_Device_Status::Type> on_vr_device_status_change;
+    Event<int32, VR_Device_Status::Type> on_vr_device_status_change;
 
 public:
     void initialize();

@@ -1,5 +1,6 @@
 #include "cs/engine/engine.hpp"
 #include "cs/engine/cvar.hpp"
+#include "cs/engine/input.hpp"
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/engine/window/glfw/glfw_window.hpp"
 
@@ -13,6 +14,8 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
 {
     _initialize_cvars();
     _parse_args(args);
+
+    _input_system = Shared_Ptr<Input_System>::create();
 
     _vr_system = Shared_Ptr<VR_System>::create();
     if (_cvar_vr_support->get())

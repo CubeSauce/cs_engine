@@ -6,6 +6,8 @@
 #include "cs/cs.hpp"
 #include "cs/containers/linked_list.hpp"
 
+#include <unordered_map>
+
 #include <functional>
 
 template <typename Type>
@@ -82,4 +84,161 @@ public:
 protected:
     Linked_List<Hash_Pair> *_pair_linked_lists;
     int32 _size;
+};
+
+template <typename Type>
+class Hash_Map
+{
+public:
+    struct Entry
+    {
+        Type value;
+        uint32 hash { 0 };
+        int32 next_collision_index { -1 };
+    };
+
+public:
+    Hash_Map(int32 size = 256)
+        : _size(size)
+    {
+        _entries = new Entry[size];
+        _collision_entries = new Entry[size];
+    }
+
+    ~Hash_Map()
+    {
+        delete[] _entries;
+    }
+
+    int32 get_index_from_hash(uint32 hash) const
+    {
+        return hash % _size;
+    }
+
+    void add(uint32 hash, const Type& data)
+    {
+        const int32 key_index = get_index_from_hash(hash);
+        if (_entries[key_index].hash == hash)
+        {
+            // Just change the value
+            _entries[key_index].value = data;
+            return;
+        }
+
+        if (_entries[key_index].hash > 0) // Collision
+        {
+            int32 next_collision_index = key_index;
+            int32 last_collision_index = -1;
+
+            while (_collision_entries[next_collision_index].hash > 0 && _collision_entries[next_collision_index].hash != hash && next_collision_index < _size)
+            {
+                last_collision_index = next_collision_index;
+                if (_collision_entries[next_collision_index].next_collision_index != -1)
+                {
+                    next_collision_index = _collision_entries[next_collision_index].next_collision_index;
+                }
+                else
+                {
+                    next_collision_index++;
+                }
+            }
+
+            // If true, we reached the maximum amount of items in table (maybe do resizing?)
+            assert(next_collision_index < _size);
+            
+            if (_collision_entries[next_collision_index].hash == hash)
+            {
+                _collision_entries[next_collision_index].value = data;
+                return;
+            }
+
+            if (_entries[key_index].next_collision_index == -1)
+            {
+                _entries[key_index].next_collision_index = next_collision_index;
+            }
+            else
+            {
+                _collision_entries[last_collision_index].next_collision_index = next_collision_index;
+            }
+
+            _collision_entries[next_collision_index].value = data;
+            _collision_entries[next_collision_index].hash = hash;
+            
+            return;
+        }
+        
+        _entries[key_index].value = data;
+        _entries[key_index].hash = hash;
+    }
+
+    Type* find(uint32 hash)
+    {
+        const int32 key_index = get_index_from_hash(hash);
+
+        if (_entries[key_index].hash == hash)
+        {
+            return &_entries[key_index].value;
+        }
+
+        int32 next_collision_index = key_index;
+        while (_collision_entries[next_collision_index].hash > 0 && _collision_entries[next_collision_index].hash != hash && next_collision_index < _size)
+        {
+            next_collision_index = _collision_entries[next_collision_index].next_collision_index;
+        }
+
+        if (_collision_entries[next_collision_index].hash == hash)
+        {
+            return &_collision_entries[next_collision_index].value;
+        }
+
+        return nullptr;
+    }
+
+    Type& find_or_add(uint32 hash)
+    {
+        const int32 key_index = get_index_from_hash(hash);
+        if (_entries[key_index].hash == hash)
+        {
+            // Just change the value
+            return _entries[key_index].value;
+        }
+
+        if (_entries[key_index].hash > 0) // Collision
+        {
+            int32 next_collision_index = key_index;
+            int32 last_collision_index = -1;
+
+            while (_collision_entries[next_collision_index].hash > 0 && _collision_entries[next_collision_index].hash != hash && next_collision_index < _size)
+            {
+                last_collision_index = next_collision_index;
+                if (_collision_entries[next_collision_index].next_collision_index != -1)
+                {
+                    next_collision_index = _collision_entries[next_collision_index].next_collision_index;
+                }
+                else
+                {
+                    next_collision_index++;
+                }
+            }
+
+            // If true, we reached the maximum amount of items in table (maybe do resizing?)
+            assert(next_collision_index < _size);
+            
+            if (_collision_entries[next_collision_index].hash == hash)
+            {
+                return _collision_entries[next_collision_index].value;
+            }
+
+            _collision_entries[next_collision_index].hash = hash;
+            return _collision_entries[next_collision_index].value;
+        }
+
+        _entries[key_index].hash = hash;
+        return _entries[key_index].value;
+    }
+
+private:
+    int32 _size { 0 };
+    Entry* _entries { nullptr };
+    Entry* _collision_entries { nullptr };
 };

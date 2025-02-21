@@ -65,40 +65,37 @@ void VR_System::poll_events()
         return;
     }
 
-    _vr_system;
+    vr::VREvent_t event;
+    while(_vr_system->PollNextEvent(&event, sizeof( event )))
+    {
+        switch( event.eventType )
+        {
+        case vr::VREvent_TrackedDeviceActivated:
+        {
+            on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Activated);
+            break;
+        }
+        case vr::VREvent_TrackedDeviceDeactivated:
+        {
+            on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Deactivated);
+            break;
+        }
+        case vr::VREvent_TrackedDeviceUpdated:
+        {
+            on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Updated);
+            break;
+        }
+        }
+    }
 
-    // vr::VREvent_t event;
-    // while( _vr_system->PollNextEvent( &event, sizeof( event ) ) )
-    // {
-    //     switch( event.eventType )
-    //     {
-    //     case vr::VREvent_TrackedDeviceActivated:
-    //     {
-    //         on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Activated);
-    //         break;
-    //     }
-    //     case vr::VREvent_TrackedDeviceDeactivated:
-    //     {
-    //         on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Deactivated);
-    //         break;
-    //     }
-    //     case vr::VREvent_TrackedDeviceUpdated:
-    //     {
-    //         on_vr_device_status_change.broadcast(event.trackedDeviceIndex, VR_Device_Status::Updated);
-    //         break;
-    //     }
-    //     }
-    // }
-
-    // Process SteamVR controller state
-    // for( vr::TrackedDeviceIndex_t unDevice = 0; unDevice < vr::k_unMaxTrackedDeviceCount; unDevice++ )
-    // {
-    //     vr::VRControllerState_t state;
-    //     if( _vr_system->GetControllerState( unDevice, &state, sizeof(state) ) )
-    //     {
-    //         _vr_show_tracked_device[unDevice] = state.ulButtonPressed == 0;
-    //     }
-    // }
+    for( vr::TrackedDeviceIndex_t unDevice = 0; unDevice < vr::k_unMaxTrackedDeviceCount; unDevice++ )
+    {
+        vr::VRControllerState_t state;
+        if( _vr_system->GetControllerState( unDevice, &state, sizeof(state) ) )
+        {
+            _vr_show_tracked_device[unDevice] = state.ulButtonPressed == 0;
+        }
+    }
     
 }
 
