@@ -13,7 +13,13 @@ public:
     {
         float data[4];
         struct {
-            float x, y, z, w;
+            union {
+                struct {
+                    float x, y, z;
+                };
+                vec3 xyz;
+            };
+            float w;
         };
     };
 

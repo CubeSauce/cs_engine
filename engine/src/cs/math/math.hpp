@@ -19,3 +19,9 @@ inline Type lerp(Type a, Type b, float time) { return (1 - time) * a + time * b;
 
 inline float min_abs(float a, float b) { return fabs(a) < fabs(b) ? a : b; }
 inline float max_abs(float a, float b) { return fabs(a) > fabs(b) ? a : b; }
+
+// Maps x from range [in_min, in_max] to range [out_min, out_max] 
+inline float map(float x, float in_min, float in_max, float out_min, float out_max) 
+{ 
+    return (((x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
+}

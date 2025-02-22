@@ -90,6 +90,27 @@ quat quat::from_mat4(const mat4& m)
 	return zero_quat;
 }
 
+quat quat::from_direction(const vec3& direction)
+{
+	const vec3 forward = direction.normalized();
+
+	float dot = vec3::forward_vector.dot(forward);
+	if (dot > 0.9999f)
+	{
+		return quat::zero_quat;
+	}
+
+	if (dot < -0.9999f)
+	{
+		return quat::from_rotation_axis(vec3::up_vector, MATH_DEG_TO_RAD(180.0f));
+	}
+
+	const vec3 axis = vec3::forward_vector.cross(forward).normalize();
+	const float angle = acos(dot);
+
+	return quat::from_rotation_axis(axis, angle);
+}
+
 quat quat::from_euler_angles(const vec3& euler)
 {
     vec3 c = cos(euler * 0.5f);
@@ -117,6 +138,12 @@ quat quat::mul(const quat& other) const
 	).normalized();
 }
 
+vec3 quat::mul(const vec3& other) const
+{
+	const vec3 t = v.cross(other) * 2.0f;
+	return other + t * w + v.cross(t);
+}
+    
 void quat::normalize()
 {
 	const float length = sqrt(v.dot(v) + w * w);
@@ -129,6 +156,11 @@ quat quat::normalized() const
 	quat result(*this);
 	result.normalize();
 	return result;
+}
+
+vec3 quat::get_direction(const vec3& forward_axis)
+{
+	return forward_axis + (v.cross(forward_axis) + forward_axis * w).cross(v) * 2.0f;
 }
 
 mat4 rotation(const quat& rotation)

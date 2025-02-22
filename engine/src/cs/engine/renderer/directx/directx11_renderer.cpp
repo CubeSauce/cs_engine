@@ -204,12 +204,9 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
     if (vr_system.is_valid())
     {
         Shared_Ptr<Camera> camera = vr_system.get_camera(eye);
-
+        
         data.view = camera->get_view();
         data.projection = camera->get_projection();
-        static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
-        data.view = vr_system._get_eye_pose(eye) * vr_system._head_view_matrix * toZup;
-        data.projection =vr_system._get_eye_projection(eye);
     }
     else if (_camera)
     {

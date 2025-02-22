@@ -25,7 +25,7 @@ public:
 
 namespace VR_Device_Status
 {
-    enum Type
+    enum Type : uint8
     {
         Activated,
         Deactivated,
@@ -35,7 +35,7 @@ namespace VR_Device_Status
 
 namespace VR_Eye
 {
-    enum Type
+    enum Type : uint8
     {
         Left = 0,
         Right = 1,
@@ -66,7 +66,9 @@ public:
     
     bool is_valid() { return _vr_system != nullptr; }
 
-    Shared_Ptr<Camera> get_camera(VR_Eye::Type eye) const { return _camera[eye]; }
+    Shared_Ptr<Camera> get_camera(VR_Eye::Type eye) const;
+
+    void set_custom_camera_pose(const mat4& pose);
 
     void get_viewport(uint32& width, uint32& height);
 
@@ -90,7 +92,8 @@ private:
     Shared_Ptr<VR_Camera> _camera[3];
 
 public:
-    mat4 _head_view_matrix;
+    mat4 _head_view_matrix { mat4(1.0f) };
+    mat4 _custom_pose { mat4(1.0f) };
 
 	mat4 _get_eye_projection(VR_Eye::Type eye);
 	mat4 _get_eye_pose(VR_Eye::Type eye);

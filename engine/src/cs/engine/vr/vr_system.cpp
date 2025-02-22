@@ -144,6 +144,16 @@ void VR_System::render()
 {
 }
 
+Shared_Ptr<Camera> VR_System::get_camera(VR_Eye::Type eye) const 
+{
+    return _camera[eye]; 
+}
+
+void VR_System::set_custom_camera_pose(const mat4& pose)
+{
+    _custom_pose = pose;
+}
+
 void VR_System::get_viewport(uint32& width, uint32& height)
 {
     _vr_system->GetRecommendedRenderTargetSize(&width, &height);
@@ -156,13 +166,18 @@ mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
         return mat4(1.0f);
     }
 
+    if (eye == VR_Eye::None)
+    {
+        return _camera[eye]->get_projection();
+    }
+
 	vr::HmdMatrix44_t mat = _vr_system->GetProjectionMatrix((vr::Hmd_Eye) eye, 0.1f, 1000.0f);
     return vr_to_mat4(mat);
 }
 
 mat4 VR_System::_get_eye_pose(VR_Eye::Type eye)
 {
-	if (!_vr_system)
+	if (!_vr_system || eye == VR_Eye::None)
     {
 		return mat4(1.0f);
     }
@@ -196,16 +211,16 @@ mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat)
     );
 }
 
+static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
+static mat4 toYup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f)).to_mat4();
 void VR_System::_update_camera(float dt)
 {
-    static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
+    mat4 pose = _custom_pose;
+    pose = pose.inverse();
 
-    _camera[VR_Eye::Left]->set_projection(_get_eye_projection(VR_Eye::Left));
-    _camera[VR_Eye::Left]->set_view(_get_eye_pose(VR_Eye::Left) * _head_view_matrix * toZup);
-
-    _camera[VR_Eye::Right]->set_projection(_get_eye_projection(VR_Eye::Right));
-    _camera[VR_Eye::Right]->set_view(_get_eye_pose(VR_Eye::Right) * _head_view_matrix * toZup);
-
-    _camera[VR_Eye::None]->calculate_projection();
-    _camera[VR_Eye::None]->set_view(_head_view_matrix);
+    for (uint8 eye = VR_Eye::Left; eye <= VR_Eye::None; eye++)
+    {
+        _camera[eye]->set_projection(_get_eye_projection((VR_Eye::Type)eye));
+        _camera[eye]->set_view(_get_eye_pose((VR_Eye::Type)eye) * _head_view_matrix * toZup * pose);
+    }
 }

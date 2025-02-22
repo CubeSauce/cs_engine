@@ -67,6 +67,7 @@ public:
     void shutdown();
 
     void set_active_camera(const Shared_Ptr<Camera>& camera);
+    Shared_Ptr<Camera> get_active_camera() { return _active_camera; }
 
     void draw_mesh(const Shared_Ptr<Mesh_Resource>& mesh);
 

@@ -246,12 +246,7 @@ void* GLFW_Window::native_handle() const
     #endif //CS_PLATFORM_WINDOWS
 }
 
-float axis_deadzone(float value, float threshold)
-{
-    return (fabs(value) < threshold) ? 0.0f : value;
-}
-
-constexpr float deadzone = 0.01f;
+constexpr float deadzone = 0.05f;
 
 void GLFW_Window::_poll_analog_inputs()
 {

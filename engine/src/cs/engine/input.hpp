@@ -40,3 +40,6 @@ public:
 private:
     Hash_Map<Shared_Ptr<Input>> _inputs;
 };
+
+float axis_deadzone(float value, float threshold);
+float axis_map_deadzone(float value, float threshold);

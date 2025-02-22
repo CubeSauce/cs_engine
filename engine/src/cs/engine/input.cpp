@@ -1,4 +1,5 @@
 #include "cs/engine/input.hpp"
+#include "cs/math/math.hpp"
 
 template<> 
 Input_System* Singleton<Input_System>::_singleton { nullptr };
@@ -48,4 +49,27 @@ Event<float, float>& Input_System::register_input(const Name_Id& id, const Dynam
     }
 
     return input->on_updated;
+}
+
+float axis_deadzone(float value, float threshold)
+{
+    return (fabs(value) < threshold) ? 0.0f : value;
+}
+
+float axis_map_deadzone(float value, float threshold)
+{
+    if ((fabs(value) < threshold))
+    {
+        return 0;
+    }
+
+    if (SIGN(value) < 0)
+    {
+        // (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+        float t = -map(-value, 0.0f, 1.0f, threshold, 1.0f);
+        return t;
+    }
+ 
+    float t = map(value, 0.0f, 1.0f, threshold, 1.0f);
+    return t;
 }
