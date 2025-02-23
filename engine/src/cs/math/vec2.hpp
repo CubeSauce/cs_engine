@@ -8,6 +8,10 @@
 class  vec2
 {
 public:
+    static vec2 zero_vector;
+    static vec2 one_vector;
+
+public:
     float x, y;
 
 public:

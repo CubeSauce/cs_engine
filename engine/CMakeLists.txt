@@ -6,6 +6,7 @@ file(GLOB_RECURSE cs_engine_src
 
 file(GLOB cs_engine_includes
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
 )
 
 message("${CMAKE_SOURCE_DIR}/engine/third_party/glew/include")

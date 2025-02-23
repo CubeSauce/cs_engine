@@ -34,7 +34,10 @@ class Engine
 {
 public:
     Shared_Ptr<Game_Instance> game_instance;
-    Shared_Ptr<Material_Resource> default_material_resource;
+
+    Shared_Ptr<Shader_Resource> default_shader_texture;
+    Shared_Ptr<Shader_Resource> default_shader_color;
+
 
 public:
     Engine() = default;

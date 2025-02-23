@@ -9,6 +9,8 @@
 
 #include <memory>
 
+#include "stb/stb_image.h"
+
 #ifdef CS_PLATFORM_WINDOWS
 #include <d3d11.h>       // D3D interface
 #include <dxgi.h>        // DirectX11 driver interface
@@ -59,6 +61,8 @@ void DirectX11_Shader::bind() const
     device_context->IASetInputLayout(vertex_layout.Get());
     device_context->VSSetShader(vertex_shader.Get(), nullptr, 0);
     device_context->PSSetShader(pixel_shader.Get(), nullptr, 0);
+
+    device_context->PSSetSamplers(0, 1, sampler_state_0.GetAddressOf());
 }
 
 void DirectX11_Shader::unbind() const
@@ -234,9 +238,14 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
         _device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         _device_context->IASetVertexBuffers(0, 1, submesh.vertex_buffer.GetAddressOf(), &vertex_stride, &vertex_offset);
 
-        submesh.shader->bind();
+        if (Shared_Ptr<DirectX11_Texture> dx11_texture = submesh.material.texture)
+        {
+            _device_context->PSSetShaderResources(0, 1, dx11_texture->resource_view.GetAddressOf());
+        }
+
+        submesh.material.shader->bind();
         _device_context->Draw(submesh.vertices_count, 0);
-        submesh.shader->unbind();
+        submesh.material.shader->unbind();
     }
 }
 
@@ -305,25 +314,7 @@ Shared_Ptr<Buffer> DirectX11_Renderer_Backend::create_uniform_buffer(void *data,
 
 Shared_Ptr<Shader> DirectX11_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
-    Shared_Ptr<DirectX11_Shader> shader = Shared_Ptr<DirectX11_Shader>::create();
-
-    shader->device_context = _device_context;
-
-    ComPtr<ID3DBlob> vertex_shader_blob = nullptr;
-    shader->vertex_shader = _create_vertex_shader(shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath, vertex_shader_blob);
-    shader->pixel_shader = _create_pixel_shader(shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath);
-
-    // TODO: From Shader definition
-    constexpr D3D11_INPUT_ELEMENT_DESC input_element_desc[] =
-        {
-            {"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXCOORD", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0}};
-
-    assert(SUCCEEDED(_device->CreateInputLayout(input_element_desc, ARRAYSIZE(input_element_desc),
-                                                vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(), &shader->vertex_layout)));
-
-    return shader;
+    return _create_shader(shader_resource);
 }
 
 Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
@@ -336,11 +327,18 @@ Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_R
         DirectX11_Submesh dx_submesh;
 
         // TODO: map with materials and existing shaders so we don't duplicate
-        dx_submesh.shader = create_shader(submesh.material_resource->shader_resource);
+        dx_submesh.material = _create_material(submesh.material_resource);
         dx_mesh->submeshes.add(dx_submesh);
     }
 
     return dx_mesh;
+}
+
+
+// For now use same format for all
+Shared_Ptr<Texture> DirectX11_Renderer_Backend::create_texture(const Shared_Ptr<Texture_Resource>& texture_resource)
+{
+    return _create_texture(texture_resource);
 }
 
 #include <iostream>
@@ -361,6 +359,8 @@ bool DirectX11_Renderer_Backend::_compile_shader(const char *filename, const cha
     if (FAILED(hr))
     {
         std::string e((char *)error_blob->GetBufferPointer());
+        printf("%s", e.c_str());
+        flushall();
         assert(false);
     }
 
@@ -399,6 +399,118 @@ ComPtr<ID3D11PixelShader> DirectX11_Renderer_Backend::_create_pixel_shader(const
         nullptr, &pixel_shader)));
 
     return pixel_shader;
+}
+
+DirectX11_Material DirectX11_Renderer_Backend::_create_material(const Shared_Ptr<Material_Resource>& material_resource)
+{
+    DirectX11_Material dx11_material;
+
+    dx11_material.shader = _create_shader(material_resource->shader_resource);
+    dx11_material.texture = _create_texture(material_resource->texture_resource);
+
+    return dx11_material;
+}
+
+Shared_Ptr<DirectX11_Shader> DirectX11_Renderer_Backend::_create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
+{
+    Shared_Ptr<DirectX11_Shader> shader = Shared_Ptr<DirectX11_Shader>::create();
+    shader->shader_resource = shader_resource;
+    
+    shader->device_context = _device_context;
+
+    ComPtr<ID3DBlob> vertex_shader_blob = nullptr;
+    shader->vertex_shader = _create_vertex_shader(shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath, vertex_shader_blob);
+    shader->pixel_shader = _create_pixel_shader(shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath);
+
+    // TODO: From Shader definition
+    constexpr D3D11_INPUT_ELEMENT_DESC input_element_desc[] = 
+    {
+        {"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0}
+    };
+
+    assert(SUCCEEDED(_device->CreateInputLayout(input_element_desc, ARRAYSIZE(input_element_desc),
+                                                vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(), &shader->vertex_layout)));
+
+    D3D11_SAMPLER_DESC sampler_desc = {};
+    sampler_desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+    sampler_desc.Filter = D3D11_FILTER::D3D11_FILTER_ANISOTROPIC;
+    sampler_desc.MaxAnisotropy = 16;
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_MODE::D3D11_TEXTURE_ADDRESS_WRAP;
+    assert(SUCCEEDED(_device->CreateSamplerState(&sampler_desc, &shader->sampler_state_0)));
+
+    return shader;
+}
+
+Shared_Ptr<DirectX11_Texture> DirectX11_Renderer_Backend::_create_texture(const Shared_Ptr<Texture_Resource>& texture_resource)
+{
+    if (!texture_resource)
+    {
+        return Shared_Ptr<DirectX11_Texture>();
+    }
+
+    Shared_Ptr<DirectX11_Texture> dx11_texture = Shared_Ptr<DirectX11_Texture>::create();
+
+    D3D11_TEXTURE2D_DESC textureDesc = {};
+    D3D11_SUBRESOURCE_DATA initialData = {};
+
+    DXGI_FORMAT textureFormat;
+    switch (texture_resource->num_channels)
+    {
+    case 1:
+        textureFormat = DXGI_FORMAT::DXGI_FORMAT_R8_UNORM;
+        break;
+    case 2:
+        textureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8_UNORM;
+        break;
+    case 3:
+        {
+            //TODO: Convert image
+            assert(false);
+        }
+        break;
+    case 4:
+        textureFormat = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+        break;
+    default:
+        {
+            return Shared_Ptr<DirectX11_Texture>();
+        }
+        break;
+    }
+    textureDesc.Format = textureFormat;
+    textureDesc.ArraySize = 1;
+    textureDesc.MipLevels = 1;
+    textureDesc.Width = texture_resource->width;
+    textureDesc.Height = texture_resource->height;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    //populate initial data
+    initialData.pSysMem = texture_resource->data;
+    initialData.SysMemPitch = texture_resource->num_channels * texture_resource->width;
+
+    if (FAILED(_device->CreateTexture2D(&textureDesc, &initialData, dx11_texture->texture.GetAddressOf())))
+    {
+        return Shared_Ptr<DirectX11_Texture>();
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
+    resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    resource_view_desc.Format = textureDesc.Format;
+    resource_view_desc.Texture2D.MipLevels = textureDesc.MipLevels;
+
+    if (FAILED(_device->CreateShaderResourceView(dx11_texture->texture.Get(), &resource_view_desc, &dx11_texture->resource_view)))
+    {
+        return Shared_Ptr<DirectX11_Texture>();
+    }
+
+    return dx11_texture;
 }
 
 DirectX11_Renderer_Backend::DirectX11_Framebuffer DirectX11_Renderer_Backend::_create_framebuffer()

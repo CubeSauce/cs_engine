@@ -205,14 +205,20 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
 
 void Engine::_initialize_defaults()
 {
-    Shared_Ptr<Shader_Resource> default_shader_resource = Shared_Ptr<Shader_Resource>::create();
-    default_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/opengl/main.vs.glsl";
-    default_shader_resource->source_paths[Renderer_API::OpenGL].pixel_filepath = "assets/shaders/opengl/main.ps.glsl";
-    default_shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
-    default_shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
-    default_shader_resource->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/directx/main.vs.hlsl";
-    default_shader_resource->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/directx/main.ps.hlsl";
+    default_shader_texture = Shared_Ptr<Shader_Resource>::create();
+    //TODO: fix for opengl
+    default_shader_texture->source_paths[Renderer_API::DirectX11].vertex_filepath = "assets/shaders/directx/default_texture.vs.hlsl";
+    default_shader_texture->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/directx/default_texture.ps.hlsl";
+    default_shader_texture->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/directx/default_texture.vs.hlsl";
+    default_shader_texture->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/directx/default_texture.ps.hlsl";
+
+    //TODO: make this blend with white instead of multiple textures
     
-    default_material_resource = Shared_Ptr<Material_Resource>::create();
-    default_material_resource->shader_resource = default_shader_resource;
+    default_shader_color = Shared_Ptr<Shader_Resource>::create();
+    //TODO: fix for opengl
+    default_shader_color->source_paths[Renderer_API::DirectX11].vertex_filepath = "assets/shaders/directx/default_color.vs.hlsl";
+    default_shader_color->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/directx/default_color.ps.hlsl";
+    default_shader_color->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/directx/default_color.vs.hlsl";
+    default_shader_color->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/directx/default_color.ps.hlsl";
+
 }

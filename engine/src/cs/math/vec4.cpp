@@ -3,6 +3,9 @@
 
 #include "cs/math/vec4.hpp"
 
+vec4 vec4::zero_vector = vec4(0.0f);
+vec4 vec4::one_vector = vec4(1.0f);
+
 vec4::vec4(float v)
     :x(v), y(v), z(v), w(v)
 {

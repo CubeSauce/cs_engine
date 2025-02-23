@@ -14,7 +14,14 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-Shared_Ptr<Material_Resource> default_material_resource;
+Shared_Ptr<Shader_Resource> default_shader_texture;
+Shared_Ptr<Shader_Resource> default_shader_color;
+
+Shared_Ptr<Material_Resource> default_material_color_resource;
+
+Shared_Ptr<Texture_Resource> deafult_gray_texture_resource;
+Shared_Ptr<Texture_Resource> deafult_orange_texture_resource;
+Shared_Ptr<Texture_Resource> deafult_purple_texture_resource;
 
 Shared_Ptr<Mesh_Resource> import(const char* filepath)
 {
@@ -27,6 +34,12 @@ Shared_Ptr<Mesh_Resource> import(const char* filepath)
 	assert(extension);
   assert(aiIsExtensionSupported(extension) == AI_TRUE);
 
+  const char* folder = strrchr(filepath, '/');
+  int32 folder_index = folder - filepath + 1;
+
+  std::string folder_path(filepath);
+  folder_path = folder_path.substr(0, folder_index);
+
   const aiScene* ai_scene = aiImportFile(filepath, aiProcessPreset_TargetRealtime_MaxQuality);
   assert(ai_scene);
 
@@ -35,21 +48,76 @@ Shared_Ptr<Mesh_Resource> import(const char* filepath)
   {
     const aiMesh* ai_mesh = ai_scene->mMeshes[m];
 
+    aiMaterial* ai_material = ai_scene->mMaterials[ai_mesh->mMaterialIndex];
+    
+    aiColor4D ai_material_color;
+    assert(AI_SUCCESS == ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, ai_material_color));
+    vec4 material_color(ai_material_color.r, ai_material_color.g, ai_material_color.b, ai_material_color.a);
+
+    Shared_Ptr<Material_Resource> material_resource = Shared_Ptr<Material_Resource>::create();
+    
     Submesh_Data submesh_data;
 
-    submesh_data.material_resource = default_material_resource;
-    
+    bool has_uvs = ai_mesh->HasTextureCoords(0);
+    if(has_uvs)
+    {
+      material_resource->shader_resource = default_shader_texture;
+
+      if (ai_material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+      {
+        aiString path;
+        assert(aiReturn_SUCCESS == ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &path));
+        //{length=23 data=0x0000002f3f0ff104 "de_dust2_material_0.tga" };
+  
+        material_resource->texture_resource = Shared_Ptr<Texture_Resource>::create(folder_path + path.C_Str());
+      }
+      else
+      {
+        material_resource->texture_resource = deafult_gray_texture_resource;
+      }
+    }
+    else
+    {
+      material_resource->shader_resource = default_shader_color;
+    }
+
+    submesh_data.material_resource = material_resource;
+
     const uint32 num_vertices = (int32)(ai_mesh->mNumFaces * 3);
     for (uint32 f = 0; f < ai_mesh->mNumFaces; ++f)
     {
+      Vertex_Data vertex;
+
       const aiFace& ai_face = ai_mesh->mFaces[f];
+
       int32 indices[] = {2, 1, 0};  // TODO: Do this with culling
       for (uint32 i = 0; i < ai_face.mNumIndices; ++i)
       {
-        const aiVector3D& v = ai_mesh->mVertices[ai_face.mIndices[indices[i]]];
-        const aiVector3D& n = ai_mesh->mNormals[ai_face.mIndices[indices[i]]];
-        
-        submesh_data.vertices.add({{v.x, v.y, v.z}, {n.x, n.y, n.z}, {0.0f, 0.0f}});
+        int32 index = ai_face.mIndices[indices[i]];
+
+        const aiVector3D& v = ai_mesh->mVertices[index];
+        vertex.vertex_location = {v.x, v.y, v.z};
+
+        const aiVector3D& n = ai_mesh->mNormals[index];
+        vertex.vertex_normal = {n.x, n.y, n.z};
+
+        vertex.vertex_color = material_color;
+
+        //TODO: Support multiple colors
+        if (has_uvs)
+        {
+          for (uint32 u = 0; u < ai_mesh->GetNumUVChannels(); ++u)
+          {
+            if (ai_mesh->mTextureCoords[u])
+            {
+              const aiVector3D& uv = ai_mesh->mTextureCoords[u][index];
+              vertex.vertex_texture_coordinate = {uv.x, uv.y};
+              break;
+            }
+          }
+        }
+
+        submesh_data.vertices.add(vertex);
       }
     }
 
@@ -64,12 +132,14 @@ struct Input_Component
     vec3 analog_input { vec3::zero_vector };
     vec3 digital_input { vec3::zero_vector };
     float rotation { 0.0f };
+    float speed { 2.5f };
 };
 
 struct Transform_Component
 {
     vec3 position { vec3::zero_vector };
     quat orientation { quat::zero_quat };
+    vec3 scale { vec3::one_vector };
     Name_Id parent { Name_Id::Empty };
 };
 
@@ -138,13 +208,24 @@ public:
   virtual void update(float dt) override;
   virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override;
   virtual void shutdown() override;
+
+  void _init_player();
+  void _init_test();
+  void _init_dust2();
 };
 
-void Test_Game_Instance::init()
+void init_materials()
 {
-  Shared_Ptr<Mesh_Resource> kimono = import("assets/mesh/kimono.obj");
-  Shared_Ptr<Mesh_Resource> plane = import("assets/mesh/plane.obj");
+  deafult_gray_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_gray.png");
+  deafult_orange_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_orange.png");
+  deafult_purple_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_purple.png");
 
+  default_material_color_resource = Shared_Ptr<Material_Resource>::create();
+  default_material_color_resource->shader_resource = default_shader_color;
+}
+
+void Test_Game_Instance::_init_player()
+{
   game_state.transform_components.add("player", {
     .position = vec3(0.0f, 0.0f, 0.0f), 
   });
@@ -158,7 +239,7 @@ void Test_Game_Instance::init()
     .parent = "player"
   });
   //game_state.render_components.add("player", { .mesh = kimono, .mesh_transform_id = "player_mesh" });
-  game_state.input_components.add("player", { .analog_input = vec3(0.0f) });
+  game_state.input_components.add("player", { .analog_input = vec3(0.0f), .speed = 102.50f });
 
   Input_System::get().register_input("a_forward", {{"GAMEPAD_AXIS_RIGHT_Y", 1.0f}}).bind([&](float value, float multiplier) {
     Input_Component* input_component = game_state.input_components.get("player");
@@ -183,8 +264,16 @@ void Test_Game_Instance::init()
   Input_System::get().register_input("rotation", {{"GAMEPAD_AXIS_RIGHT_TRIGGER", 1.0f}, {"GAMEPAD_AXIS_LEFT_TRIGGER", -1.0f}}).bind([&](float value, float multiplier) {
     Input_Component* input_component = game_state.input_components.get("player");
     // Axis returns [-1, 1] but trigger can go in just one dir
-    input_component->rotation = axis_map_deadzone(((value + 1) * 0.5f), 0.2f) * multiplier;
+    input_component->rotation += axis_map_deadzone(((value + 1) * 0.5f), 0.2f) * multiplier;
   });
+}
+
+void Test_Game_Instance::_init_test()
+{
+  Shared_Ptr<Mesh_Resource> kimono = import("assets/mesh/kimono.obj");
+  Shared_Ptr<Mesh_Resource> plane = import("assets/mesh/plane.obj");
+
+  _init_player();
 
   game_state.transform_components.add("npc1", {
     .position = vec3(-5.0f, 5.0f, 0.0f), 
@@ -217,6 +306,29 @@ void Test_Game_Instance::init()
   game_state.render_components.add("plane", { .mesh = plane, .mesh_transform_id = "plane" });
 }
 
+void Test_Game_Instance::_init_dust2()
+{
+  _init_player();
+
+  Shared_Ptr<Mesh_Resource> dust2 = import("assets/mesh/de_dust2.obj");
+
+  game_state.transform_components.add("dust2", {
+    .position = vec3(0.0f, 0.0f, 0.0f),
+    .scale = vec3(0.01f)
+    //.orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+
+  });
+  game_state.render_components.add("dust2", { .mesh = dust2, .mesh_transform_id = "dust2" });
+}
+
+void Test_Game_Instance::init()
+{
+  init_materials();
+
+  //_init_test();
+  _init_dust2();
+}
+
 Hash_Map<mat4> transforms;
 void Test_Game_Instance::update(float dt)
 {
@@ -229,25 +341,31 @@ void Test_Game_Instance::update(float dt)
           continue;
         }
 
-        if (const Input_Component* input_component = game_state.input_components.get(*p_id))
+        if (Input_Component* input_component = game_state.input_components.get(*p_id))
         {
           vec3 input(0.0f);
           input.x = clamp(input_component->analog_input.x + input_component->digital_input.x, -1.0f, 1.0f);
           input.y = clamp(input_component->analog_input.y + input_component->digital_input.y, -1.0f, 1.0f);
 
-          printf("%f %f\n", input.x, input.y);
-
           component.orientation = component.orientation.mul(quat::from_rotation_axis(vec3(0.0f, 0.0f, 1.0f), input_component->rotation * dt));
           
-          const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view();
-          vec3 camera_forward = camera_view[1].xyz;
-          camera_forward.z = 0;
-          camera_forward.normalize();
+          VR_System& vr_system = VR_System::get();
+          if (vr_system.is_valid())
+          {
+            const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view();
+            vec3 camera_forward = camera_view.inverse()[1].xyz;
+            camera_forward.normalize();
+  
+            const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
+            const vec3 camera_up = camera_forward.cross(camera_right).normalize();
 
-          const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
-          const vec3 movement_direction = (camera_forward * input.y + camera_right * input.x).normalize();
-          
-          component.position += movement_direction * 2.5 * dt;
+            const vec3 movement_direction = (camera_forward * input.y).normalize();
+            
+            component.position += movement_direction * input_component->speed * dt;
+          }
+
+          // REset for input TODO: Find better solution for combined inputs
+          input_component->rotation = 0;
         }
 
         mat4 parent_transform(1.0f);
@@ -264,6 +382,7 @@ void Test_Game_Instance::update(float dt)
         transform = translate(mat4(1.0f), component.position);
         transform = transform * component.orientation.to_mat4();
         transform = transform * parent_transform;
+        //transform = transform * scale(mat4(1.0f), component.scale);
     }
 }
 
@@ -312,7 +431,8 @@ int main(int argc, char** argv)
 
   Engine engine;
   engine.initialize(args);
-  default_material_resource = engine.default_material_resource; // Currently just to get it somehow
+  default_shader_color = engine.default_shader_color;
+  default_shader_texture = engine.default_shader_texture;
   engine.game_instance = Shared_Ptr<Test_Game_Instance>::create();
   engine.run();
   engine.shutdown();

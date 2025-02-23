@@ -48,6 +48,7 @@ public:
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource>& shader_resource) = 0;
     virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource>& mesh) = 0;
     virtual Shared_Ptr<Material> create_material() = 0;
+    virtual Shared_Ptr<Texture> create_texture(const Shared_Ptr<Texture_Resource>& texture_resource) = 0;
 };
 
 class Renderer

@@ -9,6 +9,9 @@
 struct  vec4
 {
 public:
+    static vec4 zero_vector;
+    static vec4 one_vector;
+
     union
     {
         float data[4];

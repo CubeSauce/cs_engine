@@ -7,3 +7,6 @@
 [submodule "engine/third_party/openvr"]
 	path = engine/third_party/openvr
 	url = https://github.com/ValveSoftware/openvr
+[submodule "engine/third_party/stb"]
+	path = engine/third_party/stb
+	url = https://github.com/nothings/stb

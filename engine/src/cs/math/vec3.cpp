@@ -5,11 +5,11 @@
 
 #include <cmath>
 
-vec3 vec3::right_vector     = vec3(1.0, 0.0, 0.0);
-vec3 vec3::forward_vector   = vec3(0.0, 1.0, 0.0);
-vec3 vec3::up_vector        = vec3(0.0, 0.0, 1.0);
-vec3 vec3::zero_vector      = vec3(0.0, 0.0, 0.0);
-vec3 vec3::one_vector       = vec3(1.0, 1.0, 1.0);
+vec3 vec3::right_vector     = vec3(1.0f, 0.0f, 0.0f);
+vec3 vec3::forward_vector   = vec3(0.0f, 1.0f, 0.0f);
+vec3 vec3::up_vector        = vec3(0.0f, 0.0f, 1.0f);
+vec3 vec3::zero_vector      = vec3(0.0f);
+vec3 vec3::one_vector       = vec3(1.0f);
 
 vec3::vec3(float v)
     :x(v), y(v), z(v)

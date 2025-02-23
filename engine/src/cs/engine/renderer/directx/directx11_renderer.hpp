@@ -49,13 +49,21 @@ public:
     virtual void bind() const override;
 };
 
+class DirectX11_Texture : public Texture
+{
+public:
+    ComPtr<ID3D11Texture2D> texture;
+    ComPtr<ID3D11ShaderResourceView> resource_view;
+};
+
 class DirectX11_Shader : public Shader
 {
 public:
     ComPtr<ID3D11DeviceContext> device_context;
     ComPtr<ID3D11VertexShader> vertex_shader;
     ComPtr<ID3D11PixelShader> pixel_shader;
-    ComPtr<ID3D11InputLayout> vertex_layout;
+    ComPtr<ID3D11InputLayout> vertex_layout; 
+    ComPtr<ID3D11SamplerState> sampler_state_0;
 
 public:
     virtual ~DirectX11_Shader() override {}
@@ -65,9 +73,15 @@ public:
     virtual void unbind() const override;
 };
 
-struct DirectX11_Submesh
+struct DirectX11_Material
 {
     Shared_Ptr<DirectX11_Shader> shader;
+    Shared_Ptr<DirectX11_Texture> texture;
+};
+
+struct DirectX11_Submesh
+{
+    DirectX11_Material material;
     ComPtr<ID3D11Buffer> vertex_buffer;
     int32 vertices_count{0};
 };
@@ -99,15 +113,16 @@ public:
     virtual void render_frame() override;
     virtual void shutdown() override;
     virtual void draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye = VR_Eye::None) override;
-    // virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
+    // virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
 
     virtual Shared_Ptr<Buffer> create_vertex_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_index_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_uniform_buffer(void *data, uint32 size);
 
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource> &shader_resource) override;
-    virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
+    virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
     virtual Shared_Ptr<Material> create_material() override { return Shared_Ptr<Material>(); }
+    virtual Shared_Ptr<Texture> create_texture(const Shared_Ptr<Texture_Resource>& texture_resource) override;
 
 private:
     Shared_Ptr<Window> _window;
@@ -136,6 +151,10 @@ private:
     bool _compile_shader(const char *filename, const char *entry_point, const char *profile, ComPtr<ID3DBlob> &shader_blob);
     ComPtr<ID3D11VertexShader> _create_vertex_shader(const char *filename, ComPtr<ID3DBlob> &vertex_shader_blob);
     ComPtr<ID3D11PixelShader> _create_pixel_shader(const char *filename);
+
+    DirectX11_Material _create_material(const Shared_Ptr<Material_Resource>& material_resource);
+    Shared_Ptr<DirectX11_Shader> _create_shader(const Shared_Ptr<Shader_Resource> &shader_resource);
+    Shared_Ptr<DirectX11_Texture> _create_texture(const Shared_Ptr<Texture_Resource>& texture_resource);
 
     DirectX11_Framebuffer _create_framebuffer();
     void _destroy_framebuffer(DirectX11_Framebuffer& framebuffer);

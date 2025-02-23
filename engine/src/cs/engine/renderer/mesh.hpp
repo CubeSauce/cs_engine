@@ -1,17 +1,17 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/math/vec2.hpp"
-#include "cs/math/vec3.hpp"
+#include "cs/math/math.hpp"
 #include "cs/engine/resource.hpp"
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/dynamic_array.hpp"
 
 struct Vertex_Data
 {
-	vec3 vertex_location;
-	vec3 vertex_normal;
-	vec2 vertex_texture_coordinate;
+	vec3 vertex_location { vec3::zero_vector };
+	vec3 vertex_normal { vec3::zero_vector };
+	vec2 vertex_texture_coordinate { vec2::zero_vector };
+	vec4 vertex_color { vec4::one_vector };
 };
 
 class Material_Resource;

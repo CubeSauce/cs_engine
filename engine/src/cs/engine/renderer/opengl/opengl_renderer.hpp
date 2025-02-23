@@ -79,15 +79,16 @@ public:
     virtual void end_frame(VR_Eye::Type eye = VR_Eye::None) override;
     virtual void shutdown() override;
     virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye = VR_Eye::None) override;
-    //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
+    //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
 
     virtual Shared_Ptr<Buffer> create_vertex_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_index_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_uniform_buffer(void *data, uint32 size);
 
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource> &shader_resource) override;
-    virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource> &mesh) override;
+    virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
     virtual Shared_Ptr<Material> create_material() override { return Shared_Ptr<Material>(); }
+    virtual Shared_Ptr<Texture> create_texture(const Shared_Ptr<Texture_Resource>& texture_resource) override { return Shared_Ptr<Texture>(); }
 
 private:
     Shared_Ptr<Window> _window;

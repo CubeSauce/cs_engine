@@ -345,13 +345,13 @@ Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shade
     return gl_shader;
 }
 
-Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh)
+Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
 {
     Shared_Ptr<OpenGL_Mesh> gl_mesh = Shared_Ptr<OpenGL_Mesh>::create();
 
     // create buffers/arrays
     // TODO: glGenBuffers for all submeshes at once
-    for (const Submesh_Data& submesh : mesh->submeshes)
+    for (const Submesh_Data& submesh : mesh_resource->submeshes)
     {
         OpenGL_Submesh gl_submesh;
 

@@ -171,7 +171,7 @@ mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
         return _camera[eye]->get_projection();
     }
 
-	vr::HmdMatrix44_t mat = _vr_system->GetProjectionMatrix((vr::Hmd_Eye) eye, 0.1f, 1000.0f);
+	vr::HmdMatrix44_t mat = _vr_system->GetProjectionMatrix((vr::Hmd_Eye) eye, 0.1f, 10000.0f);
     return vr_to_mat4(mat);
 }
 

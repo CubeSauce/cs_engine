@@ -3,6 +3,9 @@
 
 #include "cs/math/vec2.hpp"
 
+vec2 vec2::zero_vector = vec2(0.0f);
+vec2 vec2::one_vector = vec2(1.0f);
+
 vec2::vec2(float v)
     : x(v), y(v)
 {
