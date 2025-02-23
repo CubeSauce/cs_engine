@@ -341,6 +341,7 @@ void Test_Game_Instance::update(float dt)
           continue;
         }
 
+
         if (Input_Component* input_component = game_state.input_components.get(*p_id))
         {
           vec3 input(0.0f);
@@ -348,7 +349,7 @@ void Test_Game_Instance::update(float dt)
           input.y = clamp(input_component->analog_input.y + input_component->digital_input.y, -1.0f, 1.0f);
 
           component.orientation = component.orientation.mul(quat::from_rotation_axis(vec3(0.0f, 0.0f, 1.0f), input_component->rotation * dt));
-          
+
           VR_System& vr_system = VR_System::get();
           if (vr_system.is_valid())
           {
@@ -363,7 +364,7 @@ void Test_Game_Instance::update(float dt)
             
             component.position += movement_direction * input_component->speed * dt;
           }
-
+          
           // REset for input TODO: Find better solution for combined inputs
           input_component->rotation = 0;
         }

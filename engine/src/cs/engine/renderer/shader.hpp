@@ -16,7 +16,10 @@ public:
     {
         const char* vertex_filepath = "";
         const char* geometry_filepath = "";
-        const char* pixel_filepath = "";
+        union {
+            const char* fragment_filepath = "";
+            const char* pixel_filepath;
+        };
     } source_paths [5]; // TODO: This would be nicer if we could compile from one source
 };
 

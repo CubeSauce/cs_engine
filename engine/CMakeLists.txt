@@ -32,8 +32,6 @@ find_library(OPENVR_LIB openvr_api64d HINTS
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/openvr/bin/${PLATFORM_NAME}${PROCESSOR_ARCH}" 
     NO_DEFAULT_PATH )
 
-message(ASAS ${OPENVR_LIB})
-
 add_library(cs_engine)
 target_sources(cs_engine PRIVATE ${cs_engine_src})
 target_include_directories(cs_engine PUBLIC ${cs_engine_includes} 
@@ -69,3 +67,29 @@ add_custom_command(
     $<TARGET_FILE:cs_engine>
     $<TARGET_FILE_DIR:cs_engine>/bin/${PLATFORM_NAME}${PROCESSOR_ARCH}/$<TARGET_FILE_NAME:cs_engine>
 )
+
+include("${CMAKE_SOURCE_DIR}/cmake/compile_shaders.cmake")
+
+file(GLOB HLSL_VERT_SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/**.hlsl.vert")
+compile_hlsl_to_spirv("${HLSL_VERT_SHADERS}" "vert" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/gen/spirv" SPIRV_VERT_SHADERS)
+
+set(GLSL_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/gen/glsl")
+convert_spirv_to_glsl("${SPIRV_VERT_SHADERS}" "${GLSL_OUTPUT_DIR}" GLSL_VERT_SHADERS)
+
+file(GLOB HLSL_FRAG_SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/**.hlsl.frag")
+compile_hlsl_to_spirv("${HLSL_FRAG_SHADERS}" "frag" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/gen/spirv" SPIRV_FRAG_SHADERS)
+
+set(GLSL_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/gen/glsl")
+convert_spirv_to_glsl("${SPIRV_FRAG_SHADERS}" "${GLSL_OUTPUT_DIR}" GLSL_FRAG_SHADERS)
+
+# Define build targets
+add_custom_target(compile_shaders_vert ALL DEPENDS ${SPIRV_VERT_SHADERS})
+add_custom_target(compile_shaders_frag ALL DEPENDS ${SPIRV_FRAG_SHADERS})
+add_custom_target(convert_shaders_vert ALL DEPENDS ${GLSL_VERT_SHADERS})
+add_custom_target(convert_shaders_frag ALL DEPENDS ${GLSL_FRAG_SHADERS})
+
+# Ensure GLSL conversion happens after HLSL compilation
+add_dependencies(convert_shaders_vert compile_shaders_vert)
+add_dependencies(convert_shaders_frag compile_shaders_frag)

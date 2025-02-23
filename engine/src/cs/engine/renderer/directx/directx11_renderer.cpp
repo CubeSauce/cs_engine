@@ -420,7 +420,7 @@ Shared_Ptr<DirectX11_Shader> DirectX11_Renderer_Backend::_create_shader(const Sh
 
     ComPtr<ID3DBlob> vertex_shader_blob = nullptr;
     shader->vertex_shader = _create_vertex_shader(shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath, vertex_shader_blob);
-    shader->pixel_shader = _create_pixel_shader(shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath);
+    shader->pixel_shader = _create_pixel_shader(shader_resource->source_paths[Renderer_API::DirectX11].fragment_filepath);
 
     // TODO: From Shader definition
     constexpr D3D11_INPUT_ELEMENT_DESC input_element_desc[] = 

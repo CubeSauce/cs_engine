@@ -299,7 +299,7 @@ Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shade
 
     // open files
     vShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath);
-    fShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].pixel_filepath);
+    fShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath);
     std::stringstream vShaderStream, fShaderStream;
     // read file's buffer contents into streams
     vShaderStream << vShaderFile.rdbuf();
