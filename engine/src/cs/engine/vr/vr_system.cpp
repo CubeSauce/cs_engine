@@ -1,5 +1,6 @@
 #include "cs/engine/vr/vr_system.hpp"
 
+#if WITH_VR_SUPPORT
 void VR_Camera::set_world(const mat4& in_world)
 {
     _world = in_world;
@@ -224,3 +225,5 @@ void VR_System::_update_camera(float dt)
         _camera[eye]->set_view(_get_eye_pose((VR_Eye::Type)eye) * _head_view_matrix * toZup * pose);
     }
 }
+
+#endif

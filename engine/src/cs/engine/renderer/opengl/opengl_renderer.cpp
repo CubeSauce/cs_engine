@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 
+#include <filesystem>
 
 void OpenGL_Uniform_Buffer::bind() const
 {
@@ -70,7 +71,7 @@ void OpenGL_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 
 void OpenGL_Renderer_Backend::render_frame()
 { 
-    
+#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -85,6 +86,7 @@ void OpenGL_Renderer_Backend::render_frame()
         vr::Texture_t rightEyeTexture = {(void*)(uintptr_t)_right_eye.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
         vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture );
     }
+#endif
     
     _window->swap_buffers();
 }
@@ -179,7 +181,7 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         return;
     }
 
-    
+#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -191,7 +193,9 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         data.view = vr_system._get_eye_pose(eye) * vr_system._head_view_matrix * toZup;
         data.projection = vr_system._get_eye_projection(eye);
     }
-    else if (_camera)
+    else 
+#endif  // EUGH this is ugly >.>
+    if (_camera)
     {
         _camera->aspect_ratio = 16.0f/9.0f;
         _camera->calculate_projection();
@@ -204,18 +208,11 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
     data.world = world_transform;
     data.world_inv_tran = data.world.inverse();
 
-    // data.world.transpose();
-    // data.view.transpose();
-    // data.projection.transpose();
-    
     for (const OpenGL_Submesh& submesh : gl_mesh->submeshes)
     {
         glBindVertexArray(submesh.vertex_array);
         submesh.shader->bind();
         
-        // TODO: Change only when needed
-        //_uniform_buffer->bind();
-        //_uniform_buffer->set_data(&data, sizeof(data), 0);
 		glUniformMatrix4fv(submesh.shader->world_location, 1, GL_FALSE, (GLfloat*)&data.world);
 		glUniformMatrix4fv(submesh.shader->world_inv_location, 1, GL_FALSE, (GLfloat*)&data.world_inv_tran);
 		glUniformMatrix4fv(submesh.shader->view_location, 1, GL_FALSE, (GLfloat*)&data.view);
@@ -298,8 +295,12 @@ Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shade
     fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
 
     // open files
-    vShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath);
-    fShaderFile.open(shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath);
+    std::string path = std::filesystem::current_path().string() + "/" + 
+        shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath;
+    vShaderFile.open(path);
+    path = std::filesystem::current_path().string() + "/" + 
+        shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath;
+    fShaderFile.open(path);
     std::stringstream vShaderStream, fShaderStream;
     // read file's buffer contents into streams
     vShaderStream << vShaderFile.rdbuf();
@@ -387,7 +388,8 @@ void OpenGL_Renderer_Backend::_initialize_render_stuff()
     glGetIntegerv( GL_VIEWPORT, m_viewport );
     
     _basic = _create_framebuffer(m_viewport[2], m_viewport[3]);
- 
+
+#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -396,6 +398,7 @@ void OpenGL_Renderer_Backend::_initialize_render_stuff()
         _left_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
         _right_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
     }
+#endif
 }
 
 void OpenGL_Renderer_Backend::_cleanup_render_stuff()

@@ -11,6 +11,8 @@
 #include "cs/math/mat4.hpp"
 #include "cs/math/quat.hpp"
 
+#include <cmath>
+
 template<typename Type>
 inline Type clamp(Type x, Type min, Type max) { return x <= min ? min : x >= max ? max : x; }
 

@@ -10,6 +10,7 @@
 #include <assimp/postprocess.h>
 
 #include <cstring>
+#include <filesystem>
 
 Mesh_Resource::Mesh_Resource(const std::string& filepath)
 {
@@ -32,7 +33,8 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath)
     std::string folder_path(filepath);
     folder_path = folder_path.substr(0, folder_index);
 
-    const aiScene* ai_scene = aiImportFile(filepath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    std::string path = std::filesystem::current_path().string() + "/" + filepath;
+    const aiScene* ai_scene = aiImportFile(path.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
     assert(ai_scene);
 
     uint32 offset = 0;

@@ -31,7 +31,17 @@ void Orthographic_Camera::calculate_projection()
 
 void Orthographic_Camera::calculate_view()
 {
-	_view = look_at(position, target, vec3::up_vector);
+	const mat4 r = orientation.to_mat4();;
+	vec3 right = r[0].xyz;
+	vec3 up = r[1].xyz;
+	vec3 forward = vec3::zero_vector - r[2].xyz; //negate for right handed
+
+	_view = mat4(
+		vec4(right.x, up.x, forward.x, 0.0f),
+		vec4(right.y, up.y, forward.y, 0.0f),
+		vec4(right.z, up.z, forward.z, 0.0f),
+		vec4(-right.dot(position), -up.dot(position), -forward.dot(position), 1.0f)
+	);
 }
 
 void Perspective_Camera::calculate_projection()
@@ -41,6 +51,16 @@ void Perspective_Camera::calculate_projection()
 
 void Perspective_Camera::calculate_view()
 {
-	_view = look_at(position, target, vec3::up_vector);
+	const mat4 r = orientation.to_mat4();
+	vec3 right = r[0].xyz;
+	vec3 up = r[1].xyz;
+	vec3 forward = vec3::zero_vector - r[2].xyz; //negate for right handed
+
+	_view = mat4(
+		vec4(right.x, up.x, forward.x, 0.0f),
+		vec4(right.y, up.y, forward.y, 0.0f),
+		vec4(right.z, up.z, forward.z, 0.0f),
+		vec4(-right.dot(position), -up.dot(position), -forward.dot(position), 1.0f)
+	);
 }
 

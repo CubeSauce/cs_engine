@@ -43,12 +43,12 @@
 
 #define CS_MOVE(x) static_cast<decltype(x)&&>(x)
 
-#define NEARLY_ZERO 1e-4
+#define NEARLY_ZERO 1e-4f
 #define MATH_DEG_TO_RAD(x) float(x * 0.01745329251)
 #define MATH_RAD_TO_DEG(x) float(x * 57.2957795131)
 
-#define SIGN(x) x < 0 ? -1.0f : 1.0f
-#define NEAR_ZERO_CHECK(x) fabs(x) < NEARLY_ZERO ? NEARLY_ZERO * SIGN(x) : x
+#define SIGN(x) ((x < 0.0f) ? -1.0f : 1.0f)
+#define NEAR_ZERO_CHECK(x) ((fabs(x) < NEARLY_ZERO) ? (NEARLY_ZERO * SIGN(x)) : x)
 
 #define CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
 //#define CS_MATH_USE_float_PRECISION

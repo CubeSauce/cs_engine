@@ -4,13 +4,13 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/math/mat4.hpp"
+#include "cs/math/math.hpp"
 
 class Camera
 {
 public:
-	vec3 position { vec3(0.0f) };
-	vec3 target { vec3(0.0f) };
+	vec3 position { vec3::zero_vector };
+	quat orientation { quat::zero_quat };
 	float aspect_ratio { 0.0f };
 
 public:

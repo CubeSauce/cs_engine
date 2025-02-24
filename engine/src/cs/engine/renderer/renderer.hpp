@@ -31,7 +31,6 @@ public:
 };
 
 class Window;
-class VR_System;
 class Renderer_Backend
 {
 public:

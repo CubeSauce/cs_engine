@@ -19,12 +19,13 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _parse_args(args);
 
     _input_system = Shared_Ptr<Input_System>::create();
-
+#if WITH_VR_SUPPORT
     _vr_system = Shared_Ptr<VR_System>::create();
     if (_cvar_vr_support->get())
     {
         _vr_system->initialize();
     }
+#endif
 
     _window = _create_window();
 
@@ -38,12 +39,16 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
 
 void Engine::shutdown()
 {
+#if WITH_VR_SUPPORT
     _vr_system->shutdown();
+#endif
 }
 
 void Engine::run()
 {
+#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
+#endif
 
     _renderer->window->on_window_should_close.bind([&](){
         _should_close = true;
@@ -59,11 +64,13 @@ void Engine::run()
     {
         _net_instance->update(dt);
 
+#if WITH_VR_SUPPORT
         if (vr_system.is_valid())
         {
             vr_system.poll_events();
             vr_system.update(dt);
         }
+#endif
 
         if (game_instance)
         {
@@ -75,13 +82,14 @@ void Engine::run()
             _renderer->window->poll_events();
             
             // Render normal view
-            _renderer->backend->begin_frame(VR_Eye::None);
+            _renderer->backend->begin_frame();
             if (game_instance)
             {
-                game_instance->render(_renderer, VR_Eye::None);
+                game_instance->render(_renderer);
             }
-            _renderer->backend->end_frame(VR_Eye::None);
+            _renderer->backend->end_frame();
 
+#if WITH_VR_SUPPORT
             if (vr_system.is_valid())
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
@@ -102,6 +110,7 @@ void Engine::run()
     
                 _renderer->backend->end_frame(VR_Eye::Right);
             }
+#endif
             
             _renderer->render_frame();
         }
@@ -199,8 +208,8 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
     default_camera->near_d = 0.0f;
     default_camera->far_d = 1000.0f;
     default_camera->position = {0.0f, -5.0f, 2.0f};
-    default_camera->target = {0.0f, 0.0f, 1.0f};
-
+    default_camera->orientation = quat::from_direction(vec3::forward_vector);
+    
     _renderer->set_active_camera(default_camera);
 
     return backend;
@@ -214,6 +223,8 @@ void Engine::_initialize_defaults()
     default_texture_shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/default_texture.hlsl.frag";
     default_texture_shader_resource->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/default_texture.hlsl.vert";
     default_texture_shader_resource->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/default_texture.hlsl.frag";
+    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/gen/glsl/default_texture_vert.glsl";
+    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath = "assets/shaders/gen/glsl/default_texture_frag.glsl";
 
     //TODO: make this blend with white instead of multiple textures
     
@@ -223,6 +234,8 @@ void Engine::_initialize_defaults()
     default_color_shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/default_color.hlsl.frag";
     default_color_shader_resource->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/default_color.hlsl.vert";
     default_color_shader_resource->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/default_color.hlsl.frag";
+    default_color_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/gen/glsl/default_color_vert.glsl";
+    default_color_shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath = "assets/shaders/gen/glsl/default_color_frag.glsl";
 
     default_texture_resource = Shared_Ptr<Texture_Resource>::create();
     default_texture_resource->initialize_from_file("assets/textures/default_gray.png");

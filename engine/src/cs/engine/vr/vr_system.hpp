@@ -4,6 +4,19 @@
 #pragma once
 
 #include "cs/cs.hpp"
+
+namespace VR_Eye
+{
+    enum Type : uint8
+    {
+        Left = 0,
+        Right = 1,
+        None = 2,
+    };
+};
+
+#if WITH_VR_SUPPORT
+
 #include "cs/math/math.hpp"
 #include "cs/engine/event.hpp"
 #include "cs/engine/singleton.hpp"
@@ -104,3 +117,5 @@ public:
 
 mat4 vr_to_mat4(const vr::HmdMatrix34_t &mat);
 mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat);
+
+#endif

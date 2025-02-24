@@ -10,15 +10,6 @@
 
 #include "cs/engine/input.hpp"
 
-Shared_Ptr<Shader_Resource> default_shader_texture;
-Shared_Ptr<Shader_Resource> default_shader_color;
-
-Shared_Ptr<Material_Resource> default_material_color_resource;
-
-Shared_Ptr<Texture_Resource> deafult_gray_texture_resource;
-Shared_Ptr<Texture_Resource> deafult_orange_texture_resource;
-Shared_Ptr<Texture_Resource> deafult_purple_texture_resource;
-
 struct Input_Component
 {
     vec3 analog_input { vec3::zero_vector };
@@ -105,16 +96,6 @@ public:
   void _init_test();
   void _init_dust2();
 };
-
-void init_materials()
-{
-  deafult_gray_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_gray.png");
-  deafult_orange_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_orange.png");
-  deafult_purple_texture_resource = Shared_Ptr<Texture_Resource>::create("assets/textures/default_purple.png");
-
-  default_material_color_resource = Shared_Ptr<Material_Resource>::create();
-  default_material_color_resource->shader_resource = default_shader_color;
-}
 
 void Test_Game_Instance::_init_player()
 {
@@ -207,17 +188,14 @@ void Test_Game_Instance::_init_dust2()
     .position = vec3(0.0f, 0.0f, 0.0f),
     .scale = vec3(0.01f)
     //.orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-
   });
   game_state.render_components.add("dust2", { .mesh = dust2, .mesh_transform_id = "dust2" });
 }
 
 void Test_Game_Instance::init()
 {
-  init_materials();
-
-  //_init_test();
-  _init_dust2();
+  _init_test();
+  //_init_dust2();
 }
 
 Hash_Map<mat4> transforms;
@@ -239,21 +217,17 @@ void Test_Game_Instance::update(float dt)
           input.y = clamp(input_component->analog_input.y + input_component->digital_input.y, -1.0f, 1.0f);
 
           component.orientation = component.orientation.mul(quat::from_rotation_axis(vec3(0.0f, 0.0f, 1.0f), input_component->rotation * dt));
-
-          vec3 camera_forward = vec3::forward_vector;
-
-          VR_System& vr_system = VR_System::get();
-          if (vr_system.is_valid())
-          {
-            const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view();
-            camera_forward = camera_view.inverse()[1].xyz;
-            camera_forward.normalize();
-          }
-  
+#if WITH_VR_SUPPORT
+          const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view();
+          vec3 camera_forward = camera_view[1].xyz;
+          camera_forward.z = 0;
+          camera_forward.normalize();
           const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
-          const vec3 camera_up = camera_forward.cross(camera_right).normalize();
-
-          const vec3 movement_direction = (camera_forward * input.y).normalize();
+          const vec3 movement_direction = (camera_forward * input.y + camera_right * input.x).normalize();
+#else
+          //TODO: add mouse stuff
+          const vec3 movement_direction = vec3::forward_vector * input.y + vec3::right_vector * input.x;
+#endif
           
           component.position += movement_direction * input_component->speed * dt;
           
@@ -286,14 +260,15 @@ void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Ty
 
     if (mat4* camera_transform = transforms.find(Name_Id("camera")))
     {
+#if WITH_VR_SUPPORT
       if (VR_System::get().is_valid())
       {
         VR_System::get().set_custom_camera_pose(*camera_transform);
       }
-      else
-      {
-        renderer->get_active_camera()->position = (*camera_transform)[3].xyz;
-      }
+#else
+      renderer->get_active_camera()->position = (*camera_transform)[3].xyz;
+      renderer->get_active_camera()->orientation = quat::from_mat4(*camera_transform);
+#endif
     }
 
     for (int32 i = 0; i < game_state.render_components.components.size(); ++i)
@@ -333,8 +308,6 @@ int main(int argc, char** argv)
 
   Engine engine;
   engine.initialize(args);
-  default_shader_color = engine.default_color_shader_resource;
-  default_shader_texture = engine.default_texture_shader_resource;
   engine.game_instance = Shared_Ptr<Test_Game_Instance>::create();
   engine.run();
   engine.shutdown();
