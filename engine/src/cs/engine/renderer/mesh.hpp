@@ -6,6 +6,8 @@
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/dynamic_array.hpp"
 
+#include <string>
+
 struct Vertex_Data
 {
 	vec3 vertex_location { vec3::zero_vector };
@@ -25,6 +27,12 @@ class Mesh_Resource : public Resource
 {
 public:
 	Dynamic_Array<Submesh_Data> submeshes;
+
+public:
+	Mesh_Resource() = default;
+	Mesh_Resource(const std::string& filepath);
+
+	bool initialize_from_file(const std::string& filepath);
 };
 
 class Mesh

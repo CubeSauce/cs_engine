@@ -30,14 +30,15 @@ class Net_Instance;
 class Game_Instance;
 class VR_System;
 class Input_System;
-class Engine
+class Engine : public Singleton<Engine>
 {
 public:
     Shared_Ptr<Game_Instance> game_instance;
 
-    Shared_Ptr<Shader_Resource> default_shader_texture;
-    Shared_Ptr<Shader_Resource> default_shader_color;
+    Shared_Ptr<Shader_Resource> default_texture_shader_resource;
+    Shared_Ptr<Shader_Resource> default_color_shader_resource;
 
+    Shared_Ptr<Texture_Resource> default_texture_resource;
 
 public:
     Engine() = default;

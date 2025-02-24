@@ -10,10 +10,6 @@
 
 #include "cs/engine/input.hpp"
 
-#include <assimp/cimport.h>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 Shared_Ptr<Shader_Resource> default_shader_texture;
 Shared_Ptr<Shader_Resource> default_shader_color;
 
@@ -22,110 +18,6 @@ Shared_Ptr<Material_Resource> default_material_color_resource;
 Shared_Ptr<Texture_Resource> deafult_gray_texture_resource;
 Shared_Ptr<Texture_Resource> deafult_orange_texture_resource;
 Shared_Ptr<Texture_Resource> deafult_purple_texture_resource;
-
-Shared_Ptr<Mesh_Resource> import(const char* filepath)
-{
-  Shared_Ptr<Mesh_Resource> mesh_resource = Shared_Ptr<Mesh_Resource>::create();
-  mesh_resource->name = filepath;
-
-  mat4 qmat = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f)).to_mat4();
-
-  const char* extension = strrchr(filepath, '.');
-	assert(extension);
-  assert(aiIsExtensionSupported(extension) == AI_TRUE);
-
-  const char* folder = strrchr(filepath, '/');
-  int32 folder_index = folder - filepath + 1;
-
-  std::string folder_path(filepath);
-  folder_path = folder_path.substr(0, folder_index);
-
-  const aiScene* ai_scene = aiImportFile(filepath, aiProcessPreset_TargetRealtime_MaxQuality);
-  assert(ai_scene);
-
-  uint32 offset = 0;
-  for (uint32 m = 0; m < ai_scene->mNumMeshes; ++m)
-  {
-    const aiMesh* ai_mesh = ai_scene->mMeshes[m];
-
-    aiMaterial* ai_material = ai_scene->mMaterials[ai_mesh->mMaterialIndex];
-    
-    aiColor4D ai_material_color;
-    assert(AI_SUCCESS == ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, ai_material_color));
-    vec4 material_color(ai_material_color.r, ai_material_color.g, ai_material_color.b, ai_material_color.a);
-
-    Shared_Ptr<Material_Resource> material_resource = Shared_Ptr<Material_Resource>::create();
-    
-    Submesh_Data submesh_data;
-
-    bool has_uvs = ai_mesh->HasTextureCoords(0);
-    if(has_uvs)
-    {
-      material_resource->shader_resource = default_shader_texture;
-
-      if (ai_material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-      {
-        aiString path;
-        assert(aiReturn_SUCCESS == ai_material->GetTexture(aiTextureType_DIFFUSE, 0, &path));
-        //{length=23 data=0x0000002f3f0ff104 "de_dust2_material_0.tga" };
-  
-        material_resource->texture_resource = Shared_Ptr<Texture_Resource>::create(folder_path + path.C_Str());
-      }
-      else
-      {
-        material_resource->texture_resource = deafult_gray_texture_resource;
-      }
-    }
-    else
-    {
-      material_resource->shader_resource = default_shader_color;
-    }
-
-    submesh_data.material_resource = material_resource;
-
-    const uint32 num_vertices = (int32)(ai_mesh->mNumFaces * 3);
-    for (uint32 f = 0; f < ai_mesh->mNumFaces; ++f)
-    {
-      Vertex_Data vertex;
-
-      const aiFace& ai_face = ai_mesh->mFaces[f];
-
-      int32 indices[] = {2, 1, 0};  // TODO: Do this with culling
-      for (uint32 i = 0; i < ai_face.mNumIndices; ++i)
-      {
-        int32 index = ai_face.mIndices[indices[i]];
-
-        const aiVector3D& v = ai_mesh->mVertices[index];
-        vertex.vertex_location = {v.x, v.y, v.z};
-
-        const aiVector3D& n = ai_mesh->mNormals[index];
-        vertex.vertex_normal = {n.x, n.y, n.z};
-
-        vertex.vertex_color = material_color;
-
-        //TODO: Support multiple colors
-        if (has_uvs)
-        {
-          for (uint32 u = 0; u < ai_mesh->GetNumUVChannels(); ++u)
-          {
-            if (ai_mesh->mTextureCoords[u])
-            {
-              const aiVector3D& uv = ai_mesh->mTextureCoords[u][index];
-              vertex.vertex_texture_coordinate = {uv.x, uv.y};
-              break;
-            }
-          }
-        }
-
-        submesh_data.vertices.add(vertex);
-      }
-    }
-
-    mesh_resource->submeshes.add(submesh_data);
-  }
-
-  return mesh_resource;
-}
 
 struct Input_Component
 {
@@ -270,8 +162,8 @@ void Test_Game_Instance::_init_player()
 
 void Test_Game_Instance::_init_test()
 {
-  Shared_Ptr<Mesh_Resource> kimono = import("assets/mesh/kimono.obj");
-  Shared_Ptr<Mesh_Resource> plane = import("assets/mesh/plane.obj");
+  Shared_Ptr<Mesh_Resource> kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
+  Shared_Ptr<Mesh_Resource> plane = Shared_Ptr<Mesh_Resource>::create("assets/mesh/plane.obj");
 
   _init_player();
 
@@ -309,8 +201,7 @@ void Test_Game_Instance::_init_test()
 void Test_Game_Instance::_init_dust2()
 {
   _init_player();
-
-  Shared_Ptr<Mesh_Resource> dust2 = import("assets/mesh/de_dust2.obj");
+  Shared_Ptr<Mesh_Resource> dust2 = Shared_Ptr<Mesh_Resource>::create("assets/mesh/de_dust2.obj");
 
   game_state.transform_components.add("dust2", {
     .position = vec3(0.0f, 0.0f, 0.0f),
@@ -341,7 +232,6 @@ void Test_Game_Instance::update(float dt)
           continue;
         }
 
-
         if (Input_Component* input_component = game_state.input_components.get(*p_id))
         {
           vec3 input(0.0f);
@@ -350,20 +240,22 @@ void Test_Game_Instance::update(float dt)
 
           component.orientation = component.orientation.mul(quat::from_rotation_axis(vec3(0.0f, 0.0f, 1.0f), input_component->rotation * dt));
 
+          vec3 camera_forward = vec3::forward_vector;
+
           VR_System& vr_system = VR_System::get();
           if (vr_system.is_valid())
           {
             const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view();
-            vec3 camera_forward = camera_view.inverse()[1].xyz;
+            camera_forward = camera_view.inverse()[1].xyz;
             camera_forward.normalize();
-  
-            const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
-            const vec3 camera_up = camera_forward.cross(camera_right).normalize();
-
-            const vec3 movement_direction = (camera_forward * input.y).normalize();
-            
-            component.position += movement_direction * input_component->speed * dt;
           }
+  
+          const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
+          const vec3 camera_up = camera_forward.cross(camera_right).normalize();
+
+          const vec3 movement_direction = (camera_forward * input.y).normalize();
+          
+          component.position += movement_direction * input_component->speed * dt;
           
           // REset for input TODO: Find better solution for combined inputs
           input_component->rotation = 0;
@@ -394,7 +286,14 @@ void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Ty
 
     if (mat4* camera_transform = transforms.find(Name_Id("camera")))
     {
-      VR_System::get().set_custom_camera_pose(*camera_transform);
+      if (VR_System::get().is_valid())
+      {
+        VR_System::get().set_custom_camera_pose(*camera_transform);
+      }
+      else
+      {
+        renderer->get_active_camera()->position = (*camera_transform)[3].xyz;
+      }
     }
 
     for (int32 i = 0; i < game_state.render_components.components.size(); ++i)
@@ -430,10 +329,12 @@ int main(int argc, char** argv)
       args.add(argv[a]);
   }
 
+  args.add("cs_vr_support=0");
+
   Engine engine;
   engine.initialize(args);
-  default_shader_color = engine.default_shader_color;
-  default_shader_texture = engine.default_shader_texture;
+  default_shader_color = engine.default_color_shader_resource;
+  default_shader_texture = engine.default_texture_shader_resource;
   engine.game_instance = Shared_Ptr<Test_Game_Instance>::create();
   engine.run();
   engine.shutdown();
