@@ -35,17 +35,17 @@ mat4 quat::to_mat4() const
 	float qwz(w * v.z);
 
 	mat4 res(1.0f);
-	res[0][0] = float(1) - float(2) * (qyy + qzz);
-	res[1][0] = float(2) * (qxy + qwz);
-	res[2][0] = float(2) * (qxz - qwy);
+	res[0][0] = 1.0f - 2.0f * (qyy + qzz);
+	res[1][0] = 2.0f * (qxy + qwz);
+	res[2][0] = 2.0f * (qxz - qwy);
 
-	res[0][1] = float(2) * (qxy - qwz);
-	res[1][1] = float(1) - float(2) * (qxx + qzz);
-	res[2][1] = float(2) * (qyz + qwx);
+	res[0][1] = 2.0f * (qxy - qwz);
+	res[1][1] = 1.0f - 2.0f * (qxx + qzz);
+	res[2][1] = 2.0f * (qyz + qwx);
 
-	res[0][2] = float(2) * (qxz + qwy);
-	res[1][2] = float(2) * (qyz - qwx);
-	res[2][2] = float(1) - float(2) * (qxx + qyy);
+	res[0][2] = 2.0f * (qxz + qwy);
+	res[1][2] = 2.0f * (qyz - qwx);
+	res[2][2] = 1.0f - 2.0f * (qxx + qyy);
 
 	return res;
 }
@@ -76,7 +76,7 @@ quat quat::from_mat4(const mat4& m)
 	}
 
 	float biggestVal = sqrt(fourBiggestSquaredMinus1 + static_cast<float>(1)) * static_cast<float>(0.5);
-	float mult = static_cast<float>(0.25) / biggestVal;
+	float mult = -static_cast<float>(0.25) / biggestVal;
 
 	switch (biggestIndex)
 	{
@@ -156,6 +156,11 @@ quat quat::normalized() const
 	quat result(*this);
 	result.normalize();
 	return result;
+}
+
+quat quat::conjugate() const
+{
+	return quat(vec3::zero_vector - v, w);
 }
 
 vec3 quat::get_direction(const vec3& forward_axis)

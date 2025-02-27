@@ -166,6 +166,7 @@ void DirectX11_Renderer_Backend::render_frame()
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
+#ifdef CS_WITH_VR_SUPPORT
         vr::VRTextureBounds_t bounds;
         bounds.uMin = 0.0f;
         bounds.uMax = 1.0f;
@@ -177,6 +178,7 @@ void DirectX11_Renderer_Backend::render_frame()
     
         vr::Texture_t rightEyeTexture = { ( void * ) _framebuffers[VR_Eye::Right].texture.Get(), vr::TextureType_DirectX, vr::ColorSpace_Gamma };
         vr::VRCompositor()->Submit( vr::Eye_Right, &rightEyeTexture, &bounds, vr::Submit_Default );
+#endif //CS_WITH_VR_SUPPORT
     }
 
     _swapchain->Present(1, 0);

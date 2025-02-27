@@ -1,6 +1,5 @@
 #include "cs/engine/vr/vr_system.hpp"
 
-#if WITH_VR_SUPPORT
 void VR_Camera::set_world(const mat4& in_world)
 {
     _world = in_world;
@@ -21,6 +20,7 @@ VR_System* Singleton<VR_System>::_singleton { nullptr };
 
 void VR_System::initialize()
 {
+#ifdef CS_WITH_VR_SUPPORT
     if (!vr::VR_IsRuntimeInstalled())
     {
         return;
@@ -39,6 +39,7 @@ void VR_System::initialize()
     assert(vr_error == vr::VRInitError_None);
 
     assert(vr::VRCompositor());
+#endif //CS_WITH_VR_SUPPORT
 
     for (int i = 0; i < 3; ++i)
     {
@@ -50,17 +51,19 @@ void VR_System::initialize()
     _camera[2]->far_d = 1000.0f;
     _camera[2]->aspect_ratio = 1.0f;
     _camera[2]->position = {0.0f, 0.0f, -3.0f};
-    _camera[2]->target = {0.0f, 1.0f, 0.0f};
 }
 
 void VR_System::shutdown()
 {
+#ifdef CS_WITH_VR_SUPPORT
     vr::VR_Shutdown();
     _vr_system = nullptr;
+#endif //CS_WITH_VR_SUPPORT
 }
 
 void VR_System::poll_events()
 {
+#ifdef CS_WITH_VR_SUPPORT
     if (!_vr_system)
     {
         return;
@@ -97,11 +100,12 @@ void VR_System::poll_events()
             _vr_show_tracked_device[unDevice] = state.ulButtonPressed == 0;
         }
     }
-    
+#endif //CS_WITH_VR_SUPPORT
 }
 
 void VR_System::update(float dt)
 {
+#ifdef CS_WITH_VR_SUPPORT
     if (!is_valid())
     {
         return;
@@ -139,6 +143,7 @@ void VR_System::update(float dt)
 	}
 
     _update_camera(dt);
+#endif //CS_WITH_VR_SUPPORT
 }
 
 void VR_System::render()
@@ -157,16 +162,19 @@ void VR_System::set_custom_camera_pose(const mat4& pose)
 
 void VR_System::get_viewport(uint32& width, uint32& height)
 {
+#ifdef CS_WITH_VR_SUPPORT
     _vr_system->GetRecommendedRenderTargetSize(&width, &height);
+#endif //CS_WITH_VR_SUPPORT
 }
 
 mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
 {
-    if (!_vr_system)
+    if (!is_valid())
     {
         return mat4(1.0f);
     }
 
+#ifdef CS_WITH_VR_SUPPORT
     if (eye == VR_Eye::None)
     {
         return _camera[eye]->get_projection();
@@ -174,17 +182,20 @@ mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
 
 	vr::HmdMatrix44_t mat = _vr_system->GetProjectionMatrix((vr::Hmd_Eye) eye, 0.1f, 10000.0f);
     return vr_to_mat4(mat);
+#endif //CS_WITH_VR_SUPPORT
 }
 
 mat4 VR_System::_get_eye_pose(VR_Eye::Type eye)
 {
-	if (!_vr_system || eye == VR_Eye::None)
+	if (!is_valid() || eye == VR_Eye::None)
     {
 		return mat4(1.0f);
     }
 
+#ifdef CS_WITH_VR_SUPPORT
 	vr::HmdMatrix34_t pose = _vr_system->GetEyeToHeadTransform((vr::Hmd_Eye) eye);
 	return vr_to_mat4(pose).inverse();
+#endif //CS_WITH_VR_SUPPORT
 }
 
 mat4 VR_System::_get_current_view_projection(VR_Eye::Type eye)
@@ -192,6 +203,7 @@ mat4 VR_System::_get_current_view_projection(VR_Eye::Type eye)
 	return _head_view_matrix * _get_eye_pose(eye) * _get_eye_projection(eye);
 }
 
+#ifdef CS_WITH_VR_SUPPORT
 mat4 vr_to_mat4(const vr::HmdMatrix34_t &mat)
 {
     return mat4(
@@ -211,19 +223,19 @@ mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat)
 		{ mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3] }
     );
 }
+#endif //CS_WITH_VR_SUPPORT
 
 static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
-static mat4 toYup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f)).to_mat4();
 void VR_System::_update_camera(float dt)
 {
     mat4 pose = _custom_pose;
     pose = pose.inverse();
 
+#ifdef CS_WITH_VR_SUPPORT
     for (uint8 eye = VR_Eye::Left; eye <= VR_Eye::None; eye++)
     {
         _camera[eye]->set_projection(_get_eye_projection((VR_Eye::Type)eye));
         _camera[eye]->set_view(_get_eye_pose((VR_Eye::Type)eye) * _head_view_matrix * toZup * pose);
     }
+#endif //CS_WITH_VR_SUPPORT
 }
-
-#endif

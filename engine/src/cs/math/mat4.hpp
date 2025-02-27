@@ -22,6 +22,8 @@ public:
     const vec4& operator[](int32 index) const;
 
 	mat4 operator*(const mat4& other) const;
+	vec4 operator*(const vec4& other) const;
+	vec3 operator*(const vec3& other) const;
 
     mat4 &transpose();
     mat4 transposed() const;

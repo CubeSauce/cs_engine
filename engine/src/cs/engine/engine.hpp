@@ -24,9 +24,7 @@ struct Engine_Create_Descriptor
     const char* window_title = "CS Engine Window";
     Renderer_API::Type renderer_api { Renderer_API::DirectX11 };
 };
-#if WITH_VR_SUPPORT
 class VR_System;
-#endif
 class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
@@ -55,10 +53,7 @@ private:
     Shared_Ptr<Window> _window;
     Shared_Ptr<Input_System> _input_system;
 
-    // TODO: Add these as a separate system
-#if WITH_VR_SUPPORT
     Shared_Ptr<VR_System> _vr_system;
-#endif
     Shared_Ptr<Net_Instance> _net_instance;
 
     bool _should_close { false };

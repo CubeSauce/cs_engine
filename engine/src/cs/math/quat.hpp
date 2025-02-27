@@ -31,6 +31,8 @@ public:
     void normalize();
     quat normalized() const;
 
+    quat conjugate() const;
+
     // Get a vector pointing in the direction of the quat
     vec3 get_direction(const vec3& forward_axis = vec3(0.0f, 1.0f, 0.0f));
 

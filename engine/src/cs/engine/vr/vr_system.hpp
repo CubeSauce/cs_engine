@@ -4,6 +4,11 @@
 #pragma once
 
 #include "cs/cs.hpp"
+#include "cs/math/math.hpp"
+#include "cs/engine/event.hpp"
+#include "cs/engine/singleton.hpp"
+#include "cs/memory/shared_ptr.hpp"
+#include "cs/engine/renderer/camera.hpp"
 
 namespace VR_Eye
 {
@@ -15,16 +20,10 @@ namespace VR_Eye
     };
 };
 
-#if WITH_VR_SUPPORT
-
-#include "cs/math/math.hpp"
-#include "cs/engine/event.hpp"
-#include "cs/engine/singleton.hpp"
-#include "cs/memory/shared_ptr.hpp"
-#include "cs/engine/renderer/camera.hpp"
-
+#ifdef CS_WITH_VR_SUPPORT
 #define OPENVR_BUILD_STATIC
 #include "openvr.h"
+#endif // CS_WITH_VR_SUPPORT
 
 class VR_Camera : public Perspective_Camera
 {
@@ -43,16 +42,6 @@ namespace VR_Device_Status
         Activated,
         Deactivated,
         Updated
-    };
-};
-
-namespace VR_Eye
-{
-    enum Type : uint8
-    {
-        Left = 0,
-        Right = 1,
-        None = 2,
     };
 };
 
@@ -77,7 +66,11 @@ public:
     void update(float dt);
     void render();
     
+#ifdef CS_WITH_VR_SUPPORT
     bool is_valid() { return _vr_system != nullptr; }
+#else
+    bool is_valid() { return false; }
+#endif //CS_WITH_VR_SUPPORT 
 
     Shared_Ptr<Camera> get_camera(VR_Eye::Type eye) const;
 
@@ -85,6 +78,7 @@ public:
 
     void get_viewport(uint32& width, uint32& height);
 
+#ifdef CS_WITH_VR_SUPPORT
 private:
     vr::IVRSystem* _vr_system { nullptr };
 	vr::IVRRenderModels* _vr_render_models { nullptr };
@@ -101,6 +95,7 @@ private:
 	vr::TrackedDevicePose_t m_rTrackedDevicePose[ vr::k_unMaxTrackedDeviceCount ];
 	char m_rDevClassChar[ vr::k_unMaxTrackedDeviceCount ];   // for each device, a character representing its class
 	mat4 _pose_matrices[ vr::k_unMaxTrackedDeviceCount ];
+#endif //CS_WITH_VR_SUPPORT
 
     Shared_Ptr<VR_Camera> _camera[3];
 
@@ -112,10 +107,11 @@ public:
 	mat4 _get_eye_pose(VR_Eye::Type eye);
 	mat4 _get_current_view_projection(VR_Eye::Type eye);
 
-    void _update_camera(float dt);
+    void _update_camera(float dt);    
 };
 
+#ifdef CS_WITH_VR_SUPPORT
 mat4 vr_to_mat4(const vr::HmdMatrix34_t &mat);
 mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat);
+#endif //CS_WITH_VR_SUPPORT
 
-#endif

@@ -71,10 +71,10 @@ void OpenGL_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 
 void OpenGL_Renderer_Backend::render_frame()
 { 
-#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
+#ifdef CS_WITH_VR_SUPPORT
         vr::VRTextureBounds_t bounds;
         bounds.uMin = 0.0f;
         bounds.uMax = 1.0f;
@@ -85,15 +85,14 @@ void OpenGL_Renderer_Backend::render_frame()
         vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture );
         vr::Texture_t rightEyeTexture = {(void*)(uintptr_t)_right_eye.m_nResolveTextureId, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
         vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture );
+#endif //CS_WITH_VR_SUPPORT
     }
-#endif
     
     _window->swap_buffers();
 }
 
 void OpenGL_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
-
     switch(eye)
     {
         case VR_Eye::None:
@@ -181,7 +180,6 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         return;
     }
 
-#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -193,9 +191,7 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         data.view = vr_system._get_eye_pose(eye) * vr_system._head_view_matrix * toZup;
         data.projection = vr_system._get_eye_projection(eye);
     }
-    else 
-#endif  // EUGH this is ugly >.>
-    if (_camera)
+    else if (_camera)
     {
         _camera->aspect_ratio = 16.0f/9.0f;
         _camera->calculate_projection();
@@ -389,7 +385,7 @@ void OpenGL_Renderer_Backend::_initialize_render_stuff()
     
     _basic = _create_framebuffer(m_viewport[2], m_viewport[3]);
 
-#if WITH_VR_SUPPORT
+#ifdef CS_WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -398,7 +394,7 @@ void OpenGL_Renderer_Backend::_initialize_render_stuff()
         _left_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
         _right_eye = _create_framebuffer(vr_render_viewport[0], vr_render_viewport[1]);
     }
-#endif
+#endif //CS_WITH_VR_SUPPORT
 }
 
 void OpenGL_Renderer_Backend::_cleanup_render_stuff()

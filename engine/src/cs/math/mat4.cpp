@@ -71,6 +71,21 @@ mat4 mat4::operator*(const mat4& other) const
 	return result;
 }
 
+vec4 mat4::operator*(const vec4& other) const
+{
+	vec4 result;
+	result.x = columns[0][0] * other.x + columns[1][0] * other.y + columns[2][0] * other.z + columns[3][0] * other.w;
+	result.y = columns[0][1] * other.x + columns[1][1] * other.y + columns[2][1] * other.z + columns[3][1] * other.w;
+	result.z = columns[0][2] * other.x + columns[1][2] * other.y + columns[2][2] * other.z + columns[3][2] * other.w;
+	result.w = columns[0][3] * other.x + columns[1][3] * other.y + columns[2][3] * other.z + columns[3][3] * other.w;
+	return result;
+}
+
+vec3 mat4::operator*(const vec3& other) const
+{
+	return ((*this) * vec4(other, 1.0f)).xyz;
+}
+
 mat4& mat4::transpose()
 {
 	mat4 ret(*this);
@@ -178,7 +193,7 @@ mat4 mat4::inverse() const
 
 	float OneOverDeterminant = static_cast<float>(1) / Dot1;
 
-	return Inverse * OneOverDeterminant;
+	return Inverse * mat4(OneOverDeterminant);
 }
 
 mat4 translate(const mat4& other, const vec3& translation)

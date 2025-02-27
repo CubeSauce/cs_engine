@@ -9,8 +9,7 @@ file(GLOB cs_engine_includes
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
 )
 
-option(VR_SUPPORT "Should use VR" OFF)
-add_compile_definitions(WITH_VR_SUPPORT=${VR_SUPPORT})
+option(VR_SUPPORT "Should use VR" ON)
 
 message("${CMAKE_SOURCE_DIR}/engine/third_party/glew/include")
 
@@ -39,6 +38,9 @@ endif()
 message(ASAS ${OPENVR_LIB})
 
 add_library(cs_engine)
+if (VR_SUPPORT)
+target_add_compile_definitions(cs_engine PUBLIC CS_WITH_VR_SUPPORT)
+endif()
 target_sources(cs_engine PRIVATE ${cs_engine_src})
 target_include_directories(cs_engine PUBLIC ${cs_engine_includes} 
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glew/include" 

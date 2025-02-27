@@ -19,13 +19,11 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _parse_args(args);
 
     _input_system = Shared_Ptr<Input_System>::create();
-#if WITH_VR_SUPPORT
     _vr_system = Shared_Ptr<VR_System>::create();
     if (_cvar_vr_support->get())
     {
         _vr_system->initialize();
     }
-#endif
 
     _window = _create_window();
 
@@ -39,16 +37,12 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
 
 void Engine::shutdown()
 {
-#if WITH_VR_SUPPORT
     _vr_system->shutdown();
-#endif
 }
 
 void Engine::run()
 {
-#if WITH_VR_SUPPORT
     VR_System& vr_system = VR_System::get();
-#endif
 
     _renderer->window->on_window_should_close.bind([&](){
         _should_close = true;
@@ -64,13 +58,11 @@ void Engine::run()
     {
         _net_instance->update(dt);
 
-#if WITH_VR_SUPPORT
         if (vr_system.is_valid())
         {
             vr_system.poll_events();
             vr_system.update(dt);
         }
-#endif
 
         if (game_instance)
         {
@@ -89,7 +81,6 @@ void Engine::run()
             }
             _renderer->backend->end_frame();
 
-#if WITH_VR_SUPPORT
             if (vr_system.is_valid())
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
@@ -110,7 +101,6 @@ void Engine::run()
     
                 _renderer->backend->end_frame(VR_Eye::Right);
             }
-#endif
             
             _renderer->render_frame();
         }
