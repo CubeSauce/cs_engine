@@ -4,43 +4,26 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/memory/ptr_common.hpp"
-
-#include <cstdint>
+#include "cs/memory/shared_ptr.hpp"
 
 template<typename Type>
-class Shared_Ptr
+class Weak_Ptr
 {
 public:
-    template<class... Args>
-    static Shared_Ptr<Type> create(Args ... args)
-    {
-        return Shared_Ptr<Type>(new Type(args...));
-    }
-
-    Shared_Ptr()
+    Weak_Ptr()
         : _ptr(nullptr),
         _control_block(nullptr)
     {
     }
 
-    explicit Shared_Ptr(Type* raw_other)
-        : _ptr(raw_other),
-        _control_block(raw_other ? new Ptr_Control_Block : nullptr)
+    Weak_Ptr(const Weak_Ptr<Type>& other)
+        : _ptr(nullptr),
+        _control_block(nullptr)
     {
+        initialize(other);
     }
 
-    explicit Shared_Ptr(Type* raw_other, Ptr_Control_Block* control_block)
-        : _ptr(raw_other),
-        _control_block(control_block)
-    {
-        if (_control_block != nullptr)
-        {
-            _control_block->strong_count += 1;
-        }
-    }
-
-    Shared_Ptr(const Shared_Ptr<Type>& other)
+    Weak_Ptr(const Shared_Ptr<Type>& other)
         : _ptr(nullptr),
         _control_block(nullptr)
     {
@@ -48,36 +31,43 @@ public:
     }
 
     template <typename Other_Type>
-    Shared_Ptr(const Shared_Ptr<Other_Type>& other)
+    Weak_Ptr(const Weak_Ptr<Other_Type>& other)
         : _ptr(nullptr),
         _control_block(nullptr)
     {
         initialize(other);
     }
 
-    Shared_Ptr<Type>& operator=(const Shared_Ptr<Type>& other)
-    {
-        if (_ptr != other._ptr)
-        {
-            Shared_Ptr<Type> other_shared_ptr(other);
-            swap(other_shared_ptr);
-        }
-
-        return *this;
-    }
-
     template <typename Other_Type>
-    Shared_Ptr<Type>& operator=(const Shared_Ptr<Other_Type>& other)
+    Weak_Ptr(const Shared_Ptr<Other_Type>& other)
+        : _ptr(nullptr),
+        _control_block(nullptr)
+    {
+        initialize(other);
+    }
+
+    Weak_Ptr<Type>& operator=(const Weak_Ptr<Type>& other)
     {
         if (_ptr != other._ptr)
         {
-            Shared_Ptr<Type> other_shared_ptr(other);
+            Weak_Ptr<Type> other_shared_ptr(other);
             swap(other_shared_ptr);
         }
 
         return *this;
     }
+    
+    template <typename Other_Type>
+    Weak_Ptr<Type>& operator=(const Weak_Ptr<Other_Type>& other)
+    {
+        if (_ptr != other._ptr)
+        {
+            Weak_Ptr<Type> other_shared_ptr(other);
+            swap(other_shared_ptr);
+        }
 
+        return *this;
+    }
 
     void release()
     {
@@ -86,23 +76,14 @@ public:
             return;
         }
 
-        _control_block->strong_count -= 1;
-        if (_control_block->strong_count == 0)
+        _control_block->weak_count -= 1;
+        if (_control_block->weak_count == 0)
         {
-#ifdef CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
-            delete _ptr;
-#else
-            free(_ptr);
-#endif //CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
-
-            if (_control_block->weak_count == 0)
-            {
-                delete _control_block;
-            }
+            delete _control_block;
         }
     }
 
-    ~Shared_Ptr()
+    ~Weak_Ptr()
     {
         release();
     }
@@ -112,44 +93,39 @@ public:
     {
         if (_ptr != other)
         {
-            Shared_Ptr<Type> temp(other);
+            Weak_Ptr<Type> temp(other);
             temp.swap(*this);
         }
     }
 
     template<typename Other_Type>
-    void reset(const Shared_Ptr<Other_Type> other)
+    void reset(const Weak_Ptr<Other_Type> other)
     {
         if (_ptr != other._ptr)
         {
-            Shared_Ptr<Type> temp(other);
+            Weak_Ptr<Type> temp(other);
             temp.swap(*this);
         }
     }
 
-    bool operator==(const Shared_Ptr<Type>& other) const
+    Shared_Ptr<Type> lock() const
+    {
+        if (!is_valid())
+        {
+            return Shared_Ptr<Type>();
+        }
+
+        return Shared_Ptr<Type>(_ptr, _control_block);
+    }
+
+    bool operator==(const Weak_Ptr<Type>& other) const
     {
         return _ptr == other._ptr;
     }
 
-    bool operator!=(const Shared_Ptr<Type>& other) const
+    bool operator!=(const Weak_Ptr<Type>& other) const
     {
         return _ptr != other._ptr;
-    }
-
-    Type* get() const
-    {
-        return _ptr;
-    }
-
-    Type* operator->() const
-    {
-        return _ptr;
-    }
-
-    Type& operator*() const
-    {
-        return *_ptr;
     }
 
     bool is_valid() const { return _ptr != nullptr && _control_block && _control_block->strong_count > 0; }
@@ -160,6 +136,17 @@ public:
     }
 
 private:
+    void swap(Weak_Ptr<Type>& other)
+    {
+        Type* temp_ptr = _ptr;
+        _ptr = other._ptr;
+        other._ptr = temp_ptr;
+
+        Ptr_Control_Block* temp_control_block = _control_block;
+        _control_block = other._control_block;
+        other._control_block = temp_control_block;
+    }
+
     void swap(Shared_Ptr<Type>& other)
     {
         Type* temp_ptr = _ptr;
@@ -172,20 +159,30 @@ private:
     }
 
     template<typename Other_Type>
-    void initialize(const Shared_Ptr<Other_Type>& other)
+    void initialize(const Weak_Ptr<Other_Type>& other)
     {
         if (other._control_block != nullptr)
         {
-            other._control_block->strong_count += 1;
+            other._control_block->weak_count += 1;
             _ptr = static_cast<Type*>(other._ptr);
             _control_block = other._control_block;
         }
     }
 
-protected:
+    template<typename Other_Type>
+    void initialize(const Shared_Ptr<Other_Type>& other)
+    {
+        if (other._control_block != nullptr)
+        {
+            other._control_block->weak_count += 1;
+            _ptr = static_cast<Type*>(other._ptr);
+            _control_block = other._control_block;
+        }
+    }
+
+private:
     Type *_ptr;
     Ptr_Control_Block *_control_block;
-
 
     template <typename Other_Type>
     friend class Weak_Ptr;
