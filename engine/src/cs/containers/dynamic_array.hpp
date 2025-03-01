@@ -5,8 +5,11 @@
 
 #include "cs/cs.hpp"
 
-#include <mutex>
 #include <initializer_list>
+
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
+#include <mutex>
+#endif //DYNAMIC_ARRAY_THREAD_SAFE
 
 template<typename Type>
 class Dynamic_Array
@@ -19,7 +22,7 @@ public:
     {
         if (initial_capacity > 0)
         {
-            increase_capacity(initial_capacity);
+            _increase_capacity(initial_capacity);
         }
     }
 
@@ -60,11 +63,12 @@ public:
 
     void add(const Type& other)
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
-
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
         if (_size >= _capacity)
         {
-            increase_capacity(_capacity * 2);
+            _increase_capacity(_capacity * 2);
         }
 
         _data[_size] = other;
@@ -73,11 +77,13 @@ public:
     
     void add(Type &&other)
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
         if (_size >= _capacity)
         {
-            increase_capacity(_capacity * 2);
+            _increase_capacity(_capacity * 2);
         }
 
         _data[_size] = other;
@@ -86,7 +92,9 @@ public:
 
     void insert(int32 index, const Type& other)
 	{
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
         if (index < 0)
         {
@@ -100,7 +108,7 @@ public:
 
 		if (_size >= _capacity)
 		{
-			increase_capacity(_capacity * 2);
+			_increase_capacity(_capacity * 2);
 		}
 
         for (int i = _size; i > index; i -= 1)
@@ -114,22 +122,28 @@ public:
 
     void reserve(int32 new_capacity)
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
-        increase_capacity(new_capacity);
+        _increase_capacity(new_capacity);
     }
 
     void resize(int32 new_size)
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
-        increase_capacity(new_size);
+        _increase_capacity(new_size);
         _size = new_size;
     }
 
     void clear()
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
         _size = _capacity = 0;   
         delete[] _data;
@@ -147,9 +161,11 @@ public:
 
     Dynamic_Array<Type>& operator=(const Dynamic_Array<Type>& other)
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
-        increase_capacity(other._capacity);
+        _increase_capacity(other._capacity);
 
         for (int32 i = 0; i < other._size; i += 1)
         {
@@ -163,9 +179,11 @@ public:
 
     Dynamic_Array<Type>& operator=(Dynamic_Array<Type>&& other) noexcept
     {
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
         std::unique_lock<std::mutex> lock(_mutex);
+#endif // DYNAMIC_ARRAY_THREAD_SAFE
 
-        increase_capacity(other._capacity);
+        _increase_capacity(other._capacity);
 
         for (int32 i = 0; i < other._size; i += 1)
         {
@@ -188,11 +206,13 @@ public:
 private:
     Type* _data;
     int32 _capacity, _size;
+#ifdef DYNAMIC_ARRAY_THREAD_SAFE
     std::mutex _mutex;
     std::condition_variable _condition_variable;
+#endif
 
 private:
-    void increase_capacity(int32 new_capacity)
+    void _increase_capacity(int32 new_capacity)
     {
         if (new_capacity == 0)
         {
