@@ -5,6 +5,7 @@
 
 #include "cs/cs.hpp"
 
+#include <mutex>
 #include <initializer_list>
 
 template<typename Type>
@@ -59,6 +60,8 @@ public:
 
     void add(const Type& other)
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         if (_size >= _capacity)
         {
             increase_capacity(_capacity * 2);
@@ -70,6 +73,8 @@ public:
     
     void add(Type &&other)
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         if (_size >= _capacity)
         {
             increase_capacity(_capacity * 2);
@@ -81,6 +86,8 @@ public:
 
     void insert(int32 index, const Type& other)
 	{
+        std::unique_lock<std::mutex> lock(_mutex);
+
         if (index < 0)
         {
             return;
@@ -107,17 +114,23 @@ public:
 
     void reserve(int32 new_capacity)
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         increase_capacity(new_capacity);
     }
 
     void resize(int32 new_size)
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         increase_capacity(new_size);
         _size = new_size;
     }
 
     void clear()
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         _size = _capacity = 0;   
         delete[] _data;
     }
@@ -134,6 +147,8 @@ public:
 
     Dynamic_Array<Type>& operator=(const Dynamic_Array<Type>& other)
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         increase_capacity(other._capacity);
 
         for (int32 i = 0; i < other._size; i += 1)
@@ -148,6 +163,8 @@ public:
 
     Dynamic_Array<Type>& operator=(Dynamic_Array<Type>&& other) noexcept
     {
+        std::unique_lock<std::mutex> lock(_mutex);
+
         increase_capacity(other._capacity);
 
         for (int32 i = 0; i < other._size; i += 1)
@@ -171,6 +188,8 @@ public:
 private:
     Type* _data;
     int32 _capacity, _size;
+    std::mutex _mutex;
+    std::condition_variable _condition_variable;
 
 private:
     void increase_capacity(int32 new_capacity)

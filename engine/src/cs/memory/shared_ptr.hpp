@@ -7,6 +7,27 @@
 #include "cs/memory/ptr_common.hpp"
 
 #include <cstdint>
+#include <type_traits>
+
+template<typename Type>
+class Shared_Ptr;
+template<typename Type>
+class Weak_Ptr;
+
+template<typename Type>
+class Shared_From_This
+{
+protected:
+    mutable Weak_Ptr<Type> _weak_this;
+    
+    Shared_Ptr<Type> shared_from_this()
+    {
+        return _weak_this.lock();
+    }
+
+    template <typename Other_Type>
+    friend class Shared_Ptr;
+};
 
 template<typename Type>
 class Shared_Ptr
@@ -15,7 +36,12 @@ public:
     template<class... Args>
     static Shared_Ptr<Type> create(Args ... args)
     {
-        return Shared_Ptr<Type>(new Type(args...));
+        Shared_Ptr<Type> sp(new Type(args...));
+        if constexpr (std::is_base_of<Shared_From_This<Type>, Type>::value) 
+        {
+            sp->_weak_this = sp;
+        } 
+        return sp;
     }
 
     Shared_Ptr()
@@ -77,7 +103,6 @@ public:
 
         return *this;
     }
-
 
     void release()
     {

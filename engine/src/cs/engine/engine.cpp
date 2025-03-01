@@ -1,6 +1,7 @@
 #include "cs/engine/engine.hpp"
 #include "cs/engine/cvar.hpp"
 #include "cs/engine/input.hpp"
+#include "cs/engine/thread_pool.hpp"
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/engine/window/glfw/glfw_window.hpp"
 
@@ -18,6 +19,8 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _initialize_cvars();
     _parse_args(args);
 
+    _thread_pool = Shared_Ptr<Thread_Pool>::create(_cvar_num_threads->get());
+    
     _input_system = Shared_Ptr<Input_System>::create();
     _vr_system = Shared_Ptr<VR_System>::create();
     if (_cvar_vr_support->get())
@@ -149,7 +152,10 @@ void Engine::_parse_args(const Dynamic_Array<std::string>& args)
 void Engine::_initialize_cvars()
 {
     _cvar_registry = Shared_Ptr<CVar_Registry>::create();
-
+    
+    _cvar_num_threads = _cvar_registry->register_cvar<uint32>(
+        "cs_num_threads", 1, "Number of threads that the engine can use (capped by actual processor count)");
+    
     _cvar_net_role = _cvar_registry->register_cvar<uint8>(
         "cs_net_role", Net_Role::Offline, "Which net role will the instance be.");
     _cvar_window_width = _cvar_registry->register_cvar<uint32>(

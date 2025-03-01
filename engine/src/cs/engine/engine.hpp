@@ -29,6 +29,7 @@ class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
 class Input_System;
+class Thread_Pool;
 class Engine : public Singleton<Engine>
 {
 public:
@@ -49,6 +50,7 @@ public:
 
 private:
     Shared_Ptr<CVar_Registry> _cvar_registry;
+    Shared_Ptr<Thread_Pool> _thread_pool;
     Shared_Ptr<Renderer> _renderer;
     Shared_Ptr<Window> _window;
     Shared_Ptr<Input_System> _input_system;
@@ -59,6 +61,7 @@ private:
     bool _should_close { false };
 
 private:
+    Shared_Ptr<CVar_T<uint32>> _cvar_num_threads;
     Shared_Ptr<CVar_T<uint8>> _cvar_net_role;
     Shared_Ptr<CVar_T<uint32>> _cvar_window_width;
     Shared_Ptr<CVar_T<uint32>> _cvar_window_height;
