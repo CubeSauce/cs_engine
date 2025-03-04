@@ -31,6 +31,7 @@ class Net_Instance;
 class Game_Instance;
 class Input_System;
 class Thread_Pool;
+class Profiler;
 class Engine : public Singleton<Engine>
 {
 public:
@@ -50,6 +51,7 @@ public:
     void run();
 
 private:
+    Shared_Ptr<Profiler> _profiler;
     Shared_Ptr<CVar_Registry> _cvar_registry;
     Shared_Ptr<Thread_Pool> _thread_pool;
     Shared_Ptr<Renderer> _renderer;

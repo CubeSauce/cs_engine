@@ -8,6 +8,24 @@
 #include <chrono>
 #include <shared_mutex>
 
+struct Test
+{
+  int i;
+  float f;
+};
+
+void dynamic_array_test()
+{
+  Dynamic_Array<Test> arr;
+
+  for (int i = 0; i < 1024 * 4; ++i)
+  {
+    arr.add({.i = i, .f = float(i)});
+  }
+
+  arr.capacity();
+}
+
 void hash_map_test()
 {
   Hash_Map<float> map;
@@ -102,6 +120,7 @@ void engine_test(const Dynamic_Array<std::string>& args)
   Engine engine;
   engine.initialize(args);
 
+  dynamic_array_test();
   hash_map_test();
   smart_ptr_test();
   task_test(1000, 120);
@@ -111,7 +130,7 @@ void engine_test(const Dynamic_Array<std::string>& args)
 
 int main(int argc, char** argv)
 {
-  engine_test({"cs_num_threads=16", "cs_vr_support=0"});
+  engine_test({"cs_num_threads=1", "cs_vr_support=0"});
 
   return 0;
 }

@@ -2,6 +2,7 @@
 // Author: matija.martinec@protonmail.com
 
 #include "cs/engine/task_system.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 
 Task::Task(const Task::Task_Job &job)
     : _job(job)
@@ -72,6 +73,8 @@ Shared_Ptr<Task> Task_Graph::create_task(std::function<void(void)> task_job)
 
 void Task_Graph::execute()
 {
+    PROFILE_FUNCTION()
+
     for (Shared_Ptr<Task> task : _tasks)
     {
         if (!task.is_valid() || !task->can_execute())

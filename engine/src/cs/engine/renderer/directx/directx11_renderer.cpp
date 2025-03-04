@@ -4,6 +4,7 @@
 #include "cs/engine/vr/vr_system.hpp"
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/engine/window.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 
 #include <GL/glew.h>
 
@@ -112,6 +113,8 @@ struct
 
 void DirectX11_Renderer_Backend::initialize(const Shared_Ptr<Window> &window)
 {
+    PROFILE_FUNCTION()
+
     _window = window;
     _hwnd = static_cast<HWND>(window->native_handle());
 
@@ -148,6 +151,8 @@ void DirectX11_Renderer_Backend::set_camera(const Shared_Ptr<Camera> &camera)
 
 void DirectX11_Renderer_Backend::begin_frame(VR_Eye::Type eye)
 {
+    PROFILE_FUNCTION()
+
     constexpr float clearColor[] = {0.1f, 0.3f, 0.1f, 1.0f};
     _device_context->RSSetViewports(1, &_viewport);
 
@@ -163,6 +168,8 @@ void DirectX11_Renderer_Backend::end_frame(VR_Eye::Type eye)
 
 void DirectX11_Renderer_Backend::render_frame()
 {
+    PROFILE_FUNCTION()
+
     VR_System& vr_system = VR_System::get();
     if (vr_system.is_valid())
     {
@@ -186,6 +193,8 @@ void DirectX11_Renderer_Backend::render_frame()
 
 void DirectX11_Renderer_Backend::shutdown()
 {
+    PROFILE_FUNCTION()
+
     if (_swapchain)
         _swapchain->Release();
     if (_device)
@@ -198,6 +207,8 @@ UINT vertex_stride = sizeof(Vertex_Data);
 UINT vertex_offset = 0;
 void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye)
 {
+    PROFILE_FUNCTION()
+    
     Shared_Ptr<DirectX11_Mesh> dx_mesh = mesh;
     if (!dx_mesh)
     {
@@ -404,7 +415,9 @@ ComPtr<ID3D11PixelShader> DirectX11_Renderer_Backend::_create_pixel_shader(const
 }
 
 DirectX11_Material DirectX11_Renderer_Backend::_create_material(const Shared_Ptr<Material_Resource>& material_resource)
-{
+{    
+    PROFILE_FUNCTION()
+
     DirectX11_Material dx11_material;
 
     dx11_material.shader = _create_shader(material_resource->shader_resource);
@@ -415,6 +428,8 @@ DirectX11_Material DirectX11_Renderer_Backend::_create_material(const Shared_Ptr
 
 Shared_Ptr<DirectX11_Shader> DirectX11_Renderer_Backend::_create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
+    PROFILE_FUNCTION()
+
     Shared_Ptr<DirectX11_Shader> shader = Shared_Ptr<DirectX11_Shader>::create();
     shader->shader_resource = shader_resource;
     
@@ -450,6 +465,8 @@ Shared_Ptr<DirectX11_Shader> DirectX11_Renderer_Backend::_create_shader(const Sh
 
 Shared_Ptr<DirectX11_Texture> DirectX11_Renderer_Backend::_create_texture(const Shared_Ptr<Texture_Resource>& texture_resource)
 {
+    PROFILE_FUNCTION()
+
     if (!texture_resource)
     {
         return Shared_Ptr<DirectX11_Texture>();
@@ -517,6 +534,8 @@ Shared_Ptr<DirectX11_Texture> DirectX11_Renderer_Backend::_create_texture(const 
 
 DirectX11_Renderer_Backend::DirectX11_Framebuffer DirectX11_Renderer_Backend::_create_framebuffer()
 {
+    PROFILE_FUNCTION()
+
     DirectX11_Framebuffer framebuffer;
 
     HRESULT hr = _swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)framebuffer.texture.GetAddressOf());
@@ -561,6 +580,8 @@ void DirectX11_Renderer_Backend::_destroy_framebuffer(DirectX11_Framebuffer& fra
 
 void DirectX11_Renderer_Backend::_initialize_render_stuff()
 {
+    PROFILE_FUNCTION()
+
     RECT win_rect;
     GetClientRect(_hwnd, &win_rect);
     _viewport = {0.0f, 0.0f, (FLOAT)(win_rect.right - win_rect.left), (FLOAT)(win_rect.bottom - win_rect.top), 0.0f, 1.0f};
@@ -579,6 +600,8 @@ void DirectX11_Renderer_Backend::_initialize_render_stuff()
 
 void DirectX11_Renderer_Backend::_cleanup_render_stuff()
 {
+    PROFILE_FUNCTION()
+
     _destroy_framebuffer(_framebuffers[VR_Eye::None]);
 
     VR_System& vr_system = VR_System::get();

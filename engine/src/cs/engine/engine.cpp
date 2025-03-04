@@ -16,6 +16,10 @@ Engine* Singleton<Engine>::_singleton { nullptr };
 
 void Engine::initialize(const Dynamic_Array<std::string>& args)
 {
+    _profiler = Shared_Ptr<Profiler>::create();
+
+    PROFILE_FUNCTION()
+
     _initialize_cvars();
     _parse_args(args);
 
@@ -45,6 +49,7 @@ void Engine::shutdown()
 
 void Engine::run()
 {
+    PROFILE_FUNCTION()
     VR_System& vr_system = VR_System::get();
 
     _renderer->window->on_window_should_close.bind([&](){
@@ -172,6 +177,7 @@ void Engine::_initialize_cvars()
 
 Shared_Ptr<Window> Engine::_create_window()
 {
+    PROFILE_FUNCTION()
     Shared_Ptr<Window> window = Shared_Ptr<GLFW_Window>::create();
     window->initialize(_cvar_window_width->get(), _cvar_window_height->get(), _cvar_window_title->get().c_str());
  

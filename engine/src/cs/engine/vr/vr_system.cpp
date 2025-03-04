@@ -1,4 +1,5 @@
 #include "cs/engine/vr/vr_system.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 
 void VR_Camera::set_world(const mat4& in_world)
 {
@@ -21,6 +22,8 @@ VR_System* Singleton<VR_System>::_singleton { nullptr };
 void VR_System::initialize()
 {
 #ifdef CS_WITH_VR_SUPPORT
+    PROFILE_FUNCTION()
+
     if (!vr::VR_IsRuntimeInstalled())
     {
         return;
@@ -56,6 +59,7 @@ void VR_System::initialize()
 void VR_System::shutdown()
 {
 #ifdef CS_WITH_VR_SUPPORT
+    PROFILE_FUNCTION()
     vr::VR_Shutdown();
     _vr_system = nullptr;
 #endif //CS_WITH_VR_SUPPORT
@@ -64,6 +68,8 @@ void VR_System::shutdown()
 void VR_System::poll_events()
 {
 #ifdef CS_WITH_VR_SUPPORT
+    PROFILE_FUNCTION()
+
     if (!_vr_system)
     {
         return;
@@ -106,6 +112,8 @@ void VR_System::poll_events()
 void VR_System::update(float dt)
 {
 #ifdef CS_WITH_VR_SUPPORT
+    PROFILE_FUNCTION()
+
     if (!is_valid())
     {
         return;
@@ -228,6 +236,8 @@ mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat)
 static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
 void VR_System::_update_camera(float dt)
 {
+    PROFILE_FUNCTION()
+    
     mat4 pose = _custom_pose;
     pose = pose.inverse();
 

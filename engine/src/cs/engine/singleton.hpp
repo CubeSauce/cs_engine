@@ -36,6 +36,24 @@ protected:
     static Type* _singleton;
 
 private:
-    Singleton(const Singleton<Type>&);
-    Singleton& operator=(const Singleton<Type>&);
+    Singleton(const Singleton<Type>&) = delete;
+    Singleton& operator=(const Singleton<Type>&) = delete;
+};
+
+template <typename Type>
+class TLS_Singleton
+{
+public:
+    TLS_Singleton(void) = default;
+    ~TLS_Singleton(void) = default;
+
+    static Type& get(void)
+    {
+        thread_local Type instance;
+        return instance; 
+    }
+
+private:
+    TLS_Singleton(const Singleton<Type>&) = delete;
+    TLS_Singleton& operator=(const Singleton<Type>&) = delete;
 };

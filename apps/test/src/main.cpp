@@ -10,6 +10,8 @@
 
 #include "cs/engine/input.hpp"
 
+#include "cs/engine/profiling/profiler.hpp"
+
 #include <chrono>
 #include <shared_mutex>
 
@@ -135,6 +137,8 @@ protected:
 
 void Test_Game_Instance::_init_player()
 {
+  PROFILE_FUNCTION()
+
   game_state.transform_components.add("player", {
     .local_position = vec3(0.0f, 0.0f, 0.0f), 
   });
@@ -194,6 +198,8 @@ void Test_Game_Instance::_init_player()
 
 void Test_Game_Instance::_init_test()
 {
+  PROFILE_FUNCTION()
+  
   Shared_Ptr<Mesh_Resource> kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
   Shared_Ptr<Mesh_Resource> plane = Shared_Ptr<Mesh_Resource>::create("assets/mesh/plane.obj");
 
@@ -202,6 +208,8 @@ void Test_Game_Instance::_init_test()
 
 void Test_Game_Instance::_init_dust2()
 {
+  PROFILE_FUNCTION()
+
   _init_player();
   Shared_Ptr<Mesh_Resource> dust2 = Shared_Ptr<Mesh_Resource>::create("assets/mesh/de_dust2.obj");
 
@@ -215,11 +223,15 @@ void Test_Game_Instance::_init_dust2()
 
 void Test_Game_Instance::init()
 {
+  PROFILE_FUNCTION()
+  
   _init_dust2();
 }
 
 void Test_Game_Instance::_transform_task_worker(float dt, int32 component_index)
 {
+  PROFILE_FUNCTION()
+
   std::unique_lock lock(mutex);
 
   Transform_Component& component = game_state.transform_components.components[component_index];
@@ -250,6 +262,8 @@ void Test_Game_Instance::_transform_task_worker(float dt, int32 component_index)
 
 void Test_Game_Instance::_construct_transform_task_graph(float dt, Task_Graph& graph)
 {
+  PROFILE_FUNCTION()
+
   graph.clear();
 
   Dynamic_Array<Shared_Ptr<Task>> tasks;
@@ -276,6 +290,8 @@ void Test_Game_Instance::_construct_transform_task_graph(float dt, Task_Graph& g
 
 void Test_Game_Instance::_input_task_worker(float dt, int32 component_index)
 {
+  PROFILE_FUNCTION()
+
   std::unique_lock lock(mutex);
 
   Input_Component& input_component = game_state.input_components.components[component_index];
@@ -316,6 +332,8 @@ void Test_Game_Instance::_input_task_worker(float dt, int32 component_index)
 
 void Test_Game_Instance::_construct_input_task_graph(float dt, Task_Graph& graph)
 {
+  PROFILE_FUNCTION()
+
   graph.clear();
 
   Dynamic_Array<Shared_Ptr<Task>> tasks;
@@ -327,6 +345,8 @@ void Test_Game_Instance::_construct_input_task_graph(float dt, Task_Graph& graph
 
 void Test_Game_Instance::update(float dt)
 {
+  PROFILE_FUNCTION()
+
   if (1)
   {
     _construct_input_task_graph(dt, _input_task_graph);
@@ -347,6 +367,8 @@ void Test_Game_Instance::update(float dt)
 
 void Test_Game_Instance::_update_inputs(float dt)
 {
+  PROFILE_FUNCTION()
+
   for (int32 i = 0; i < game_state.input_components.components.size(); ++i)
   {
     Input_Component& input_component = game_state.input_components.components[i];
@@ -388,6 +410,8 @@ void Test_Game_Instance::_update_inputs(float dt)
 
 void Test_Game_Instance::_update_transforms(float dt)
 {
+  PROFILE_FUNCTION()
+
   for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
   {
     Transform_Component& component = game_state.transform_components.components[i];
@@ -420,6 +444,8 @@ void Test_Game_Instance::_update_transforms(float dt)
 Hash_Map<Shared_Ptr<Mesh>> meshes;
 void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye)
 {
+    PROFILE_FUNCTION()
+
     std::unique_lock lock(mutex);
 
     Shared_Ptr<Renderer_Backend> renderer_backend = renderer->backend;
@@ -468,7 +494,6 @@ void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Ty
 
 void Test_Game_Instance::shutdown()
 {
-
 }
 
 int main(int argc, char** argv)
@@ -480,13 +505,15 @@ int main(int argc, char** argv)
   }
 
   args.add("cs_vr_support=0");
-  args.add("cs_num_threads=4");
+  args.add("cs_num_threads=16");
 
   Engine engine;
   engine.initialize(args);
   engine.game_instance = Shared_Ptr<Test_Game_Instance>::create();
   engine.run();
   engine.shutdown();
+
+  Profiler::get().write_to_chrometracing_json("test_16_thread.json");
 
   return 0;
 }

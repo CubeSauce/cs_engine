@@ -8,6 +8,7 @@
 #include "cs/engine/event.hpp"
 #include "cs/memory/weak_ptr.hpp"
 #include "cs/engine/singleton.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 #include "cs/containers/dynamic_array.hpp"
 
 #include <queue>
@@ -34,11 +35,15 @@ public:
 
     void thread_pool_worker()
     {
+        PROFILE_FUNCTION()
+
         while (true) 
         {
             std::function<void()> next_task;
 
             {
+                Scoped_Profiler("Waiting on mutex");
+
                 std::unique_lock<std::mutex> lock(_queue_mutex);
                 _condition.wait(lock, [this] { return _should_stop || !_task_queue.empty(); });
                 
@@ -87,18 +92,12 @@ public:
 
     void wait_for_completion()
     {
-        // int32 previous_num = -1;
+        PROFILE_FUNCTION()
+
         while (!_task_queue.empty())
         {
-            // if (_task_queue.size() != previous_num)
-            // {
-            //     previous_num = _task_queue.size();
-            //     printf("remaining tasks: %d\n", previous_num);
-            // }
             std::this_thread::yield();
         }
-
-        // printf("No more!\n", previous_num);
     }
 
 private:
