@@ -17,6 +17,8 @@ Proper game examples coming soon
 - [ ] CVar serializing
 - [x] Basic math (vec2-4, mat4, quat)
 - [x] Input system
+- [x] Multithreading (Task/Job system)
+- [x] Profiling ([chrometracing](https://www.chromium.org/developers/how-tos/trace-event-profiling-tool/))
 ### Rendering api
 - [x] DirectX
 - [ ] Vulkan
