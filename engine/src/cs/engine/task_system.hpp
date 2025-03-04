@@ -33,6 +33,8 @@ protected:
     Dynamic_Array<Weak_Ptr<Task>> _references;
     std::atomic<int32> _unfinished_dependencies { 0 };
     bool _has_executed { false };
+
+    void _submit_to_thread_pool();
 };
 
 class Task_Graph
@@ -42,7 +44,11 @@ public:
 
     void execute();
     void reset();
+    void clear();
 
 private:
     Dynamic_Array<Shared_Ptr<Task>> _tasks;
+    std::mutex _queue_mutex;
+    std::condition_variable _condition;
+    std::queue<Shared_Ptr<Task>> _task_queue;
 };

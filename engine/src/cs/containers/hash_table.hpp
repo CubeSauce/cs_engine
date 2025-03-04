@@ -194,6 +194,29 @@ public:
         return nullptr;
     }
 
+    Type* find(uint32 hash) const
+    {
+        const int32 key_index = get_index_from_hash(hash);
+
+        if (_entries[key_index].hash == hash)
+        {
+            return &_entries[key_index].value;
+        }
+
+        int32 next_collision_index = key_index;
+        while (_collision_entries[next_collision_index].hash > 0 && _collision_entries[next_collision_index].hash != hash && next_collision_index < _size)
+        {
+            next_collision_index = _collision_entries[next_collision_index].next_collision_index;
+        }
+
+        if (_collision_entries[next_collision_index].hash == hash)
+        {
+            return &_collision_entries[next_collision_index].value;
+        }
+
+        return nullptr;
+    }
+
     Type& find_or_add(uint32 hash)
     {
         const int32 key_index = get_index_from_hash(hash);

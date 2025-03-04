@@ -8,6 +8,7 @@
 #include "cs/engine/event.hpp"
 #include "cs/engine/window.hpp"
 #include "cs/memory/unique_ptr.hpp"
+#include "cs/engine/task_system.hpp"
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/renderer/renderer.hpp"
@@ -60,6 +61,8 @@ private:
 
     bool _should_close { false };
 
+    Task_Graph game_loop_task_graph;
+
 private:
     Shared_Ptr<CVar_T<uint32>> _cvar_num_threads;
     Shared_Ptr<CVar_T<uint8>> _cvar_net_role;
@@ -77,4 +80,8 @@ private:
     Shared_Ptr<Renderer_Backend> _create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window);
 
     void _initialize_defaults();
+
+    void _task_physics();
+    void _task_animation();
+    void _task_render();
 };

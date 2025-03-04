@@ -28,42 +28,48 @@ public:
 
         for (uint32 t = 0; t < num_threads; ++t)
         {
-            workers.emplace_back([&, tid = t](){
-                while (true) 
+            _workers.emplace_back(std::bind(&Thread_Pool::thread_pool_worker, this));
+        }
+    }
+
+    void thread_pool_worker()
+    {
+        while (true) 
+        {
+            std::function<void()> next_task;
+
+            {
+                std::unique_lock<std::mutex> lock(_queue_mutex);
+                _condition.wait(lock, [this] { return _should_stop || !_task_queue.empty(); });
+                
+                if (_should_stop && _task_queue.empty())
                 {
-                    std::function<void()> next_task;
-
-                    {
-                        std::unique_lock<std::mutex> lock(queue_mutex);
-                        condition.wait(lock, [this] { return stop || !tasks.empty(); });
-                        
-                        if (stop && tasks.empty())
-                        {
-                            return;
-                        }
-
-                        next_task = std::move(tasks.front());
-                        tasks.pop_front();
-                    }
-                    
-                    //printf("--------- Thread %d: \n---------------\n", tid);
-                    next_task(); // Execute the task
-                    //printf("--------------------------------------\n");
+                    return;
                 }
-            });
+
+                next_task = std::move(_task_queue.front());
+                _task_queue.pop_front();
+            }
+            
+            //printf("--------- Thread %d: \n---------------\n", tid);
+            if (next_task)
+            {
+                next_task(); // Execute the task
+            }
+            //printf("--------------------------------------\n");
         }
     }
 
     ~Thread_Pool()
     {
         {
-            std::unique_lock<std::mutex> lock(queue_mutex);
-            stop = true;
+            std::unique_lock<std::mutex> lock(_queue_mutex);
+            _should_stop = true;
         }
 
-        condition.notify_all();
+        _condition.notify_all();
 
-        for (std::thread &worker : workers)
+        for (std::thread &worker : _workers)
         {
             worker.join();
         }
@@ -72,18 +78,34 @@ public:
     void submit(std::function<void()> task)
     {
         {
-            std::unique_lock<std::mutex> lock(queue_mutex);
-            tasks.push_back(std::move(task));
+            std::unique_lock<std::mutex> lock(_queue_mutex);
+            _task_queue.push_back(std::move(task));
         }
 
-        condition.notify_one();
+        _condition.notify_one();
+    }
+
+    void wait_for_completion()
+    {
+        // int32 previous_num = -1;
+        while (!_task_queue.empty())
+        {
+            // if (_task_queue.size() != previous_num)
+            // {
+            //     previous_num = _task_queue.size();
+            //     printf("remaining tasks: %d\n", previous_num);
+            // }
+            std::this_thread::yield();
+        }
+
+        // printf("No more!\n", previous_num);
     }
 
 private:
-    std::vector<std::thread> workers; //TODO: Make own unique ptr
+    std::vector<std::thread> _workers; //TODO: Make own unique ptr
     // Dynamic_Array<std::thread> _workers; // TODO: introduce emplace resizing for std::thread/unique_ptr (deleted move and copy)
-    std::deque<std::function<void()>> tasks;    //TODO: Make own queue container
-    std::mutex queue_mutex;
-    std::condition_variable condition;
-    std::atomic<bool> stop;
+    std::deque<std::function<void()>> _task_queue;    //TODO: Make own queue container
+    std::mutex _queue_mutex;
+    std::condition_variable _condition;
+    std::atomic<bool> _should_stop;
 };

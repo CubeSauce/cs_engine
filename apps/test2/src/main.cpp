@@ -6,6 +6,7 @@
 #include "cs/containers/hash_table.hpp"
 
 #include <chrono>
+#include <shared_mutex>
 
 void hash_map_test()
 {
@@ -34,75 +35,66 @@ void smart_ptr_test()
   Weak_Ptr<int> wp2 = wp1;
   wp1 = wp2;
   wp1.release();
+
+  {
+    Shared_Ptr<int> p3 = wp2.lock();
+    Shared_Ptr<int> p4 = p3;
+    Shared_Ptr<int> p5 = p4;
+    Weak_Ptr<int> wp3 = p5;
+    Weak_Ptr<int> wp4 = wp4;
+    Weak_Ptr<int> wp5 = wp5;
+    Weak_Ptr<int> wp6 = wp6;
+  }
+
   assert(p2.is_valid());
   p2.release();
   assert(!wp2.is_valid());
+
 }
 
 std::chrono::steady_clock::time_point start;
-Shared_Ptr<Task> task_physics, task_animation, task_render;
+Shared_Ptr<Task> task;
 
-Dynamic_Array<std::string> qp, qa, qr;
+std::shared_mutex mutex;
+Dynamic_Array<std::string> tda;
 
-void task_test(int32 num_iterations)
+void task_worker(int r, int i)
 {
-  std::mutex m;
-
+  std::unique_lock lock(mutex);
+  std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+  int64 time_ms = std::chrono::duration_cast<std::chrono::microseconds>(now - start).count();
+  tda.add(std::format("[{} - {}][{}us]", r, i, time_ms));
   start = std::chrono::steady_clock::now();
-  for (int32 i = 0; i < num_iterations; ++i)
+  lock.unlock();
+  
+  //using namespace std::chrono_literals;
+  //std::this_thread::sleep_for(1ms);
+}
+
+void task_test(int32 num_reps, int32 num_tasks)
+{
+  start = std::chrono::steady_clock::now();
+
+  for (int32 r = 0; r < num_reps; r++)
   {
     Task_Graph task_graph;
-  
-    task_physics = task_graph.create_task([](){
-      std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-      int64 time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-  
-      qp.add(std::format("[{}ms] Physics", time_ms));
-  
-      using namespace std::chrono_literals;
-      std::this_thread::sleep_for(1ms);
-    });
-    
-    task_animation = task_graph.create_task([](){
-      std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-      int64 time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-  
-      qa.add(std::format("[{}ms] Animation", time_ms));
-  
-      using namespace std::chrono_literals;
-      std::this_thread::sleep_for(2ms);
-    });
-    
-    task_render = task_graph.create_task([](){
-      std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-      int64 time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-  
-      qr.add(std::format("[{}ms] Render", time_ms));
-  
-      using namespace std::chrono_literals;
-      std::this_thread::sleep_for(4ms);
-    });
-  
-    task_render->add_dependency(task_physics);
-    task_render->add_dependency(task_animation);
+    for (int32 i = 0; i < num_tasks; ++i)
+    {
+      task = task_graph.create_task(std::bind(task_worker, r, i));
+    }
 
     task_graph.execute();
-
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(16ms);
   }
-
-  using namespace std::chrono_literals;
-  std::this_thread::sleep_for(500ms);
-  for (int i = 0; i < qp.size(); ++i)
+  
+  for (int i = 0; i < tda.size(); ++i)
   {
-
-    printf("%s\n%s\n%s\n", qp[i].c_str(), qa[i].c_str(), qr[i].c_str());
+    if (i%100 == 0)
+    {
+      printf("%s\n", tda[i].c_str());
+    }
   }
 
-  task_physics.release();
-  task_animation.release();
-  task_render.release();
+  task.release();
 }
 
 void engine_test(const Dynamic_Array<std::string>& args)
@@ -112,14 +104,14 @@ void engine_test(const Dynamic_Array<std::string>& args)
 
   hash_map_test();
   smart_ptr_test();
-  task_test(3);
+  task_test(1000, 120);
 
   engine.shutdown();
 }
 
 int main(int argc, char** argv)
 {
-  engine_test({"cs_num_threads=5", "cs_vr_support=0"});
+  engine_test({"cs_num_threads=16", "cs_vr_support=0"});
 
   return 0;
 }

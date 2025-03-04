@@ -18,39 +18,12 @@ void Task::add_dependency(const Shared_Ptr<Task> &task)
 void Task::execute()
 {
     // Use weak this? Tasks might not stay around
-    Thread_Pool::get().submit([shared_this = shared_from_this()](){
-        if (!shared_this.is_valid())
-        {
-            return;
-        }
-
-        shared_this->_job();
-        //shared_this->_has_executed = true;
-        
-        for (Weak_Ptr<Task> weak_referencer : shared_this->_references)
-        {
-            Shared_Ptr<Task> shared_referencer = weak_referencer.lock();
-            if (!shared_referencer)
-            {
-                continue;
-            }
-
-            shared_referencer->_unfinished_dependencies--;
-            if (!shared_referencer->can_execute())
-            { 
-                continue;
-            }
-
-            shared_referencer->execute();
-        } 
-    });
+    Thread_Pool::get().submit(std::bind(&Task::_submit_to_thread_pool, this));
 }
 
 void Task::reset()
 {
-    _unfinished_dependencies = 0;
-    _dependencies.clear();
-    _references.clear();
+    _unfinished_dependencies = _dependencies.size();
     _has_executed = false;
 }
 
@@ -64,7 +37,30 @@ bool Task::has_executed() const
 }
 bool Task::can_execute() const 
 { 
-    return !has_unfinished_dependencies();// && !has_executed(); 
+    return !has_unfinished_dependencies() && !has_executed(); 
+}
+
+void Task::_submit_to_thread_pool()
+{
+    _job();
+    _has_executed = true;
+    
+    for (Weak_Ptr<Task> weak_referencer : _references)
+    {
+        Shared_Ptr<Task> shared_referencer = weak_referencer.lock();
+        if (!shared_referencer)
+        {
+            continue;
+        }
+
+        shared_referencer->_unfinished_dependencies--;
+        if (!shared_referencer->can_execute())
+        { 
+            continue;
+        }
+
+        shared_referencer->execute();
+    } 
 }
 
 Shared_Ptr<Task> Task_Graph::create_task(std::function<void(void)> task_job)
@@ -85,11 +81,14 @@ void Task_Graph::execute()
 
         task->execute();
     }
+
+    // Sync all tasks in graph
+    Thread_Pool::get().wait_for_completion();
 }
 
 void Task_Graph::reset()
 {
-    for (Shared_Ptr<Task> task : _tasks)
+    for (Shared_Ptr<Task>& task : _tasks)
     {
         if (!task.is_valid())
         {
@@ -98,4 +97,9 @@ void Task_Graph::reset()
 
         task->reset();
     }
+}
+
+void Task_Graph::clear()
+{
+    _tasks.clear();
 }

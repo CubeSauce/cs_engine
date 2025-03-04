@@ -10,6 +10,21 @@
 
 #include "cs/engine/input.hpp"
 
+#include <chrono>
+#include <shared_mutex>
+
+template<typename Type>
+struct Pair
+{
+  Type a, b;
+};
+
+struct Time_Entry
+{
+  std::string name;
+  float duration;
+};
+
 struct Input_Component
 {
     vec3 look_analog { vec3::zero_vector };
@@ -91,6 +106,8 @@ class Test_Game_Instance : public Game_Instance
 {
 public:
   Game_State game_state;
+  std::shared_mutex mutex;
+  int32 num_frames = 0;
 
 public:
 
@@ -99,9 +116,21 @@ public:
   virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override;
   virtual void shutdown() override;
 
+protected:
   void _init_player();
   void _init_test();
   void _init_dust2();
+
+  void _update_inputs(float dt);
+  void _update_transforms(float dt);
+
+  Task_Graph _input_task_graph;
+  void _input_task_worker(float dt, int32 component_index);
+  void _construct_input_task_graph(float dt, Task_Graph& graph);
+
+  Task_Graph _transform_task_graph;
+  void _transform_task_worker(float dt, int32 component_index);
+  void _construct_transform_task_graph(float dt, Task_Graph& graph);
 };
 
 void Test_Game_Instance::_init_player()
@@ -169,36 +198,6 @@ void Test_Game_Instance::_init_test()
   Shared_Ptr<Mesh_Resource> plane = Shared_Ptr<Mesh_Resource>::create("assets/mesh/plane.obj");
 
   _init_player();
-
-  // game_state.transform_components.add("npc1", {
-  //   .position = vec3(-5.0f, 5.0f, 0.0f), 
-  //   .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  // });
-  // game_state.render_components.add("npc1", { .mesh = kimono });
-
-  // game_state.transform_components.add("npc2", {
-  //   .position = vec3(5.0f, -5.0f, 0.0f), 
-  //   .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  // });
-  // game_state.render_components.add("npc2", { .mesh = kimono});
-  
-  // game_state.transform_components.add("npc3", {
-  //   .position = vec3(-5.0f, -5.0f, 0.0f), 
-  //   .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  // });
-  // game_state.render_components.add("npc3", { .mesh = kimono});
-
-  // game_state.transform_components.add("npc4", {
-  //   .position = vec3(5.0f, 5.0f, 0.0f), 
-  //   .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  // });
-  // game_state.render_components.add("npc4", { .mesh = kimono});
-
-  // game_state.transform_components.add("plane", {
-  //   .position = vec3(0.0f, 0.0f, -1.0f), 
-  //   .orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  // });
-  // game_state.render_components.add("plane", { .mesh = plane});
 }
 
 void Test_Game_Instance::_init_dust2()
@@ -216,11 +215,137 @@ void Test_Game_Instance::_init_dust2()
 
 void Test_Game_Instance::init()
 {
-  //_init_test();
   _init_dust2();
 }
 
+void Test_Game_Instance::_transform_task_worker(float dt, int32 component_index)
+{
+  std::unique_lock lock(mutex);
+
+  Transform_Component& component = game_state.transform_components.components[component_index];
+    
+  component.local_matrix = translate(mat4(1.0f), component.local_position);
+  component.local_matrix = component.local_matrix * component.local_orientation.to_mat4();
+
+  if (component.parent != Name_Id::Empty)
+  {
+    mat4 parent_transform(1.0f);
+    if (const Transform_Component* parent_transform_component = game_state.transform_components.get(component.parent))
+    {
+      parent_transform = translate(parent_transform, parent_transform_component->world_position);
+      parent_transform = parent_transform * parent_transform_component->world_orientation.to_mat4();
+    }
+
+    component.world_matrix = component.local_matrix * parent_transform;
+    component.world_position = component.world_matrix[3].xyz;
+    component.world_orientation = quat::from_mat4(component.world_matrix);
+  }
+  else
+  {
+    component.world_matrix = component.local_matrix;
+    component.world_position = component.local_position;
+    component.world_orientation = component.local_orientation;
+  }
+}
+
+void Test_Game_Instance::_construct_transform_task_graph(float dt, Task_Graph& graph)
+{
+  graph.clear();
+
+  Dynamic_Array<Shared_Ptr<Task>> tasks;
+  Dynamic_Array<Pair<int32>> dependencies;
+  for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
+  {
+    Transform_Component& component = game_state.transform_components.components[i];
+    if (component.parent != Name_Id::Empty)
+    {
+      if (int32* found_index = game_state.transform_components.id_to_index.find(component.parent); *found_index >= 0 && *found_index != i)
+      {
+        dependencies.add({.a = i, .b = *found_index});
+      }
+    }
+
+    tasks.add(graph.create_task(std::bind(&Test_Game_Instance::_transform_task_worker, this, dt, i)));
+  }
+
+  for (const Pair<int32>& dependency_pair : dependencies)
+  {
+    tasks[dependency_pair.a]->add_dependency(tasks[dependency_pair.b]);
+  }
+} 
+
+void Test_Game_Instance::_input_task_worker(float dt, int32 component_index)
+{
+  std::unique_lock lock(mutex);
+
+  Input_Component& input_component = game_state.input_components.components[component_index];
+  const Name_Id* p_id = game_state.input_components.index_to_id.find(component_index);
+  if (!p_id)
+  {
+    return;
+  }
+
+  Transform_Component* transform_component = game_state.transform_components.get(*p_id);
+  if (!transform_component)
+  {
+    return;
+  }
+
+  vec3 input(0.0f);
+  input.x = clamp(input_component.move_analog.x + input_component.move_keyboard.x, -1.0f, 1.0f);
+  input.y = clamp(input_component.move_analog.y + input_component.move_keyboard.y, -1.0f, 1.0f);
+
+  vec3 camera_forward;
+  if (VR_System::get().is_valid())
+  {
+    const mat4& camera_view = VR_System::get().get_camera(VR_Eye::None)->get_view().inverse();
+    camera_forward = camera_view[1].xyz;
+    //camera_forward.z = 0;
+    camera_forward.normalize();
+  } 
+  else if (Transform_Component* camera_transform = game_state.transform_components.get("camera"))
+  {
+    camera_forward = transform_component->world_orientation.get_direction().normalize();
+  }
+
+  const vec3 camera_right = vec3::up_vector.cross(camera_forward).normalize();
+  vec3 movement_direction = (camera_forward * input.y + camera_right * input.x).normalize();
+  
+  transform_component->local_position += movement_direction * input_component.speed * dt;
+}
+
+void Test_Game_Instance::_construct_input_task_graph(float dt, Task_Graph& graph)
+{
+  graph.clear();
+
+  Dynamic_Array<Shared_Ptr<Task>> tasks;
+  for (int32 i = 0; i < game_state.input_components.components.size(); ++i)
+  {
+    tasks.add(graph.create_task(std::bind(&Test_Game_Instance::_input_task_worker, this, dt, i)));
+  }
+} 
+
 void Test_Game_Instance::update(float dt)
+{
+  if (1)
+  {
+    _construct_input_task_graph(dt, _input_task_graph);
+    _construct_transform_task_graph(dt, _transform_task_graph);
+  
+    // Executes wait for finish
+    _input_task_graph.execute();
+    _transform_task_graph.execute();
+  }
+  else
+  {
+    _update_inputs(dt);
+    _update_transforms(dt);
+  }
+
+  num_frames++;
+}
+
+void Test_Game_Instance::_update_inputs(float dt)
 {
   for (int32 i = 0; i < game_state.input_components.components.size(); ++i)
   {
@@ -259,7 +384,10 @@ void Test_Game_Instance::update(float dt)
     
     transform_component->local_position += movement_direction * input_component.speed * dt;
   }
+}
 
+void Test_Game_Instance::_update_transforms(float dt)
+{
   for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
   {
     Transform_Component& component = game_state.transform_components.components[i];
@@ -292,6 +420,8 @@ void Test_Game_Instance::update(float dt)
 Hash_Map<Shared_Ptr<Mesh>> meshes;
 void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye)
 {
+    std::unique_lock lock(mutex);
+
     Shared_Ptr<Renderer_Backend> renderer_backend = renderer->backend;
     Transform_Component* p_camera_transform = game_state.transform_components.get("camera");
     if (!p_camera_transform)
@@ -350,6 +480,7 @@ int main(int argc, char** argv)
   }
 
   args.add("cs_vr_support=0");
+  args.add("cs_num_threads=4");
 
   Engine engine;
   engine.initialize(args);
