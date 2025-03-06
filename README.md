@@ -1,7 +1,7 @@
 # CS Engine
 CS - CubeSauce
 Amalgation of various project over the years - the point is not the best possible engine, it's just to learn what to do and what not to do and how to do it
-Current version supports DirectX and Windows only, Vulkan and OpenGL with Linux/MacOs coming soon
+Current version supports DirectX and Windows only, Vulkan and OpenGL with Win/Linux/MacOs coming soon
 Build using CMake 
 OpenVR needs to be in `tempBeta` branch
 
