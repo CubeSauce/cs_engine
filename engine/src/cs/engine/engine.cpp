@@ -62,8 +62,11 @@ void Engine::run()
     }
 
     const float dt = 1/60.0f;
+    uint64 frame_count = 0;
     while(!_should_close)
     {
+        Scoped_Profiler frame_scope("frame");
+
         _net_instance->update(dt);
 
         if (vr_system.is_valid())

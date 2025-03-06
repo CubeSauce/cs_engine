@@ -49,6 +49,8 @@ void Profiler::clear()
 void Profiler::write_to_chrometracing_json(const std::string& filename)
 {
 #ifdef CS_WITH_PROFILING
+    PROFILE_FUNCTION()
+
     //TODO: shared_lock as we're only reading
     std::lock_guard<std::mutex> lock(_mutex);
 

@@ -181,9 +181,16 @@ public:
         }
 
         int32 next_collision_index = key_index;
-        while (_collision_entries[next_collision_index].hash > 0 && _collision_entries[next_collision_index].hash != hash && next_collision_index < _size)
+        uint32 collision_hash = _collision_entries[next_collision_index].hash;
+
+        while (collision_hash > 0 && collision_hash != hash && next_collision_index < _size)
         {
             next_collision_index = _collision_entries[next_collision_index].next_collision_index;
+
+            if (next_collision_index == -1)
+            {
+                return nullptr;
+            }
         }
 
         if (_collision_entries[next_collision_index].hash == hash)

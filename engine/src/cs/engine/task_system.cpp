@@ -4,7 +4,7 @@
 #include "cs/engine/task_system.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 
-Task::Task(const Task::Task_Job &job)
+Task::Task(const Task::Job &job)
     : _job(job)
 {
 }
@@ -14,12 +14,6 @@ void Task::add_dependency(const Shared_Ptr<Task> &task)
     _dependencies.add(task);
     task->_references.add(shared_from_this());
     _unfinished_dependencies++;
-}
-
-void Task::execute()
-{
-    // Use weak this? Tasks might not stay around
-    Thread_Pool::get().submit(std::bind(&Task::_submit_to_thread_pool, this));
 }
 
 void Task::reset()
@@ -41,6 +35,11 @@ bool Task::can_execute() const
     return !has_unfinished_dependencies() && !has_executed(); 
 }
 
+Task::Binding Task::get_binding()
+{
+    return std::bind(&Task::_submit_to_thread_pool, this);
+}
+
 void Task::_submit_to_thread_pool()
 {
     _job();
@@ -60,7 +59,7 @@ void Task::_submit_to_thread_pool()
             continue;
         }
 
-        shared_referencer->execute();
+        Thread_Pool::get().submit({shared_referencer});
     } 
 }
 
@@ -75,17 +74,7 @@ void Task_Graph::execute()
 {
     PROFILE_FUNCTION()
 
-    for (Shared_Ptr<Task> task : _tasks)
-    {
-        if (!task.is_valid() || !task->can_execute())
-        {
-            continue;
-        }
-
-        task->execute();
-    }
-
-    // Sync all tasks in graph
+    Thread_Pool::get().submit(_tasks);
     Thread_Pool::get().wait_for_completion();
 }
 

@@ -66,8 +66,8 @@ template<typename Type>
 struct Component_Container
 {
     Dynamic_Array<Type> components;
-    Hash_Map<int32> id_to_index;
-    Hash_Map<Name_Id> index_to_id;
+    Hash_Map<int32> id_to_index = Hash_Map<int32>(1024);
+    Hash_Map<Name_Id> index_to_id = Hash_Map<Name_Id>(1024);
 
     void add(const Name_Id& id, const Type& type)
     {
@@ -211,14 +211,29 @@ void Test_Game_Instance::_init_dust2()
   PROFILE_FUNCTION()
 
   _init_player();
+
   Shared_Ptr<Mesh_Resource> dust2 = Shared_Ptr<Mesh_Resource>::create("assets/mesh/de_dust2.obj");
 
-  game_state.transform_components.add("dust2", {
-    .local_position = vec3(0.0f, 0.0f, 0.0f),
-    .local_scale = vec3(0.01f)
-    //.orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
-  });
-  game_state.render_components.add("dust2", { .mesh = dust2 });
+  //game_state.transform_components.add("dust2", {
+  //  .local_position = vec3(0.0f, 0.0f, 0.0f),
+  //  .local_scale = vec3(0.01f)
+  //  //.orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+  //});
+  //game_state.render_components.add("dust2", { .mesh = dust2 });
+
+  Shared_Ptr<Mesh_Resource> kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
+  const int N = 1000;
+  for (int32 i = 0; i < N; ++i)
+  {
+    float x_rand = -N * 0.5f + (rand() % N) * 1.0f;
+    float y_rand = -N * 0.5f + (rand() % N) * 1.0f;
+
+    game_state.transform_components.add(std::format("test {}", i).c_str(), {
+      .local_position = vec3(x_rand, y_rand, 0.0f),
+      .local_orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+    });
+    game_state.render_components.add(std::format("test {}", i).c_str(), { .mesh = kimono });
+  }
 }
 
 void Test_Game_Instance::init()
@@ -414,6 +429,8 @@ void Test_Game_Instance::_update_transforms(float dt)
 
   for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
   {
+    Scoped_Profiler(std::format("Transform {}", i).c_str());
+
     Transform_Component& component = game_state.transform_components.components[i];
     
     component.local_matrix = translate(mat4(1.0f), component.local_position);
@@ -505,7 +522,7 @@ int main(int argc, char** argv)
   }
 
   args.add("cs_vr_support=0");
-  args.add("cs_num_threads=16");
+  args.add("cs_num_threads=8");
 
   Engine engine;
   engine.initialize(args);
@@ -513,7 +530,7 @@ int main(int argc, char** argv)
   engine.run();
   engine.shutdown();
 
-  Profiler::get().write_to_chrometracing_json("test_16_thread.json");
+  Profiler::get().write_to_chrometracing_json("test_8_thread.json");
 
   return 0;
 }
