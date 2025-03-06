@@ -77,8 +77,9 @@ public:
         }
 
         _control_block->weak_count -= 1;
-        if (_control_block->weak_count == 0)
+        if (_control_block->strong_count == 0 && _control_block->weak_count == 0)
         {
+            _control_block->weak_count -= 1;
             delete _control_block;
         }
     }

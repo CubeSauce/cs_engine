@@ -20,6 +20,11 @@ class Shared_From_This
 protected:
     mutable Weak_Ptr<Type> _weak_this;
     
+    ~Shared_From_This()
+    {
+        _weak_this.release();
+    }
+
     Shared_Ptr<Type> shared_from_this()
     {
         return _weak_this.lock();
@@ -111,15 +116,20 @@ public:
             return;
         }
 
-        _control_block->strong_count -= 1;
-        if (_control_block->strong_count == 0)
+        // shared_from_this double delete guard
+        if (_control_block->strong_count == 1)
         {
 #ifdef CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
             delete _ptr;
 #else
             free(_ptr);
 #endif //CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
+        }
 
+        _control_block->strong_count -= 1;
+        
+        if (_control_block->strong_count == 0)
+        {
             if (_control_block->weak_count == 0)
             {
                 delete _control_block;

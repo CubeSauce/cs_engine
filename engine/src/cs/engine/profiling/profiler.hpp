@@ -15,9 +15,7 @@
 #include <map>
 #include <chrono>
 #include <mutex>
-
-#define CS_WITH_PROFILING
-//#undef CS_WITH_PROFILING
+#include <thread>
 
 class Profiler : public Singleton<Profiler>
 {

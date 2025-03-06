@@ -9,7 +9,7 @@ file(GLOB cs_engine_includes
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
 )
 
-option(VR_SUPPORT "Should use VR" ON)
+option(VR_SUPPORT "Should use VR" OFF)
 
 message("${CMAKE_SOURCE_DIR}/engine/third_party/glew/include")
 
