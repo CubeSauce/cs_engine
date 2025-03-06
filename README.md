@@ -19,10 +19,12 @@ Proper game examples coming soon
 - [x] Input system
 - [x] Multithreading (Task/Job system)
 - [x] Profiling ([chrometracing](https://www.chromium.org/developers/how-tos/trace-event-profiling-tool/))
-### Rendering api
+### Rendering
 - [x] DirectX
 - [ ] Vulkan
 - [x] OpenGL
+- [ ] Batch rendering
+- [ ] Hot-Reloading shaders
 ### Window framework
 - [x] GLFW
 - [ ] SDL
