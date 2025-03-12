@@ -45,7 +45,7 @@ Box& Box::operator=(Box&& other) noexcept
     return *this;
 }
 
-void Box::include(const vec3& p)
+void Box::expand(const vec3& p)
 {
     if (min > p)
     {
@@ -55,6 +55,14 @@ void Box::include(const vec3& p)
     {
         max = p;
     }
+}
+
+bool Box::intersects(const Box& other) const
+{
+    return 
+        min.x < other.max.x && max.x >= other.min.x &&
+        min.y < other.max.y && max.y >= other.min.y &&
+        min.z < other.max.z && max.z >= other.min.z;
 }
 
 vec3 Box::get_center() const

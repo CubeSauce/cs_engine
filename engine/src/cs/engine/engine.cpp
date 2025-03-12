@@ -8,6 +8,8 @@
 #include "cs/engine/renderer/directx/directx11_renderer.hpp"
 #include "cs/engine/renderer/opengl/opengl_renderer.hpp"
 
+#include "cs/engine/physics/physics_system.hpp"
+
 #include "cs/engine/game/game_instance.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 
@@ -37,6 +39,8 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _renderer = Shared_Ptr<Renderer>::create();
     _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _window);
 
+    _physics_system = Shared_Ptr<Physics_System>::create();
+
     _net_instance = Shared_Ptr<Net_Instance>::create((Net_Role::Type)_cvar_net_role->get());
 
     _initialize_defaults();
@@ -44,6 +48,8 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
 
 void Engine::shutdown()
 {
+    PROFILE_FUNCTION()
+
     _vr_system->shutdown();
 }
 
@@ -181,6 +187,7 @@ void Engine::_initialize_cvars()
 Shared_Ptr<Window> Engine::_create_window()
 {
     PROFILE_FUNCTION()
+
     Shared_Ptr<Window> window = Shared_Ptr<GLFW_Window>::create();
     window->initialize(_cvar_window_width->get(), _cvar_window_height->get(), _cvar_window_title->get().c_str());
  
@@ -189,6 +196,8 @@ Shared_Ptr<Window> Engine::_create_window()
 
 Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window)
 {
+    PROFILE_FUNCTION()
+
     Shared_Ptr<Renderer_Backend> backend;
     switch(api)
     {
@@ -222,6 +231,8 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
 
 void Engine::_initialize_defaults()
 {
+    PROFILE_FUNCTION()
+    
     default_texture_shader_resource = Shared_Ptr<Shader_Resource>::create();
     //TODO: fix for opengl
     default_texture_shader_resource->source_paths[Renderer_API::DirectX11].vertex_filepath = "assets/shaders/default_texture.hlsl.vert";

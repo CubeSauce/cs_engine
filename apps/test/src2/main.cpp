@@ -2,6 +2,7 @@
 #include "cs/engine/engine.hpp"
 #include "cs/engine/game/game_instance.hpp"
 #include "cs/engine/profiling/profiler.hpp"
+#include "cs/engine/physics/physics_system.hpp"
 
 #include "component.hpp"
 
@@ -12,6 +13,8 @@ class Game : public Game_Instance
 public:
     virtual void init() override
     {
+        PROFILE_FUNCTION()
+
         _init_player();
 
         Shared_Ptr<Mesh_Resource> kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
@@ -21,18 +24,10 @@ public:
 
     virtual void update(float dt) override
     {
-        for (int32 i = 0; i < _transform_components.components.size(); ++i)
-        {
-            Transform_Component& component = _transform_components.components[i];
-          
-            if (component.parent_id != Name_Id::Empty)
-            {
-                if (const Transform_Component* parent_transform_component = _transform_components.get(component.parent_id))
-                {
-                    component.local_to_world = component.local_to_world * parent_transform_component->local_to_world;
-                }
-            }
-        }
+        PROFILE_FUNCTION()
+
+        _update_transforms();
+        _update_physics();
     }
 
     virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override
@@ -65,7 +60,10 @@ public:
             const Shared_Ptr<Mesh_Resource>& mesh_resource = render_component.mesh;
             const Shared_Ptr<Mesh>& mesh = renderer_backend->get_mesh(mesh_resource);
 
-            if (Transform_Component* transform_component = _transform_components.get(render_component.entity_id))
+            Name_Id* p_entity_id = _render_components.index_to_id.find(i);
+            assert(p_entity_id);
+
+            if (Transform_Component* transform_component = _transform_components.get(*p_entity_id))
             {
                 renderer_backend->draw_mesh(mesh, transform_component->get_world_matrix(), eye);
             }
@@ -81,7 +79,7 @@ private:
     std::shared_mutex _mutex;
 
     Component_Container<Transform_Component> _transform_components;
-    Component_Container<Rigid_Body_Component> _rigid_body_components;
+    Component_Container<Physics_Body_Component> _physics_body_components;
     Component_Container<Render_Component> _render_components;
 
     static inline const Name_Id player_id = Name_Id("player");
@@ -89,6 +87,8 @@ private:
 
     void _init_player()
     {
+        PROFILE_FUNCTION()
+
         Transform_Component& player_transform = _transform_components.add(player_id);
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
@@ -98,33 +98,91 @@ private:
 
     void _add_static_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource)
     {
+        PROFILE_FUNCTION()
+
         Transform_Component& transform = _transform_components.add(name);
         transform.local_position = position;
         transform.local_orientation = orientation;
 
         Render_Component& render = _render_components.add(name);
         render.mesh = mesh_resource;
+
+        Physics_Body_Component& pb = _physics_body_components.add(name);
+        pb.type = Physics_Body::Static;
+        pb.bounds = mesh_resource->bounds;
+        pb.component_id = name;
+    }
+
+    void _update_transforms()
+    {
+        PROFILE_FUNCTION()
+
+        for (int32 i = 0; i < _transform_components.components.size(); ++i)
+        {
+            Transform_Component& component = _transform_components.components[i];
+            if (component.parent_id != Name_Id::Empty)
+            {
+                const Transform_Component* parent_transform_component = _transform_components.get(component.parent_id);
+                assert(parent_transform_component);
+
+                component.local_to_world = component.local_to_world * parent_transform_component->local_to_world;
+            }
+        }
+    }
+
+    void _update_physics()
+    {
+        PROFILE_FUNCTION()
+
+        Physics_System& physics_system = Physics_System::get();
+        for (int32 i = 0; i < _physics_body_components.components.size(); ++i)
+        {
+            Physics_Body_Component& component = _physics_body_components.components[i];
+            
+            if (!component.dirty)
+            {
+                continue;
+            }
+
+            component.dirty = false;
+
+            Name_Id* p_entity_id = _physics_body_components.index_to_id.find(i);
+            assert(p_entity_id);
+
+            const Transform_Component* transform_component = _transform_components.get(*p_entity_id);
+            assert(transform_component);
+
+            Physics_Body& body = physics_system.get_body(component.component_id);
+
+            body.type = component.type;
+            body.id = component.component_id;
+            body.aabb_bounds = component.bounds;
+            body.transform.position = transform_component->get_world_position();
+            body.transform.orientation = transform_component->get_world_orientation();
+            body.state.velocity = vec3::zero_vector;
+            body.state.angular_velocity = vec3::zero_vector;
+        }
     }
 };
 
 int main(int argc, char** argv)
 {
-  Dynamic_Array<std::string> args;
-  for (int32 a = 1; a < argc; ++a)
-  {
-      args.add(argv[a]);
-  }
+    Dynamic_Array<std::string> args;
+    for (int32 a = 1; a < argc; ++a)
+    {
+        args.add(argv[a]);
+    }
 
-  args.add("cs_vr_support=0");
-  args.add("cs_num_threads=0");
+    args.add("cs_vr_support=0");
+    args.add("cs_num_threads=0");
 
-  Engine engine;
-  engine.initialize(args);
-  engine.game_instance = Shared_Ptr<Game>::create();
-  engine.run();
-  engine.shutdown();
+    Engine engine;
+    engine.initialize(args);
+    engine.game_instance = Shared_Ptr<Game>::create();
+    engine.run();
+    engine.shutdown();
 
-  Profiler::get().write_to_chrometracing_json("profiling/test_0_thread.json");
+    Profiler::get().write_to_chrometracing_json("profiling/test_0_thread.json");
 
   return 0;
 }

@@ -30,6 +30,7 @@ class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
 class Input_System;
+class Physics_System;
 class Thread_Pool;
 class Profiler;
 class Engine : public Singleton<Engine>
@@ -57,6 +58,7 @@ private:
     Shared_Ptr<Renderer> _renderer;
     Shared_Ptr<Window> _window;
     Shared_Ptr<Input_System> _input_system;
+    Shared_Ptr<Physics_System> _physics_system;
 
     Shared_Ptr<VR_System> _vr_system;
     Shared_Ptr<Net_Instance> _net_instance;

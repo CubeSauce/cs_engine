@@ -2,7 +2,7 @@
 
 DEFINE_PRINT_TYPE(Component);
 DEFINE_PRINT_TYPE(Transform_Component);
-DEFINE_PRINT_TYPE(Rigid_Body_Component);
+DEFINE_PRINT_TYPE(Physics_Body_Component);
 DEFINE_PRINT_TYPE(Render_Component);
 
 mat4 Transform_Component::get_world_matrix() const

@@ -22,7 +22,9 @@ public:
     Box& operator=(const Box& other);
     Box& operator=(Box&& other) noexcept;
 
-    void include(const vec3& p);
+    void expand(const vec3& p);
+
+    bool intersects(const Box& other) const;
 
     vec3 get_min() const;
     vec3 get_max() const;

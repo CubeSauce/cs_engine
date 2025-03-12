@@ -6,10 +6,11 @@
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/containers/hash_table.hpp"
+#include "cs/engine/physics/physics_system.hpp"
 
 struct Component
 {
-    Name_Id entity_id;
+    Name_Id component_id;
     bool dirty;
 };
 DECLARE_PRINT_TYPE(Component)
@@ -36,7 +37,8 @@ struct Component_Container
         id_to_index.add(id, new_index);
         index_to_id.add(new_index, id);
         components.add(Type());
-        components[new_index].entity_id = id;
+        //components[new_index].entity_id = id;
+        components[new_index].dirty = true;
         return components[new_index]; 
     }
 
@@ -66,12 +68,12 @@ struct Transform_Component : public Component
 };
 DECLARE_PRINT_TYPE(Transform_Component)
 
-struct Rigid_Body_Component : public Component
+struct Physics_Body_Component : public Component
 {
     Box bounds;
-    bool is_static { false };
+    Physics_Body::Type type;
 };
-DECLARE_PRINT_TYPE(Rigid_Body_Component)
+DECLARE_PRINT_TYPE(Physics_Body_Component)
 
 class Mesh_Resource;
 struct Render_Component : public Component
