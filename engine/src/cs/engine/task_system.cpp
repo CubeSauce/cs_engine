@@ -22,6 +22,11 @@ void Task::reset()
     _has_executed = false;
 }
 
+void Task::execute_on_this_thread()
+{
+    _submit_to_thread_pool();
+}
+
 bool Task::has_unfinished_dependencies() const 
 { 
     return _unfinished_dependencies > 0; 
@@ -45,6 +50,7 @@ void Task::_submit_to_thread_pool()
     _job();
     _has_executed = true;
     
+    Dynamic_Array<Shared_Ptr<Task>> referencers_to_execute;
     for (Weak_Ptr<Task> weak_referencer : _references)
     {
         Shared_Ptr<Task> shared_referencer = weak_referencer.lock();
@@ -59,8 +65,10 @@ void Task::_submit_to_thread_pool()
             continue;
         }
 
-        Thread_Pool::get().submit({shared_referencer});
+        referencers_to_execute.add(shared_referencer);
     } 
+
+    Thread_Pool::get().submit(referencers_to_execute);
 }
 
 Shared_Ptr<Task> Task_Graph::create_task(std::function<void(void)> task_job)

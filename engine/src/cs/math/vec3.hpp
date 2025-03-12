@@ -22,11 +22,16 @@ public:
 
     static vec3 zero_vector;
     static vec3 one_vector;
+    
+    static vec3 min_float_vector;
+    static vec3 max_float_vector;
 
 public:
 
     vec3(float v = 0.0f);
     vec3(float x, float y, float z);
+
+    bool nearly_equal(const vec3& other, float delta = NEARLY_ZERO) const;
 
     float operator[](int32 index) const;
     float& operator[](int32 index);
@@ -48,6 +53,11 @@ public:
     vec3 operator*(const vec3& other) const;
     vec3& operator/=(const vec3& other);
     vec3 operator/(const vec3& other) const;
+
+    bool operator>(const vec3& other) const;
+    bool operator>=(const vec3& other) const;
+    bool operator<(const vec3& other) const;
+    bool operator<=(const vec3& other) const;
 
     float length() const;
     vec3& normalize();

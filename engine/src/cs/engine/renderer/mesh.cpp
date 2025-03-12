@@ -91,6 +91,10 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath)
                 const aiVector3D& v = ai_mesh->mVertices[index];
                 vertex.vertex_location = {v.x, v.y, v.z};
 
+                // Calculate mesh bounds for later
+                submesh_data.bounds.include(vertex.vertex_location);
+                bounds.include(vertex.vertex_location);
+
                 const aiVector3D& n = ai_mesh->mNormals[index];
                 vertex.vertex_normal = {n.x, n.y, n.z};
 

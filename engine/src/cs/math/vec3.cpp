@@ -4,12 +4,15 @@
 #include "cs/math/vec3.hpp"
 
 #include <cmath>
+#include <limits>
 
 vec3 vec3::right_vector     = vec3(1.0f, 0.0f, 0.0f);
 vec3 vec3::forward_vector   = vec3(0.0f, 1.0f, 0.0f);
 vec3 vec3::up_vector        = vec3(0.0f, 0.0f, 1.0f);
 vec3 vec3::zero_vector      = vec3(0.0f);
 vec3 vec3::one_vector       = vec3(1.0f);
+vec3 vec3::min_float_vector = vec3(std::numeric_limits<float>::min());
+vec3 vec3::max_float_vector = vec3(std::numeric_limits<float>::max());
 
 vec3::vec3(float v)
     :x(v), y(v), z(v)
@@ -21,6 +24,14 @@ vec3::vec3(float x, float y, float z)
     :x(x), y(y), z(z)
 {
 
+}
+
+bool vec3::nearly_equal(const vec3& other, float delta) const
+{
+    return 
+        fabs(x - other.x) < delta &&
+        fabs(y - other.y) < delta &&
+        fabs(z - other.z) < delta;
 }
 
 float vec3::operator[](int32 index) const
@@ -187,6 +198,27 @@ vec3 vec3::operator/(const vec3& other) const
         z / NEAR_ZERO_CHECK(other.z)
     );
 }
+
+bool vec3::operator>(const vec3& other) const
+{
+    return x > other.x && y > other.y && z > other.z;
+}
+
+bool vec3::operator>=(const vec3& other) const
+{
+    return x >= other.x && y >= other.y && z >= other.z;
+}
+
+bool vec3::operator<(const vec3& other) const
+{
+    return x < other.x && y < other.y && z < other.z;
+}
+
+bool vec3::operator<=(const vec3& other) const
+{
+    return x <= other.x && y <= other.y && z <= other.z;
+}
+
 
 float vec3::length() const
 {

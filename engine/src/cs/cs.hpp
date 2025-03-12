@@ -58,3 +58,11 @@
 
 #define CS_WITH_VR_SUPPORT
 #undef CS_WITH_VR_SUPPORT
+
+template<typename Type>
+void swap(Type&& a, Type&& b)
+{
+	Type t = a;
+	a = b;
+	b = t;
+}

@@ -23,6 +23,8 @@ public:
     void add_dependency(const Shared_Ptr<Task>& task);
     void reset();
 
+    void execute_on_this_thread();
+
     bool has_unfinished_dependencies() const;
     bool has_executed() const;
     bool can_execute() const;

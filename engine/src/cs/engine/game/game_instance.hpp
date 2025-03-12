@@ -12,7 +12,7 @@ class Renderer;
 class Game_Instance
 {
 public:
-    virtual ~Game_Instance() = default;
+    virtual ~Game_Instance() {};
 
     virtual void init() = 0;
     virtual void update(float dt) = 0;

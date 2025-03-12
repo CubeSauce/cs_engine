@@ -105,6 +105,51 @@ public:
         _size += 1;
     }
 
+    int32 find_first(const Type& value)
+    {
+        for (int32 i = 0; i < _size; ++i)
+        {
+            if (_data[i] == value)
+            {
+                return i; 
+            }
+        }
+
+        return -1;
+    }
+
+    int32 find_last(const Type& value)
+    {
+        for (int32 i = _size - 1; i > -1; --i)
+        {
+            if (_data[i] == value)
+            {
+                return i; 
+            }
+        }
+
+        return -1;
+    }
+
+    void remove(int32 index)
+    {
+        if (index < 0 || index > _size)
+        {
+            return;
+        }
+
+        _size -= 1;
+        for (int32 i = index; i < _size; ++i)
+        {
+            _data[i] = CS_MOVE(_data[i + 1]);
+        }
+    }
+
+    void remove_first(const Type& value)
+    {
+        remove(find_first(value));
+    }
+
     void reserve(int32 new_capacity)
     {
         _increase_capacity(new_capacity);

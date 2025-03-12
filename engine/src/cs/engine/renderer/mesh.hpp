@@ -19,6 +19,7 @@ struct Vertex_Data
 class Material_Resource;
 struct Submesh_Data
 {
+	Box bounds;
 	Dynamic_Array<Vertex_Data> vertices;
     Shared_Ptr<Material_Resource> material_resource;
 };
@@ -26,6 +27,7 @@ struct Submesh_Data
 class Mesh_Resource : public Resource
 {
 public:
+	Box bounds;
 	Dynamic_Array<Submesh_Data> submeshes;
 
 public:

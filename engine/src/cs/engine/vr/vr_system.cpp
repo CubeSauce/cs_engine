@@ -177,12 +177,12 @@ void VR_System::get_viewport(uint32& width, uint32& height)
 
 mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
 {
+#ifdef CS_WITH_VR_SUPPORT
     if (!is_valid())
     {
         return mat4(1.0f);
     }
 
-#ifdef CS_WITH_VR_SUPPORT
     if (eye == VR_Eye::None)
     {
         return _camera[eye]->get_projection();
@@ -190,19 +190,23 @@ mat4 VR_System::_get_eye_projection(VR_Eye::Type eye)
 
 	vr::HmdMatrix44_t mat = _vr_system->GetProjectionMatrix((vr::Hmd_Eye) eye, 0.1f, 10000.0f);
     return vr_to_mat4(mat);
+#else
+        return mat4(1.0f);
 #endif //CS_WITH_VR_SUPPORT
 }
 
 mat4 VR_System::_get_eye_pose(VR_Eye::Type eye)
 {
+#ifdef CS_WITH_VR_SUPPORT
 	if (!is_valid() || eye == VR_Eye::None)
     {
 		return mat4(1.0f);
     }
 
-#ifdef CS_WITH_VR_SUPPORT
 	vr::HmdMatrix34_t pose = _vr_system->GetEyeToHeadTransform((vr::Hmd_Eye) eye);
 	return vr_to_mat4(pose).inverse();
+#else
+    return mat4(1.0f);
 #endif //CS_WITH_VR_SUPPORT
 }
 

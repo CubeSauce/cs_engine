@@ -26,13 +26,11 @@ Thread_Pool* Singleton<Thread_Pool>::_singleton { nullptr };
 #include <condition_variable>
 
 Thread_Pool::Thread_Pool(uint32 num_threads)
+    : _num_threads(clamp(num_threads, 0u, std::thread::hardware_concurrency()))
 {
-    const uint32 max_threads = std::thread::hardware_concurrency();
-    num_threads = clamp(num_threads, 1u, max_threads);
+    printf("Initializing thread pool with %d threads. \n", _num_threads);
 
-    printf("Initializing thread pool with %d threads. \n", num_threads);
-
-    for (uint32 t = 0; t < num_threads; ++t)
+    for (uint32 t = 0; t < _num_threads; ++t)
     {
         _workers.emplace_back(std::bind(&Thread_Pool::_thread_pool_worker, this));
     }
@@ -40,6 +38,11 @@ Thread_Pool::Thread_Pool(uint32 num_threads)
 
 Thread_Pool::~Thread_Pool()
 {
+    if (_num_threads == 0)
+    {
+        return;
+    }
+
     {
         std::unique_lock<std::mutex> lock(_queue_mutex);
         _should_stop = true;
@@ -55,6 +58,16 @@ Thread_Pool::~Thread_Pool()
 
 void Thread_Pool::submit(const Dynamic_Array<Shared_Ptr<Task>>& tasks)
 {
+    if (_num_threads == 0)
+    {
+        for (const Shared_Ptr<Task>& task : tasks)
+        {
+            task->execute_on_this_thread();
+        }
+
+        return;
+    }
+
     {
         std::unique_lock<std::mutex> lock(_queue_mutex);
         for (const Shared_Ptr<Task>& task : tasks)

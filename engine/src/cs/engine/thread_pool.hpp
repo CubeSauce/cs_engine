@@ -28,6 +28,7 @@ public:
     void wait_for_completion();
 
 private:
+    uint32 _num_threads;
     std::vector<std::thread> _workers; //TODO: Make own unique ptr
     // Dynamic_Array<std::thread> _workers; // TODO: introduce emplace resizing for std::thread/unique_ptr (deleted move and copy)
     std::deque<Shared_Ptr<Task>> _task_queue;    //TODO: Make own queue container

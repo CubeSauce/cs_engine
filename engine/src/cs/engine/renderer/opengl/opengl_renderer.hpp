@@ -87,6 +87,7 @@ public:
 
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource> &shader_resource) override;
     virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
+    virtual Shared_Ptr<Mesh> get_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override { return create_mesh(mesh_resource); }
     virtual Shared_Ptr<Material> create_material() override { return Shared_Ptr<Material>(); }
     virtual Shared_Ptr<Texture> create_texture(const Shared_Ptr<Texture_Resource>& texture_resource) override { return Shared_Ptr<Texture>(); }
 

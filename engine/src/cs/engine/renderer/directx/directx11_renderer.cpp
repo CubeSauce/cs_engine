@@ -341,12 +341,26 @@ Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_R
 
         // TODO: map with materials and existing shaders so we don't duplicate
         dx_submesh.material = _create_material(submesh.material_resource);
+        dx_submesh.vertices_count = submesh.vertices.size();
+
         dx_mesh->submeshes.add(dx_submesh);
     }
 
     return dx_mesh;
 }
 
+Shared_Ptr<Mesh> DirectX11_Renderer_Backend::get_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
+{
+    Shared_Ptr<DirectX11_Mesh>& dx_mesh = _meshes[mesh_resource->name];
+
+    if (!dx_mesh)
+    {
+        dx_mesh = create_mesh(mesh_resource);
+        dx_mesh->upload_data();
+    }
+
+    return dx_mesh;
+}
 
 // For now use same format for all
 Shared_Ptr<Texture> DirectX11_Renderer_Backend::create_texture(const Shared_Ptr<Texture_Resource>& texture_resource)

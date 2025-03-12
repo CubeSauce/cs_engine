@@ -10,6 +10,7 @@
 #include "cs/math/vec4.hpp"
 #include "cs/math/mat4.hpp"
 #include "cs/math/quat.hpp"
+#include "cs/math/box.hpp"
 
 #include <cmath>
 
