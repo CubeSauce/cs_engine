@@ -22,12 +22,23 @@ public:
         _add_static_object("kimono2", vec3(-5.0f, 0.0f, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono);
     }
 
-    virtual void update(float dt) override
+    float t = 0;
+    virtual void pre_physics_update(float dt) override
     {
         PROFILE_FUNCTION()
 
-        _update_transforms();
-        _update_physics();
+        t += dt;
+
+        _transform_components.get("kimono")->local_position.x = sinf(t * 0.5f) * 10.0f;
+        _transform_components.get("kimono")->dirty = true;
+        
+        _update_transform_components();
+        _update_physics_components();
+    }
+
+    virtual void post_physics_update(float dt) override
+    {
+        PROFILE_FUNCTION()
     }
 
     virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override
@@ -113,24 +124,51 @@ private:
         pb.component_id = name;
     }
 
-    void _update_transforms()
+    void _update_transform_components()
     {
         PROFILE_FUNCTION()
 
+        // For task graph
+        Dynamic_Array<Pair<int32>> dependencies;
         for (int32 i = 0; i < _transform_components.components.size(); ++i)
         {
             Transform_Component& component = _transform_components.components[i];
+            bool parent_dirty = false;
+
+            const Transform_Component* parent_transform_component = nullptr;
             if (component.parent_id != Name_Id::Empty)
             {
-                const Transform_Component* parent_transform_component = _transform_components.get(component.parent_id);
-                assert(parent_transform_component);
+                parent_transform_component = _transform_components.get(component.parent_id);
+                if (parent_transform_component->dirty)
+                {
+                    parent_dirty = true;
 
+                    const int32* p_parent_index = _transform_components.id_to_index.find(component.parent_id);
+                    assert(p_parent_index);
+
+                    dependencies.add({i, *p_parent_index});
+                }
+            }
+
+            if (!parent_dirty || !component.dirty)
+            {
+                continue;
+            }
+
+            if (parent_transform_component)
+            {
                 component.local_to_world = component.local_to_world * parent_transform_component->local_to_world;
             }
         }
+
+        //Task graph dependencies
+        //for (const Pair<int32>& dependency_pair : dependencies)
+        //{
+        //  tasks[dependency_pair.a]->add_dependency(tasks[dependency_pair.b]);
+        //}
     }
 
-    void _update_physics()
+    void _update_physics_components()
     {
         PROFILE_FUNCTION()
 
@@ -139,13 +177,6 @@ private:
         {
             Physics_Body_Component& component = _physics_body_components.components[i];
             
-            if (!component.dirty)
-            {
-                continue;
-            }
-
-            component.dirty = false;
-
             Name_Id* p_entity_id = _physics_body_components.index_to_id.find(i);
             assert(p_entity_id);
 
@@ -154,11 +185,21 @@ private:
 
             Physics_Body& body = physics_system.get_body(component.component_id);
 
+            const vec3 current_world_position = transform_component->get_world_position();
+            if (current_world_position.nearly_equal(body.transform.position))
+            {
+                continue;
+            }
+
+            //TODO: Only copy what's needed - this should be init only
             body.type = component.type;
             body.id = component.component_id;
             body.aabb_bounds = component.bounds;
-            body.transform.position = transform_component->get_world_position();
+            
+            body.transform.position = current_world_position;
             body.transform.orientation = transform_component->get_world_orientation();
+
+
             body.state.velocity = vec3::zero_vector;
             body.state.angular_velocity = vec3::zero_vector;
         }

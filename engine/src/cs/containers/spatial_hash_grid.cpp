@@ -16,6 +16,11 @@ void Spatial_Hash_Grid::add(const Name_Id& in_id, const Box& in_bounds)
 {
     PROFILE_FUNCTION()
 
+    if (_id_to_hash.find(in_id) != _id_to_hash.end())
+    {
+        return;
+    }
+
     _bounds[in_id] = in_bounds;
 
     ivec3 min, max;
@@ -84,7 +89,10 @@ int32 Spatial_Hash_Grid::get_potential_collisions(const Name_Id& in_id, const Bo
                         continue;
                     }
 
-                    out_potential_colliders.add(id);
+                    if (out_potential_colliders.find_first(id) == -1)
+                    {
+                        out_potential_colliders.add(id);
+                    }
                     count++;
                 }
             }   

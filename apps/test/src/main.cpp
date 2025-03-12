@@ -419,19 +419,19 @@ void Test_Game_Instance::_physics_update_hash_grid()
     Name_Id* p_id = game_state.physics_components.index_to_id.find(component_index);
     if (!p_id)
     {
-      return;
+      continue;
     }
 
     if (component.transform_id == Name_Id::Empty)
     {
-      return;
+      continue;
     }
 
     const Transform_Component* p_transform_component = 
       game_state.transform_components.get(component.transform_id);
     if (!p_transform_component)
     {
-      return;
+      continue;
     }
 
     Physics_Object obj = component.physics_object;
@@ -440,7 +440,7 @@ void Test_Game_Instance::_physics_update_hash_grid()
     
     if (component.previous_bounds.min.nearly_equal(obj.bounds.min))
     {
-      return;
+      continue;
     }
 
     component.previous_bounds = obj.bounds;

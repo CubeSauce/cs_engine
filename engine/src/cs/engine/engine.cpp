@@ -83,7 +83,14 @@ void Engine::run()
 
         if (game_instance)
         {
-            game_instance->update(dt);
+            game_instance->pre_physics_update(dt);
+        }
+
+        _physics_system->update(dt);
+
+        if (game_instance)
+        {
+            game_instance->post_physics_update(dt);
         }
 
         if (_renderer)

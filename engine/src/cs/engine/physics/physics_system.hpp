@@ -45,6 +45,8 @@ struct Physics_Body
     } state;
 
     Box aabb_bounds;
+
+    Box get_transformed_bounds() const;
 };
 
 class Physics_System : public Singleton<Physics_System>
@@ -52,9 +54,18 @@ class Physics_System : public Singleton<Physics_System>
 public:
     Physics_Body& get_body(const Name_Id& in_id);
 
+    void update(float dt);
+
 private:
     Dynamic_Array<Physics_Body> _bodies;
     std::unordered_map<uint32, int32> _id_to_index;
 
-    Spatial_Hash_Grid _hash_grid;
+    Spatial_Hash_Grid _hash_grid = Spatial_Hash_Grid(3.0f);
+
+    std::unordered_map<uint32, Dynamic_Array<Name_Id>> _broadphase_collisions;
+    std::unordered_map<uint32, Dynamic_Array<Name_Id>> _narrowphase_collisions;
+
+    void _execute_broadphase();
+    void _execute_narrowphase();
+    void _resolve_collisions(float dt);
 };

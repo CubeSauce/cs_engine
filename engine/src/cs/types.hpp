@@ -30,3 +30,9 @@ const char* print_type<type>() {\
 #define DECLARE_PRINT_TYPE(type) \
 template<>\
 const char* print_type<type>();
+
+template<typename Type>
+struct Pair
+{
+  Type a, b;
+};
