@@ -70,8 +70,8 @@ DECLARE_PRINT_TYPE(Transform_Component)
 
 struct Physics_Body_Component : public Component
 {
-    Box bounds;
     Physics_Body::Type type;
+    Collider collider;
 };
 DECLARE_PRINT_TYPE(Physics_Body_Component)
 

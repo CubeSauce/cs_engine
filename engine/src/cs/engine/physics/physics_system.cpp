@@ -3,13 +3,38 @@
 
 #include "cs/engine/physics/physics_system.hpp"
 
+Collider& Collider::operator=(const Collider& other)
+{
+    type = other.type;
+    shape = other.shape;
+
+    return *this;
+}
+
 Box Physics_Body::get_transformed_bounds() const
 {
-    return { aabb_bounds.min + transform.position, aabb_bounds.max + transform.position };
+    Box bounds = collider.get_bounds();
+    return { bounds.min + transform.position, bounds.max + transform.position };
+}
+
+Physics_Body& Physics_Body::operator=(const Physics_Body& other)
+{
+    id = other.id;
+    type = other.type;
+    transform = other.transform;
+    state = other.state;
+    collider = other.collider;
+
+    return *this;
 }
 
 template<> 
 Physics_System* Singleton<Physics_System>::_singleton { nullptr };
+
+void Physics_System::initialize()
+{
+    _init_collision_functions();
+}
 
 Physics_Body& Physics_System::get_body(const Name_Id& in_id)
 {
@@ -32,20 +57,46 @@ void Physics_System::update(float dt)
 {
     PROFILE_FUNCTION()
     
-    _execute_broadphase();
-    _execute_narrowphase();
+    _execute_broadphase(dt);
+    _execute_narrowphase(dt);
     _resolve_collisions(dt);
 }
 
-void Physics_System::_execute_broadphase()
+void Physics_System::_init_collision_functions()
+{
+    _collision_functions[Collider::Sphere][Collider::Sphere] = Collision_Test_Function::sphere_sphere;
+    _collision_functions[Collider::Capsule][Collider::Capsule] = Collision_Test_Function::capsule_capsule;
+
+    _resolve_functions[Collider::Sphere][Collider::Sphere] = Collision_Resolve_Function::sphere_sphere;
+
+    for (int i = 0; i < Collider::TYPE_COUNT; ++i)
+    {
+        for (int j = i + 1; j < Collider::TYPE_COUNT; ++j)
+        {
+            if (_collision_functions[i][j] == nullptr && _collision_functions[j][i] != nullptr)
+            {
+                _collision_functions[i][j] = _collision_functions[j][i];
+            }
+
+            if (_resolve_functions[i][j] == nullptr && _resolve_functions[j][i] != nullptr)
+            {
+                _resolve_functions[i][j] = _resolve_functions[j][i];
+            }
+        } 
+    }
+}
+
+void Physics_System::_execute_broadphase(float dt)
 {
     PROFILE_FUNCTION()
 
-    //TODO: paralelize
     _broadphase_collisions.clear();
 
-    for (const Physics_Body& body : _bodies)
+    //TODO: paralelize
+    for (Physics_Body& body : _bodies)
     {
+        body.update_state(dt);
+
         _hash_grid.update(body.id, body.get_transformed_bounds());
     }
 
@@ -55,23 +106,40 @@ void Physics_System::_execute_broadphase()
     }
 }
 
-void Physics_System::_execute_narrowphase()
+void Physics_System::_execute_narrowphase(float dt)
 {
     PROFILE_FUNCTION()
 
+    _narrowphase_collisions.clear();
+
     for (const auto& potential_collisions : _broadphase_collisions)
     {
-        const uint32 this_id = potential_collisions.first;
-        const int32 this_index = _id_to_index[this_id];
-
+        const uint32 this_hash = potential_collisions.first;
+        
+        const int32 this_index = _id_to_index[this_hash];
         Physics_Body& this_body = _bodies[this_index];
 
-        for (const Name_Id& collider_id : potential_collisions.second)
+        for (const Name_Id& other_id : potential_collisions.second)
         {
-            const int32 collider_index = _id_to_index[collider_id];
-            Physics_Body& collider_body = _bodies[collider_index];
+            const int32 other_index = _id_to_index[other_id];
+            Physics_Body& other_body = _bodies[other_index];
 
-            _narrowphase_collisions;
+            Collision_Test_Function::Definition f = _collision_functions[this_body.collider.type][other_body.collider.type];
+            if (f == nullptr)
+            {
+                printf("Can't find collision test function for given collider types.\n");
+                continue;
+            }
+
+            Collision_Result result;
+            result.a_index = this_index;
+            result.b_index = other_index;
+            if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
+                other_body.collider, other_body.transform.position, other_body.transform.orientation, 
+                result.normal, result.penetration))
+            {
+                _narrowphase_collisions[this_hash].add(result);
+            }
         }
     }
 }
@@ -82,6 +150,29 @@ void Physics_System::_resolve_collisions(float dt)
     
     for (const auto& potential_collisions : _narrowphase_collisions)
     {
-        //do
+        for (const Collision_Result& collision : potential_collisions.second)
+        {
+            Physics_Body& this_body =  _bodies[collision.a_index];
+            Physics_Body& other_body = _bodies[collision.b_index];
+
+            Collision_Resolve_Function::Definition f = _resolve_functions[this_body.collider.type][other_body.collider.type];
+            if (f == nullptr)
+            {
+                printf("Can't find collision resolve function for given collider types.\n");
+                continue;
+            }
+            
+            f(this_body, other_body, collision);
+        }
+    }
+
+    for (Physics_Body& body : _bodies)
+    {
+        body.update_transform(dt);
+    }
+
+    for (Physics_Body& body : _bodies)
+    {
+        body.clear_forces();
     }
 }

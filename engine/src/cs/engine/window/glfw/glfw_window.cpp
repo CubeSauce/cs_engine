@@ -1,4 +1,5 @@
 #include "cs/engine/window/glfw/glfw_window.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 #include "cs/engine/input.hpp"
 
 #include <string>
@@ -223,6 +224,8 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
 
 void GLFW_Window::poll_events() 
 {
+    PROFILE_FUNCTION()
+
     glfwPollEvents();
     _poll_analog_inputs();
 }
@@ -250,6 +253,8 @@ constexpr float deadzone = 0.05f;
 
 void GLFW_Window::_poll_analog_inputs()
 {
+    PROFILE_FUNCTION()
+
     if (!joystick_input_source)
     {
         return;

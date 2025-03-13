@@ -199,6 +199,11 @@ vec3 vec3::operator/(const vec3& other) const
     );
 }
 
+vec3 vec3::operator-() const
+{
+    return vec3(-x, -y, -z);
+}
+
 bool vec3::operator>(const vec3& other) const
 {
     return x > other.x && y > other.y && z > other.z;
@@ -219,10 +224,14 @@ bool vec3::operator<=(const vec3& other) const
     return x <= other.x && y <= other.y && z <= other.z;
 }
 
+float vec3::length_squared() const
+{
+    return x * x + y * y + z * z;
+}
 
 float vec3::length() const
 {
-    return sqrtf(x * x + y * y + z * z);
+    return sqrtf(length_squared());
 }
 
 vec3& vec3::normalize()

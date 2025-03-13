@@ -10,6 +10,8 @@
 
 class Game : public Game_Instance
 {
+    Shared_Ptr<Mesh_Resource> kimono;
+
 public:
     virtual void init() override
     {
@@ -17,9 +19,9 @@ public:
 
         _init_player();
 
-        Shared_Ptr<Mesh_Resource> kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
-        _add_static_object("kimono", vec3(5.0f, 0.0f, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono);
-        _add_static_object("kimono2", vec3(-5.0f, 0.0f, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono);
+        kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
+
+        _add_object("kimono", vec3(0.0f, 0.0f, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono, Physics_Body::Kinematic);
     }
 
     float t = 0;
@@ -28,17 +30,60 @@ public:
         PROFILE_FUNCTION()
 
         t += dt;
-
-        _transform_components.get("kimono")->local_position.x = sinf(t * 0.5f) * 10.0f;
+        _transform_components.get("kimono")->local_position.x = cosf(t) * 3.0f;
+        _transform_components.get("kimono")->local_position.y = sinf(t) * 3.0f;
         _transform_components.get("kimono")->dirty = true;
         
         _update_transform_components();
         _update_physics_components();
     }
 
+    float timer = 0;
+    int32 count = 0;
     virtual void post_physics_update(float dt) override
     {
         PROFILE_FUNCTION()
+
+        // Writing to transform, mutex needed
+        Physics_System& physics_system = Physics_System::get();
+        for (int32 i = 0; i < _physics_body_components.components.size(); ++i)
+        {
+            Name_Id* p_entity_id = _physics_body_components.index_to_id.find(i);
+            assert(p_entity_id);
+
+            Transform_Component* transform_component = _transform_components.get(*p_entity_id);
+            assert(transform_component);
+
+            Physics_Body_Component& component = _physics_body_components.components[i];
+            Physics_Body& body = physics_system.get_body(component.component_id);
+            
+            if (body.type != Physics_Body::Dynamic)
+            {
+                continue;
+            }
+
+            if (!body.dirty)
+            {
+                continue;
+            }
+
+            body.dirty = false;
+            
+            transform_component->local_position = body.transform.position;
+            transform_component->dirty = true;
+            body.transform.orientation;
+        }
+
+        timer += dt;
+        if (timer > 0.1f)
+        {
+            timer = 0.0f;
+            count++;
+            float x = 3.0f * (rand() % 1000) / 1000.0f;
+            float y = 3.0f * (rand() % 1000) / 1000.0f;
+            
+            _add_object(std::format("kimono{}", count).c_str(), vec3(x, y, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono, Physics_Body::Dynamic);
+        }
     }
 
     virtual void render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye = VR_Eye::None) override
@@ -56,7 +101,7 @@ public:
     
         if (VR_System::get().is_valid())
         {
-            VR_System::get().set_custom_camera_pose(p_camera_transform->local_to_world);
+            VR_System::get().set_custom_camera_pose(p_camera_transform->get_world_matrix());
         }
         else
         {
@@ -104,10 +149,11 @@ private:
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
         camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, 10.0f, 1.5f);
+        camera_transform.local_position = vec3(0.0f, 30.0f, 10.0f);
+        camera_transform.local_orientation = quat::from_rotation_axis(vec3(1.0f, 0.0f, 0.0f), MATH_RAD_TO_DEG(-25.0f));
     }
 
-    void _add_static_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource)
+    void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
     {
         PROFILE_FUNCTION()
 
@@ -119,9 +165,11 @@ private:
         render.mesh = mesh_resource;
 
         Physics_Body_Component& pb = _physics_body_components.add(name);
-        pb.type = Physics_Body::Static;
+        pb.type = type;
         pb.bounds = mesh_resource->bounds;
         pb.component_id = name;
+        pb.collider.type = Collider::Sphere;
+        pb.collider.shape.sphere = { .radius = 1.0f };
     }
 
     void _update_transform_components()
@@ -150,7 +198,7 @@ private:
                 }
             }
 
-            if (!parent_dirty || !component.dirty)
+            if (!parent_dirty && !component.dirty)
             {
                 continue;
             }
@@ -182,26 +230,29 @@ private:
 
             const Transform_Component* transform_component = _transform_components.get(*p_entity_id);
             assert(transform_component);
-
-            Physics_Body& body = physics_system.get_body(component.component_id);
-
+            
             const vec3 current_world_position = transform_component->get_world_position();
-            if (current_world_position.nearly_equal(body.transform.position))
+
+            // This assigns the body the component_id
+            Physics_Body& body = physics_system.get_body(component.component_id);
+            if (body.type == Physics_Body::None)
+            {
+                body.type = component.type;
+                
+                body.transform.position = current_world_position;
+                body.transform.orientation = transform_component->get_world_orientation();
+    
+                body.collider = component.collider;
+            }
+
+            if (body.type != Physics_Body::Kinematic ||
+                current_world_position.nearly_equal(body.transform.position))
             {
                 continue;
             }
 
-            //TODO: Only copy what's needed - this should be init only
-            body.type = component.type;
-            body.id = component.component_id;
-            body.aabb_bounds = component.bounds;
-            
             body.transform.position = current_world_position;
             body.transform.orientation = transform_component->get_world_orientation();
-
-
-            body.state.velocity = vec3::zero_vector;
-            body.state.angular_velocity = vec3::zero_vector;
         }
     }
 };
@@ -214,6 +265,7 @@ int main(int argc, char** argv)
         args.add(argv[a]);
     }
 
+    args.add("cs_dt_mult=1.0");
     args.add("cs_vr_support=0");
     args.add("cs_num_threads=0");
 

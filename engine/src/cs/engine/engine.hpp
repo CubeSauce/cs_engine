@@ -75,6 +75,7 @@ private:
     Shared_Ptr<CVar_T<std::string>> _cvar_window_title;
     Shared_Ptr<CVar_T<uint8>> _cvar_renderer_api;
     Shared_Ptr<CVar_T<bool>> _cvar_vr_support;
+    Shared_Ptr<CVar_T<float>> _cvar_dt_mult;
 
 private:
     void _parse_args(const Dynamic_Array<std::string>& args);

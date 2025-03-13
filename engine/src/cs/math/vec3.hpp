@@ -54,11 +54,14 @@ public:
     vec3& operator/=(const vec3& other);
     vec3 operator/(const vec3& other) const;
 
+    vec3 operator-() const;
+
     bool operator>(const vec3& other) const;
     bool operator>=(const vec3& other) const;
     bool operator<(const vec3& other) const;
     bool operator<=(const vec3& other) const;
 
+    float length_squared() const;
     float length() const;
     vec3& normalize();
     vec3 normalized() const;

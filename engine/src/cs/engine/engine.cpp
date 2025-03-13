@@ -40,6 +40,7 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _window);
 
     _physics_system = Shared_Ptr<Physics_System>::create();
+    _physics_system->initialize();
 
     _net_instance = Shared_Ptr<Net_Instance>::create((Net_Role::Type)_cvar_net_role->get());
 
@@ -52,6 +53,10 @@ void Engine::shutdown()
 
     _vr_system->shutdown();
 }
+
+using Clock = std::chrono::high_resolution_clock;
+using TimePoint = std::chrono::time_point<Clock>;
+using Duration = std::chrono::duration<float>;
 
 void Engine::run()
 {
@@ -67,34 +72,62 @@ void Engine::run()
         game_instance->init();
     }
 
-    const float dt = 1/60.0f;
-    uint64 frame_count = 0;
+    const float _dt = 1/60.0f;
+
+    TimePoint previousTime = Clock::now();
+    double accumulator = 0.0;
+
     while(!_should_close)
     {
         Scoped_Profiler frame_scope("frame");
 
-        _net_instance->update(dt);
+        // Get current time and calculate elapsed time
+        TimePoint currentTime = Clock::now();
+        Duration frameTime = currentTime - previousTime;
+        previousTime = currentTime;
 
-        if (vr_system.is_valid())
+        // Clamp `deltaTime` to avoid spiral of death if the game lags
+        double deltaTime = frameTime.count();
+        if (deltaTime > 0.25) deltaTime = 0.25;
+
+        // Accumulate time
+        accumulator += deltaTime;
+        
+        float dt = _dt * _cvar_dt_mult->get();
+        // Fixed time-step physics update
+        while (accumulator >= dt) 
         {
-            vr_system.poll_events();
-            vr_system.update(dt);
+            Scoped_Profiler frame_scope("accumulator_frame");
+
+            _net_instance->update(dt);
+    
+            if (vr_system.is_valid())
+            {
+                vr_system.poll_events();
+                vr_system.update(dt);
+            }
+    
+            if (game_instance)
+            {
+                game_instance->pre_physics_update(dt);
+            }
+    
+            _physics_system->update(dt);
+    
+            if (game_instance)
+            {
+                game_instance->post_physics_update(dt);
+            }
+
+            accumulator -= dt;
         }
 
-        if (game_instance)
-        {
-            game_instance->pre_physics_update(dt);
-        }
-
-        _physics_system->update(dt);
-
-        if (game_instance)
-        {
-            game_instance->post_physics_update(dt);
-        }
-
+        //TODO forward to rendering
+        double alpha = accumulator / dt;
         if (_renderer)
         {
+            Scoped_Profiler frame_scope("render");
+
             _renderer->window->poll_events();
             
             // Render normal view
@@ -189,6 +222,8 @@ void Engine::_initialize_cvars()
         "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>(
         "cs_vr_support", true, "Turn VR support on/off");
+    _cvar_dt_mult = _cvar_registry->register_cvar<float>(
+        "cs_dt_mult", 1.0f, "Delta time multiplier");
 }
 
 Shared_Ptr<Window> Engine::_create_window()
