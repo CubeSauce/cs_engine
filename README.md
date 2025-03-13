@@ -18,6 +18,7 @@ Build using CMake
 - [x] Input system
 - [x] Multithreading (Task/Job system)
 - [x] Profiling ([chrometracing](https://www.chromium.org/developers/how-tos/trace-event-profiling-tool/))
+- [x] Basic physics system
 ### Rendering
 - [x] DirectX
 - [ ] Vulkan
