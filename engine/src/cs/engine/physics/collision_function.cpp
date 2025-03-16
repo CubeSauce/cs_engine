@@ -4,34 +4,8 @@
 #include "cs/engine/physics/collision_function.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 
-namespace Collision_Test_Function
+namespace Collision_Helpers
 {
-    bool sphere_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
-    {
-        const vec3 direction = p_b - p_a;
-        const float distance_squared = direction.length_squared();
-        const float sum_r = a.shape.sphere.radius + b.shape.sphere.radius;
-    
-        if (distance_squared > (sum_r * sum_r)) 
-        {
-            return false;
-        }
-
-        const float dist = sqrt(distance_squared);
-        if (dist > 0.0f)
-        {
-            out_normal = direction / dist;
-        }
-        else
-        {
-            out_normal = vec3::up_vector;
-        }
-
-        out_penetration = sum_r - dist;
-
-        return true;
-    }
-
     void closest_line_point_segment(const vec3& s_a, const vec3& e_a, const vec3& s_b, const vec3& e_b, vec3& out_closest_a, vec3& out_closest_b)
     {
         const vec3 d1 = e_a - s_a; // Direction of segment A
@@ -82,26 +56,75 @@ namespace Collision_Test_Function
         out_closest_a = s_a + d1 * s;
         out_closest_b = s_b + d2 * t;
     }
+};
+
+namespace Collision_Test_Function
+{
+    bool sphere_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    {
+        const vec3 direction = p_b - p_a;
+        const float distance_squared = direction.length_squared();
+        const float sum_r = a.shape.sphere.radius + b.shape.sphere.radius;
+    
+        if (distance_squared > (sum_r * sum_r)) 
+        {
+            return false;
+        }
+
+        const float dist = sqrt(distance_squared);
+        if (dist > 0.0f)
+        {
+            out_normal = direction / dist;
+        }
+        else
+        {
+            out_normal = vec3::up_vector;
+        }
+
+        out_penetration = sum_r - dist;
+
+        return true;
+    }
+
+    bool sphere_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    {
+        const vec3 segment_b(0.0f ,0.0f, b.shape.capsule.length);
+        const vec3 start_b = p_b - segment_b * 0.5f;
+        const vec3 end_b = p_b + segment_b * 0.5f;
+        const float r_b = b.shape.capsule.radius;
+
+        vec3 closest_a, closest_b;
+        Collision_Helpers::closest_line_point_segment(p_a, p_a, start_b, end_b, closest_a, closest_b);
+        
+        Collider sphere_b;
+        sphere_b.shape.sphere.radius = b.shape.capsule.radius;
+        return sphere_sphere(a, p_a, o_a, sphere_b, closest_b, o_b, out_normal, out_penetration);
+    }
+
+    bool capsule_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    {
+        return sphere_capsule(b, p_b, o_b, a, p_a, o_a, out_normal, out_penetration);
+    }
 
     bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
         const vec3 segment_a(0.0f ,0.0f, a.shape.capsule.length);
-        const vec3 start_a = p_a - segment_a;
-        const vec3 end_a = p_a + segment_a;
+        const vec3 start_a = p_a - segment_a * 0.5f;
+        const vec3 end_a = p_a + segment_a * 0.5f;
         const float r_a = a.shape.capsule.radius;
         
         const vec3 segment_b(0.0f ,0.0f, b.shape.capsule.length);
-        const vec3 start_b = p_b - segment_b;
-        const vec3 end_b = p_b + segment_b;
+        const vec3 start_b = p_b - segment_b * 0.5f;
+        const vec3 end_b = p_b + segment_b * 0.5f;
         const float r_b = b.shape.capsule.radius;
 
         vec3 closest_a, closest_b;
-        closest_line_point_segment(start_a, end_a, start_b, end_b, closest_a, closest_b);
+        Collision_Helpers::closest_line_point_segment(start_a, end_a, start_b, end_b, closest_a, closest_b);
 
         Collider sphere_a, sphere_b;
         sphere_a.shape.sphere.radius = a.shape.capsule.radius;
         sphere_b.shape.sphere.radius = b.shape.capsule.radius;
-        return sphere_sphere(sphere_a, p_a, o_a, sphere_b, p_b, o_b, out_normal, out_penetration);
+        return sphere_sphere(sphere_a, closest_a, o_a, sphere_b, closest_b, o_b, out_normal, out_penetration);
     }
 }
 

@@ -166,7 +166,7 @@ private:
 
         Physics_Body_Component& pb = _physics_body_components.add(name);
         pb.type = type;
-        pb.bounds = mesh_resource->bounds;
+        //pb.bounds = mesh_resource->bounds;
         pb.component_id = name;
         pb.collider.type = Collider::Sphere;
         pb.collider.shape.sphere = { .radius = 1.0f };

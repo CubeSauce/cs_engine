@@ -65,25 +65,11 @@ void Physics_System::update(float dt)
 void Physics_System::_init_collision_functions()
 {
     _collision_functions[Collider::Sphere][Collider::Sphere] = Collision_Test_Function::sphere_sphere;
+    _collision_functions[Collider::Sphere][Collider::Capsule] = Collision_Test_Function::sphere_capsule;
+    _collision_functions[Collider::Capsule][Collider::Sphere] = Collision_Test_Function::capsule_sphere;
     _collision_functions[Collider::Capsule][Collider::Capsule] = Collision_Test_Function::capsule_capsule;
 
     _resolve_functions[Collider::Sphere][Collider::Sphere] = Collision_Resolve_Function::sphere_sphere;
-
-    for (int i = 0; i < Collider::TYPE_COUNT; ++i)
-    {
-        for (int j = i + 1; j < Collider::TYPE_COUNT; ++j)
-        {
-            if (_collision_functions[i][j] == nullptr && _collision_functions[j][i] != nullptr)
-            {
-                _collision_functions[i][j] = _collision_functions[j][i];
-            }
-
-            if (_resolve_functions[i][j] == nullptr && _resolve_functions[j][i] != nullptr)
-            {
-                _resolve_functions[i][j] = _resolve_functions[j][i];
-            }
-        } 
-    }
 }
 
 void Physics_System::_execute_broadphase(float dt)
