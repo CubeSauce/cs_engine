@@ -28,7 +28,8 @@ public:
 
 public:
 
-    vec3(float v = 0.0f);
+    vec3() = default;
+    vec3(float v);
     vec3(float x, float y, float z);
 
     bool nearly_equal(const vec3& other, float delta = NEARLY_ZERO) const;

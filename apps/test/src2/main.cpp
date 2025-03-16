@@ -177,7 +177,7 @@ private:
         PROFILE_FUNCTION()
 
         // For task graph
-        Dynamic_Array<Pair<int32>> dependencies;
+        Dynamic_Array<Pair<int32, int32>> dependencies;
         for (int32 i = 0; i < _transform_components.components.size(); ++i)
         {
             Transform_Component& component = _transform_components.components[i];

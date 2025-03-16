@@ -24,6 +24,13 @@ struct Capsule_Shape
     float length;
 };
 
+#define CONVEX_HULL_MAX_VERTICES 128
+struct Convex_Hull_Shape
+{
+    int32 count;
+    vec3 vertices[CONVEX_HULL_MAX_VERTICES];
+};
+
 struct Collider
 {
     enum Type
@@ -40,6 +47,7 @@ struct Collider
     union {
         Sphere_Shape sphere;
         Capsule_Shape capsule;
+        Convex_Hull_Shape convex_hull;
     } shape;
 
     Collider& operator=(const Collider& other);

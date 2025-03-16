@@ -369,7 +369,7 @@ void Test_Game_Instance::_construct_transform_task_graph(float dt)
 
   //TODO: make these run lock free (no dependencies can run immediately, others wait)
   Dynamic_Array<Shared_Ptr<Task>> tasks;
-  Dynamic_Array<Pair<int32>> dependencies;
+  Dynamic_Array<Pair<int32, int32>> dependencies;
   for (int32 i = 0; i < game_state.transform_components.components.size(); ++i)
   {
     Transform_Component& component = game_state.transform_components.components[i];

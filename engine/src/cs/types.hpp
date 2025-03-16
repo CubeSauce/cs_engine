@@ -31,8 +31,9 @@ const char* print_type<type>() {\
 template<>\
 const char* print_type<type>();
 
-template<typename Type>
+template<typename Type_A, typename Type_B>
 struct Pair
 {
-  Type a, b;
+  Type_A a;
+  Type_B b;
 };

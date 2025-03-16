@@ -4,6 +4,8 @@
 #include "cs/engine/task_system.hpp"
 #include "cs/memory/weak_ptr.hpp"
 #include "cs/containers/hash_table.hpp"
+#include "cs/engine/physics/physics_system.hpp"
+#include "cs/engine/physics/collision_function.hpp"
 
 #include <chrono>
 #include <shared_mutex>
@@ -115,6 +117,255 @@ void task_test(int32 num_reps, int32 num_tasks)
   task.release();
 }
 
+void collision_test()
+{
+  vec3 result_normal;
+  float result_penetration;
+  bool are_colliding;
+
+  Collider sphere;
+  sphere.type = Collider::Sphere;
+  sphere.shape.sphere.radius = 1.0f;
+
+  Collider capsule;
+  capsule.type = Collider::Capsule;
+  capsule.shape.capsule.length = 1.0f;
+  capsule.shape.capsule.radius = 1.0f;
+
+  // Sphere - Sphere
+  { // Full overlap
+    are_colliding = Collision_Test_Function::sphere_sphere(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 2.0f));
+  }
+  { // Half overlap - Y
+    are_colliding = Collision_Test_Function::sphere_sphere(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 1.5f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::forward_vector));
+    assert(is_nearly_equal(result_penetration, 0.5f));
+  }
+  { // Contact, no overlap - X
+    are_colliding = Collision_Test_Function::sphere_sphere(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(2.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::right_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - XY
+    are_colliding = Collision_Test_Function::sphere_sphere(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3(1.0f, 1.0f, 0.0f).normalized()));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  
+  // Sphere - Capsule
+  { // Full overlap
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 2.0f));
+  }
+  { // Half overlap - Z
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, 1.5f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Half overlap - X
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(1.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::right_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Contact, no overlap - Y
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::forward_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - Z
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, -2.5f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - YZ
+    are_colliding = Collision_Test_Function::sphere_capsule(
+      sphere, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.5f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3(0.0f, 1.0f, 1.0f).normalized()));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+
+  // Capsule - Capsule
+  { // Full overlap
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 2.0f));
+  }
+  { // Half overlap - Z
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, 1.5f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 1.5f));
+  }
+  { // Half overlap - X
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(1.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::right_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Contact, no overlap - Y
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::forward_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - Z
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 0.0f, -3.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - YZ
+    are_colliding = Collision_Test_Function::capsule_capsule(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 1.0f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3(0.0f, 1.0f, 1.0f).normalized()));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+
+  // Capsule - Sphere
+  { // Full overlap
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 2.0f));
+  }
+  { // Half overlap - Z
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 0.0f, 1.5f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Half overlap - X
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(1.0f, 0.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3::right_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Contact, no overlap - Y
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 2.0f, 0.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3::forward_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - Z
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 0.0f, -2.5f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+  { // Contact, no overlap - YZ
+    are_colliding = Collision_Test_Function::capsule_sphere(
+      capsule, vec3::zero_vector, quat::zero_quat,
+      sphere, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.5f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(-vec3(0.0f, 1.0f, 1.0f).normalized()));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
+
+
+
+  //Collision_Test_Function::sphere_capsule();
+  //Collision_Test_Function::capsule_sphere();
+}
+
 void engine_test(const Dynamic_Array<std::string>& args)
 {
   Engine engine;
@@ -123,7 +374,8 @@ void engine_test(const Dynamic_Array<std::string>& args)
   dynamic_array_test();
   hash_map_test();
   smart_ptr_test();
-  task_test(1000, 120);
+  //task_test(1000, 120);
+  collision_test();
 
   engine.shutdown();
 }

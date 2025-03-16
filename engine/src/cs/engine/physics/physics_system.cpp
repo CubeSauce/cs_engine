@@ -68,6 +68,7 @@ void Physics_System::_init_collision_functions()
     _collision_functions[Collider::Sphere][Collider::Capsule] = Collision_Test_Function::sphere_capsule;
     _collision_functions[Collider::Capsule][Collider::Sphere] = Collision_Test_Function::capsule_sphere;
     _collision_functions[Collider::Capsule][Collider::Capsule] = Collision_Test_Function::capsule_capsule;
+    _collision_functions[Collider::Convex_Hull][Collider::Convex_Hull] = Collision_Test_Function::convex_convex;
 
     _resolve_functions[Collider::Sphere][Collider::Sphere] = Collision_Resolve_Function::sphere_sphere;
 }
