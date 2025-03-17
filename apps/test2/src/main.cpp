@@ -119,6 +119,8 @@ void task_test(int32 num_reps, int32 num_tasks)
 
 void collision_test()
 {
+  PROFILE_FUNCTION()
+
   vec3 result_normal;
   float result_penetration;
   bool are_colliding;
@@ -131,6 +133,14 @@ void collision_test()
   capsule.type = Collider::Capsule;
   capsule.shape.capsule.length = 1.0f;
   capsule.shape.capsule.radius = 1.0f;
+
+  Collider tetrahedron;
+  tetrahedron.type = Collider::Convex_Hull;
+  tetrahedron.shape.convex_hull.count = 4;
+  tetrahedron.shape.convex_hull.vertices[0] = vec3(-1.0f, -1.0f, 0.0f);
+  tetrahedron.shape.convex_hull.vertices[1] = vec3(1.0f, -1.0f, 0.0f);
+  tetrahedron.shape.convex_hull.vertices[2] = vec3(0.0f, 1.0f, 0.0f);
+  tetrahedron.shape.convex_hull.vertices[3] = vec3(0.0f, 0.0f, 1.0f);
 
   // Sphere - Sphere
   { // Full overlap
@@ -360,7 +370,17 @@ void collision_test()
     assert(is_nearly_equal(result_penetration, 0.0f));
   }
 
+  //for (int i = 0; i < 10; ++i)
+  { // Full overlap
+    are_colliding = Collision_Test_Function::convex_convex(
+      tetrahedron, vec3::zero_vector, quat::zero_quat,
+      tetrahedron, vec3(0.0f, 0.0f, 0.1f), quat::zero_quat,
+      result_normal, result_penetration);
 
+    assert(are_colliding);
+    // assert(result_normal.nearly_equal(vec3::up_vector));
+    // assert(is_nearly_equal(result_penetration, 2.0f));
+  }
 
   //Collision_Test_Function::sphere_capsule();
   //Collision_Test_Function::capsule_sphere();
@@ -378,6 +398,8 @@ void engine_test(const Dynamic_Array<std::string>& args)
   collision_test();
 
   engine.shutdown();
+
+  Profiler::get().write_to_chrometracing_json("tests.json");
 }
 
 int main(int argc, char** argv)

@@ -63,8 +63,8 @@ namespace Collision_Helpers
         assert(axis.length_squared() > 0);
         assert(count <= CONVEX_HULL_MAX_VERTICES);
 
-        min = std::numeric_limits<float>::max();
-        max = std::numeric_limits<float>::min();
+        min = FLT_MAX;
+        max = -FLT_MAX;
 
         for (int v = 0; v < count; ++v)
         {
@@ -74,30 +74,35 @@ namespace Collision_Helpers
         }
     }
 
-    vec3 sat_test(const vec3 (&vertices)[CONVEX_HULL_MAX_VERTICES], int32 count, const vec3& direction)
+    vec3 sat_test(const vec3 (&vertices)[CONVEX_HULL_MAX_VERTICES], int32 count, const vec3& p, const vec3& direction)
     {
+        PROFILE_FUNCTION()
+        
         assert(count <= CONVEX_HULL_MAX_VERTICES);
 
         // Modified SAT test
-        float max_dot = std::numeric_limits<float>::min();
+        float max_dot = -FLT_MAX;
         vec3 best_vertex;
         for (int v = 0; v < count; ++v)
         {
-            const float dot = vertices[v].dot(direction);
+            const vec3& transformed_vertex = vertices[v];// + p;
+            const float dot = transformed_vertex.dot(direction);
             if (dot > max_dot)
             {
                 max_dot = dot;
-                best_vertex = vertices[v];
+                best_vertex = transformed_vertex;
             }
         }
 
         return best_vertex;
     }
 
-    vec3 minkowski_diff(const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES], int32 count_a, 
-        const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES], int32 count_b, const vec3& direction)
+    vec3 minkowski_diff(const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES], int32 count_a, const vec3& p_a, 
+        const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES], int32 count_b, const vec3& p_b, const vec3& direction)
     {
-        return sat_test(vertices_a, count_a, direction) - sat_test(vertices_b, count_b, -direction);
+        PROFILE_FUNCTION()
+        
+        return sat_test(vertices_a, count_a, p_a, direction) - sat_test(vertices_b, count_b, p_b, -direction);
     }
 
     bool is_same_direction(const vec3& dir_a, const vec3& dir_b)
@@ -122,7 +127,7 @@ namespace Collision_Helpers
         else
         {
             simplex[3] = a;
-            count = 0;
+            count = 1;
         }
 
         return false;
@@ -237,6 +242,8 @@ namespace Collision_Helpers
 
     bool next_simplex(vec3 (&simplex)[4], int32& count, vec3& direction)
     {
+        PROFILE_FUNCTION()
+        
         assert(count > 1 && count <= 4);
       
         switch(count)
@@ -250,11 +257,13 @@ namespace Collision_Helpers
         return false;
     }
 
-    bool gjk_test(const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES], int32 count_a, 
-        const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES], int32 count_b, vec3 (&out_simplex)[4])
+    bool gjk_test(const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES], int32 count_a, const vec3& p_a, 
+        const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES], int32 count_b, const vec3& p_b, vec3 (&out_simplex)[4])
     {
+        PROFILE_FUNCTION()
+        
         vec3 direction(0.0f, 0.0f, 1.0f);
-        vec3 support = Collision_Helpers::minkowski_diff(vertices_a, count_a, vertices_b, count_b, direction);
+        vec3 support = Collision_Helpers::minkowski_diff(vertices_a, count_a, p_a, vertices_b, count_b, p_b, direction);
         
         out_simplex[3] = support;
         int32 simplex_count = 1;
@@ -263,7 +272,7 @@ namespace Collision_Helpers
 
         while (true)
         {
-            support = Collision_Helpers::minkowski_diff(vertices_a, count_a, vertices_b, count_b, direction);
+            support = Collision_Helpers::minkowski_diff(vertices_a, count_a, p_a, vertices_b, count_b, p_b, direction);
 
             if (support.dot(direction) <= 0)
             {
@@ -280,11 +289,13 @@ namespace Collision_Helpers
         }
     }
 
-    size_t calculate_face_normals(const Dynamic_Array<vec3>& vertices, const std::vector<size_t>& indices, std::vector<vec4>& out_normal_distances)
+    size_t calculate_face_normals(const std::vector<vec3>& vertices, const std::vector<size_t>& indices, std::vector<vec4>& out_normal_distances)
     {
+        PROFILE_FUNCTION()
+        
         assert(indices.size() % 3 == 0);
         size_t min_face = 0;
-        float min_distance = std::numeric_limits<float>::max();
+        float min_distance = FLT_MAX;
 
         for (size_t i = 0; i < indices.size(); i += 3)
         {
@@ -303,8 +314,7 @@ namespace Collision_Helpers
                 distance *= -1;
             }
 
-            vec4 result(normal, distance);
-            out_normal_distances.push_back(result);
+            out_normal_distances.emplace_back(normal, distance);
 
             if (distance < min_distance)
             {
@@ -318,6 +328,8 @@ namespace Collision_Helpers
 
     void epa_add_if_unique_edge(std::vector<std::pair<size_t, size_t>>& edges, const std::vector<size_t>& faces, size_t a, size_t b)
     {
+        PROFILE_FUNCTION()
+        
         auto reverse = std::find(                       //      0--<--3
             edges.begin(),                              //     / \ B /   A: 2-0
             edges.end(),                                //    / A \ /    B: 0-2
@@ -333,12 +345,108 @@ namespace Collision_Helpers
             edges.emplace_back(faces[a], faces[b]);
         }
     }
+
+    // Expanding Polytope Algorithm - https://winter.dev/articles/epa-algorithm
+    void epa(const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES], int32 count_a, const vec3& p_a, 
+    const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES], int32 count_b, const vec3& p_b,
+    const vec3 (&gjk_simplex)[4], vec3& out_normal, float& out_penetration)
+    {
+        PROFILE_FUNCTION()
+        
+        std::vector<vec3> polytope({gjk_simplex[0], gjk_simplex[1], gjk_simplex[2], gjk_simplex[3]});
+        std::vector<size_t> faces = {
+            0, 1, 2,
+            0, 3, 1,
+            0, 2, 3,
+            1, 3, 2
+        };
+
+        std::vector<vec4> normal_distances;
+        size_t min_face = Collision_Helpers::calculate_face_normals(polytope, faces, normal_distances);
+
+        vec3 min_normal;
+        float min_distance = FLT_MAX;
+        while (min_distance == FLT_MAX)
+        {
+            min_normal = normal_distances[(int32)min_face].xyz;
+            min_distance = normal_distances[(int32)min_face].w;
+
+            vec3 support = Collision_Helpers::minkowski_diff(vertices_a, count_a, p_a, vertices_b, count_b, p_b, min_normal);
+            float distance = min_normal.dot(support);
+
+            float diff = distance - min_distance;
+            if (fabs(diff) > 0.001f)
+            {
+                min_distance = FLT_MAX;
+
+                std::vector<std::pair<size_t, size_t>> unique_edges;
+
+                for (size_t i = 0; i < normal_distances.size(); ++i)
+                {
+                    if (Collision_Helpers::is_same_direction(normal_distances[i].xyz, support))
+                    {
+                        size_t f = i * 3;
+
+                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 0, f + 1);
+                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 1, f + 2);
+                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 2, f + 0);
+
+                        faces[f + 2] = faces.back(); faces.pop_back();
+                        faces[f + 1] = faces.back(); faces.pop_back();
+                        faces[f    ] = faces.back(); faces.pop_back();
+    
+                        normal_distances[i] = normal_distances.back(); // pop-erase
+                        normal_distances.pop_back();
+
+                        i--;
+                    }
+                }
+
+                std::vector<size_t> new_faces;
+                for (auto [e_i1, e_i2] : unique_edges) 
+                {
+                    new_faces.push_back(e_i1);
+                    new_faces.push_back(e_i2);
+                    new_faces.push_back(polytope.size());
+                }
+                 
+                polytope.push_back(support);
+
+                std::vector<vec4> new_normal_distances;
+                size_t new_min_face = Collision_Helpers::calculate_face_normals(polytope, new_faces, new_normal_distances);
+
+                float old_min_distance = FLT_MAX;
+                for (size_t i = 0; i < normal_distances.size(); i++) 
+                {
+                    if (normal_distances[i].w < old_min_distance) 
+                    {
+                        old_min_distance = normal_distances[i].w;
+                        min_face = i;
+                    }
+                }
+    
+                if (new_normal_distances[new_min_face].w < old_min_distance) 
+                {
+                    min_face = new_min_face + normal_distances.size();
+                }
+    
+                faces.insert(faces.end(), new_faces.begin(), new_faces.end());
+                normal_distances.insert(normal_distances.end(), new_normal_distances.begin(), new_normal_distances.end());
+            }
+        }
+    
+        // Total overlap of meshes
+        out_normal = min_normal;
+        out_penetration = min_distance + NEARLY_ZERO;
+    }
 };
 
 namespace Collision_Test_Function
 {
     bool sphere_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
+        PROFILE_FUNCTION()
+        
         assert(a.type == Collider::Sphere);
         assert(b.type == Collider::Sphere);
 
@@ -368,6 +476,8 @@ namespace Collision_Test_Function
 
     bool sphere_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
+        PROFILE_FUNCTION()
+        
         assert(a.type == Collider::Sphere);
         assert(b.type == Collider::Capsule);
 
@@ -387,6 +497,8 @@ namespace Collision_Test_Function
 
     bool capsule_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
+        PROFILE_FUNCTION()
+        
         assert(a.type == Collider::Capsule);
         assert(b.type == Collider::Sphere);
 
@@ -395,6 +507,8 @@ namespace Collision_Test_Function
 
     bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
+        PROFILE_FUNCTION()
+
         assert(a.type == Collider::Capsule);
         assert(b.type == Collider::Capsule);
 
@@ -421,104 +535,34 @@ namespace Collision_Test_Function
 
     bool convex_convex(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
     {
+        PROFILE_FUNCTION()
+
         assert(a.type == Collider::Convex_Hull);
         assert(b.type == Collider::Convex_Hull);
 
-        const vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES] = a.shape.convex_hull.vertices;
         int32 count_a = a.shape.convex_hull.count;
-        const vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES] = b.shape.convex_hull.vertices;
-        int32 count_b = b.shape.convex_hull.count;
+        vec3 vertices_a[CONVEX_HULL_MAX_VERTICES];
+        for (int i = 0; i < count_a; ++i)
+        {
+            vertices_a[i] = a.shape.convex_hull.vertices[i] + p_a;
+        }
 
-        vec3 simplex[4];
-        if (!Collision_Helpers::gjk_test(vertices_a, count_a, vertices_b, count_b, simplex))
+        int32 count_b = b.shape.convex_hull.count;
+        vec3 vertices_b[CONVEX_HULL_MAX_VERTICES];
+        for (int i = 0; i < count_b; ++i)
+        {
+            vertices_b[i] = b.shape.convex_hull.vertices[i] + p_b;
+        }
+        //vec3 (&vertices_a)[CONVEX_HULL_MAX_VERTICES] = a.shape.convex_hull.vertices;
+        //vec3 (&vertices_b)[CONVEX_HULL_MAX_VERTICES] = b.shape.convex_hull.vertices;
+
+        vec3 gjk_simplex[4];
+        if (!Collision_Helpers::gjk_test(vertices_a, count_a, p_a, vertices_b, count_b, p_b, gjk_simplex))
         {
             return false;
         }
 
-        Dynamic_Array<vec3> polytope({simplex[0], simplex[1], simplex[2], simplex[3]});
-        std::vector<size_t> faces = {
-            0, 1, 2,
-            0, 3, 1,
-            0, 2, 3,
-            1, 3, 2
-        };
-
-        std::vector<vec4> normal_distances;
-        size_t min_face = Collision_Helpers::calculate_face_normals(polytope, faces, normal_distances);
-
-        vec3 min_normal;
-        float min_distance;
-
-        while (min_distance == std::numeric_limits<float>::max())
-        {
-            min_normal = normal_distances[(int32)min_face].xyz;
-            min_distance = normal_distances[(int32)min_face].w;
-
-            vec3 support = Collision_Helpers::minkowski_diff(vertices_a, count_a, vertices_b, count_b, min_normal);
-            float distance = min_normal.dot(support);
-
-            if (!is_nearly_equal(distance - min_distance, 0))
-            {
-                min_distance = std::numeric_limits<float>::max();
-
-                std::vector<std::pair<size_t, size_t>> unique_edges;
-
-                for (size_t i = 0; i < normal_distances.size(); ++i)
-                {
-                    if (Collision_Helpers::is_same_direction(normal_distances[(int32) i].xyz, support))
-                    {
-                        size_t f = i * 3;
-
-                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 0, f + 1);
-                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 1, f + 2);
-                        Collision_Helpers::epa_add_if_unique_edge(unique_edges, faces, f + 2, f + 0);
-
-                        faces[f + 2] = faces.back(); faces.pop_back();
-                        faces[f + 1] = faces.back(); faces.pop_back();
-                        faces[f    ] = faces.back(); faces.pop_back();
-    
-                        normal_distances[i] = normal_distances.back(); // pop-erase
-                        normal_distances.pop_back();
-
-                        i--;
-                    }
-                }
-
-                std::vector<size_t> new_faces;
-                for (auto [e_i1, e_i2] : unique_edges) 
-                {
-                    new_faces.push_back(e_i1);
-                    new_faces.push_back(e_i2);
-                    new_faces.push_back(polytope.size());
-                }
-                 
-                polytope.add(support);
-
-                std::vector<vec4> new_normal_distances;
-                size_t new_min_face = Collision_Helpers::calculate_face_normals(polytope, faces, new_normal_distances);
-
-                float old_min_distance = FLT_MAX;
-                for (size_t i = 0; i < normal_distances.size(); i++) 
-                {
-                    if (normal_distances[i].w < old_min_distance) 
-                    {
-                        old_min_distance = normal_distances[i].w;
-                        min_face = i;
-                    }
-                }
-    
-                if (new_normal_distances[new_min_face].w < old_min_distance) 
-                {
-                    min_face = new_min_face + normal_distances.size();
-                }
-    
-                faces.insert(faces.end(), new_faces.begin(), new_faces.end());
-                normal_distances.insert(normal_distances.end(), new_normal_distances.begin(), new_normal_distances.end());
-            }
-        }
-    
-        out_normal = min_normal;
-        out_penetration = min_distance + NEARLY_ZERO;
+        Collision_Helpers::epa(vertices_a, count_a, p_a, vertices_b, count_b, p_b, gjk_simplex, out_normal, out_penetration);
 
         return true;
     }
