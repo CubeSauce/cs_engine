@@ -26,6 +26,8 @@ public:
     void update(const Name_Id& in_id, const Box& in_bounds);
     int32 get_potential_collisions(const Name_Id& in_id, const Box& in_bounds, Dynamic_Array<Name_Id>& out_potential_colliders);
 
+    void sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_Id>>& out_potential_collision_pairs);
+
 private:
     float _cell_size { 5.0f };
     std::unordered_map<uint32, Dynamic_Array<int32>> _id_to_hash;

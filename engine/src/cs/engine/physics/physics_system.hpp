@@ -130,7 +130,9 @@ private:
 
     void _init_collision_functions();
 
-    std::unordered_map<uint32, Dynamic_Array<Name_Id>> _broadphase_collisions;
+    
+    Dynamic_Array<Pair<Name_Id, Name_Id>> _broadphase_collision_pairs;
+    // std::unordered_map<uint32, Dynamic_Array<Name_Id>> _broadphase_collisions;
     std::unordered_map<uint32, Dynamic_Array<Collision_Result>> _narrowphase_collisions;
 
     void _execute_broadphase(float dt);

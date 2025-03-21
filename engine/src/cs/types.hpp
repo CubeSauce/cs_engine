@@ -64,4 +64,6 @@ struct Pair
 {
   Type_A a;
   Type_B b;
+
+  inline bool operator==(const Pair& other) const { return a == other.a && b == other.b; }
 };

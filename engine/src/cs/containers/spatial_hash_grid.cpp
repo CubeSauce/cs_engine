@@ -6,6 +6,8 @@
 #include "cs/containers/spatial_hash_grid.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 
+#include <algorithm>
+
 Spatial_Hash_Grid::Spatial_Hash_Grid(float cell_size)
     :_cell_size(cell_size)
 {
@@ -100,6 +102,51 @@ int32 Spatial_Hash_Grid::get_potential_collisions(const Name_Id& in_id, const Bo
     }
 
     return count;
+}
+
+void Spatial_Hash_Grid::sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_Id>>& out_potential_collision_pairs)
+{
+    PROFILE_FUNCTION()
+
+    //TODO: remove only unchanged ones
+    out_potential_collision_pairs.clear();
+    for (auto& [id, cell] : _cells)
+    {
+        std::sort(cell.object_ids.begin(), cell.object_ids.end(), [&](const Name_Id& a, const Name_Id& b){
+            return _bounds[a].min.x < _bounds[b].min.x;
+        });
+
+        for (int32 ai = 0; ai < cell.object_ids.size(); ++ai)
+        {
+            const Name_Id& a = cell.object_ids[ai];
+            const Box& bounds_a = _bounds[a];
+            for (int32 bi = ai + 1; bi < cell.object_ids.size(); ++bi)
+            {
+                const Name_Id& b = cell.object_ids[bi];
+                if (a == b)
+                {
+                    continue;
+                }
+
+                const Box& bounds_b = _bounds[b];
+
+                if (bounds_b.min.x > bounds_a.max.x)
+                {
+                    break;
+                }
+
+                if (bounds_a.intersects(bounds_b))
+                {
+                    // Don't add already detected pairs
+                    auto inverse_pair = Pair(b, a);
+                    if (out_potential_collision_pairs.find_first(inverse_pair) == -1)
+                    {
+                        out_potential_collision_pairs.add(Pair(a, b));
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool Spatial_Hash_Grid::_check_aabb_intersection(const Name_Id& a_id, const Name_Id& b_id)

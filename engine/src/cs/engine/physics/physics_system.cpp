@@ -110,8 +110,6 @@ void Physics_System::_execute_broadphase(float dt)
 {
     PROFILE_FUNCTION()
 
-    _broadphase_collisions.clear();
-
     //TODO: paralelize
     for (Physics_Body& body : _bodies)
     {
@@ -120,10 +118,13 @@ void Physics_System::_execute_broadphase(float dt)
         _hash_grid.update(body.id, body.get_transformed_bounds());
     }
 
-    for (const Physics_Body& body : _bodies)
-    {
-        _hash_grid.get_potential_collisions(body.id, body.get_transformed_bounds(), _broadphase_collisions[body.id]);
-    }
+    _hash_grid.sweep_and_prune_cells(_broadphase_collision_pairs);
+
+    // Sweep and Prune
+    //for (const Physics_Body& body : _bodies)
+    //{
+    //    _hash_grid.get_potential_collisions(body.id, body.get_transformed_bounds(), _broadphase_collisions[body.id]);
+    //}
 }
 
 void Physics_System::_execute_narrowphase(float dt)
@@ -132,36 +133,61 @@ void Physics_System::_execute_narrowphase(float dt)
 
     _narrowphase_collisions.clear();
 
-    for (const auto& potential_collisions : _broadphase_collisions)
+    for (const Pair<Name_Id, Name_Id>& collision_pair : _broadphase_collision_pairs)
     {
-        const uint32 this_hash = potential_collisions.first;
-        
-        const int32 this_index = _id_to_index[this_hash];
+        const int32 this_index = _id_to_index[collision_pair.a];
         Physics_Body& this_body = _bodies[this_index];
+        const int32 other_index = _id_to_index[collision_pair.b];
+        Physics_Body& other_body = _bodies[other_index];
 
-        for (const Name_Id& other_id : potential_collisions.second)
+        Collision_Test_Function::Definition f = _collision_functions[this_body.collider.type][other_body.collider.type];
+        if (f == nullptr)
         {
-            const int32 other_index = _id_to_index[other_id];
-            Physics_Body& other_body = _bodies[other_index];
+            printf("Can't find collision test function for given collider types.\n");
+            continue;
+        }
 
-            Collision_Test_Function::Definition f = _collision_functions[this_body.collider.type][other_body.collider.type];
-            if (f == nullptr)
-            {
-                printf("Can't find collision test function for given collider types.\n");
-                continue;
-            }
-
-            Collision_Result result;
-            result.a_index = this_index;
-            result.b_index = other_index;
-            if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
-                other_body.collider, other_body.transform.position, other_body.transform.orientation, 
-                result.normal, result.penetration))
-            {
-                _narrowphase_collisions[this_hash].add(result);
-            }
+        Collision_Result result;
+        result.a_index = this_index;
+        result.b_index = other_index;
+        if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
+            other_body.collider, other_body.transform.position, other_body.transform.orientation, 
+            result.normal, result.penetration))
+        {
+            _narrowphase_collisions[collision_pair.a].add(result);
         }
     }
+
+    // for (const auto& potential_collisions : _broadphase_collisions)
+    // {
+    //     const uint32 this_hash = potential_collisions.first;
+        
+    //     const int32 this_index = _id_to_index[this_hash];
+    //     Physics_Body& this_body = _bodies[this_index];
+
+    //     for (const Name_Id& other_id : potential_collisions.second)
+    //     {
+    //         const int32 other_index = _id_to_index[other_id];
+    //         Physics_Body& other_body = _bodies[other_index];
+
+    //         Collision_Test_Function::Definition f = _collision_functions[this_body.collider.type][other_body.collider.type];
+    //         if (f == nullptr)
+    //         {
+    //             printf("Can't find collision test function for given collider types.\n");
+    //             continue;
+    //         }
+
+    //         Collision_Result result;
+    //         result.a_index = this_index;
+    //         result.b_index = other_index;
+    //         if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
+    //             other_body.collider, other_body.transform.position, other_body.transform.orientation, 
+    //             result.normal, result.penetration))
+    //         {
+    //             _narrowphase_collisions[this_hash].add(result);
+    //         }
+    //     }
+    // }
 }
 
 void Physics_System::_resolve_collisions(float dt)
