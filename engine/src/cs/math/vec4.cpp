@@ -3,67 +3,67 @@
 
 #include "cs/math/vec4.hpp"
 
-vec4 vec4::zero_vector = vec4(0.0f);
-vec4 vec4::one_vector = vec4(1.0f);
+fvec4 fvec4::zero_vector = fvec4(0.0f);
+fvec4 fvec4::one_vector = fvec4(1.0f);
 
-vec4::vec4(float v)
+fvec4::fvec4(float v)
     :x(v), y(v), z(v), w(v)
 {
 
 }
-vec4::vec4(float x, float y, float z, float w)
+fvec4::fvec4(float x, float y, float z, float w)
     :x(x), y(y), z(z), w(w)
 {
 
 }
 
-vec4::vec4(const vec4& other)
+fvec4::fvec4(const fvec4& other)
     : x(other.x), y(other.y), z(other.z), w(other.w)
 {
 }
 
-vec4::vec4(const vec3& other, float w)
+fvec4::fvec4(const vec3& other, float w)
 	: x(other.x), y(other.y), z(other.z), w(w)
 {
 }
 
-vec4::vec4(float x, const vec3& other)
+fvec4::fvec4(float x, const vec3& other)
     : x(x), y(other.x), z(other.y), w(other.z)
 {
 }
 
-vec4 vec4::operator+(float other) const
+fvec4 fvec4::operator+(float other) const
 {
-	return vec4(x + other, y + other, z + other, w + other);
+	return fvec4(x + other, y + other, z + other, w + other);
 }
 
 
-vec4 vec4::operator-(float other) const
+fvec4 fvec4::operator-(float other) const
 {
-	return vec4(x - other, y - other, z - other, w - other);
+	return fvec4(x - other, y - other, z - other, w - other);
 }
 
-vec4 vec4::operator*(float other) const
+fvec4 fvec4::operator*(float other) const
 {
-	return vec4(x * other, y * other, z * other, w * other);
+	return fvec4(x * other, y * other, z * other, w * other);
 }
 
-vec4 vec4::operator-(const vec4& other) const
+fvec4 fvec4::operator-(const fvec4& other) const
 {
-	return vec4(x - other.x, y - other.y, z - other.z, w - other.w);
+	return fvec4(x - other.x, y - other.y, z - other.z, w - other.w);
 }
 
-vec4 vec4::operator+(const vec4& other) const
+fvec4 fvec4::operator+(const fvec4& other) const
 {
-	return vec4(x + other.x, y + other.y, z + other.z, w + other.w);
+	return fvec4(x + other.x, y + other.y, z + other.z, w + other.w);
 }
 
-vec4 vec4::operator*(const vec4& other) const
+fvec4 fvec4::operator*(const fvec4& other) const
 {
-	return vec4(x * other.x, y * other.y, z * other.z, w * other.w);
+	return fvec4(x * other.x, y * other.y, z * other.z, w * other.w);
 }
 
-const float& vec4::operator[](int32 index) const
+const float& fvec4::operator[](int32 index) const
 {
     if (index < 0 || index > 3)
     {
@@ -73,7 +73,7 @@ const float& vec4::operator[](int32 index) const
     return data[index];
 }
 
-float& vec4::operator[](int32 index)
+float& fvec4::operator[](int32 index)
 {
     if (index < 0 || index > 3)
     {

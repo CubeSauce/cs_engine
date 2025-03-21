@@ -6,10 +6,6 @@
 
 #include <cmath>
 
-mat4::mat4()
-{
-}
-
 mat4::mat4(float v)
 {
 	columns[0] = vec4(v, 0.0f, 0.0f, 0.0f);
@@ -24,6 +20,17 @@ mat4::mat4(const mat4& other)
 	columns[1] = other.columns[1];
 	columns[2] = other.columns[2];
 	columns[3] = other.columns[3];
+}
+
+mat4::mat4(float m00, float m01, float m02, float m03,
+	float m10, float m11, float m12, float m13,
+	float m20, float m21, float m22, float m23,
+	float m30, float m31, float m32, float m33)
+{
+	columns[0] = { m00, m01, m02, m03 };
+	columns[1] = { m10, m11, m12, m13 };
+	columns[2] = { m20, m21, m22, m23 };
+	columns[3] = { m30, m31, m32, m33 };
 }
 
 mat4::mat4(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3)
@@ -63,12 +70,12 @@ mat4 mat4::operator*(const mat4& other) const
 	vec4 const SrcB2 = other[2];
 	vec4 const SrcB3 = other[3];
 
-	mat4 result;
-	result[0] = SrcA0 * SrcB0[0] + SrcA1 * SrcB0[1] + SrcA2 * SrcB0[2] + SrcA3 * SrcB0[3];
-	result[1] = SrcA0 * SrcB1[0] + SrcA1 * SrcB1[1] + SrcA2 * SrcB1[2] + SrcA3 * SrcB1[3];
-	result[2] = SrcA0 * SrcB2[0] + SrcA1 * SrcB2[1] + SrcA2 * SrcB2[2] + SrcA3 * SrcB2[3];
-	result[3] = SrcA0 * SrcB3[0] + SrcA1 * SrcB3[1] + SrcA2 * SrcB3[2] + SrcA3 * SrcB3[3];
-	return result;
+	return mat4(
+		SrcA0 * SrcB0[0] + SrcA1 * SrcB0[1] + SrcA2 * SrcB0[2] + SrcA3 * SrcB0[3],
+		SrcA0 * SrcB1[0] + SrcA1 * SrcB1[1] + SrcA2 * SrcB1[2] + SrcA3 * SrcB1[3],
+		SrcA0 * SrcB2[0] + SrcA1 * SrcB2[1] + SrcA2 * SrcB2[2] + SrcA3 * SrcB2[3],
+		SrcA0 * SrcB3[0] + SrcA1 * SrcB3[1] + SrcA2 * SrcB3[2] + SrcA3 * SrcB3[3]
+	);
 }
 
 vec4 mat4::operator*(const vec4& other) const
@@ -112,29 +119,12 @@ mat4& mat4::transpose()
 
 mat4 mat4::transposed() const
 {
-	mat4 ret;
-
-	ret.columns[0][0] = columns[0][0];
-	ret.columns[0][1] = columns[1][0];
-	ret.columns[0][2] = columns[2][0];
-	ret.columns[0][3] = columns[3][0];
-
-	ret.columns[1][0] = columns[0][1];
-	ret.columns[1][1] = columns[1][1];
-	ret.columns[1][2] = columns[2][1];
-	ret.columns[1][3] = columns[3][1];
-
-	ret.columns[2][0] = columns[0][2];
-	ret.columns[2][1] = columns[1][2];
-	ret.columns[2][2] = columns[2][2];
-	ret.columns[2][3] = columns[3][2];
-
-	ret.columns[3][0] = columns[0][3];
-	ret.columns[3][1] = columns[1][3];
-	ret.columns[3][2] = columns[2][3];
-	ret.columns[3][3] = columns[3][3];
-
-	return ret;
+	return mat4(
+		columns[0][0], columns[1][0], columns[2][0], columns[3][0],
+		columns[0][1], columns[1][1], columns[2][1], columns[3][1],
+		columns[0][2], columns[1][2], columns[2][2], columns[3][2],
+		columns[0][3], columns[1][3], columns[2][3], columns[3][3]
+	);
 }
 
 mat4 mat4::inverse() const
@@ -225,22 +215,22 @@ mat4 rotate(const mat4& other, float angle, const vec3& rotation_axis)
 	Rotate[2][1] = temp[2] * axis[1] - s * axis[0];
 	Rotate[2][2] = c + temp[2] * axis[2];
 
-	mat4 result(other);
-	result.columns[0] = other[0] * Rotate[0][0] + other[1] * Rotate[0][1] + other[2] * Rotate[0][2];
-	result.columns[1] = other[0] * Rotate[1][0] + other[1] * Rotate[1][1] + other[2] * Rotate[1][2];
-	result.columns[2] = other[0] * Rotate[2][0] + other[1] * Rotate[2][1] + other[2] * Rotate[2][2];
-	result.columns[3] = other[3];
-	return result;
+	return mat4(
+		other[0] * Rotate[0][0] + other[1] * Rotate[0][1] + other[2] * Rotate[0][2],
+		other[0] * Rotate[1][0] + other[1] * Rotate[1][1] + other[2] * Rotate[1][2],
+		other[0] * Rotate[2][0] + other[1] * Rotate[2][1] + other[2] * Rotate[2][2],
+		other[3]
+	);
 }
 
 mat4 scale(const mat4& other, const vec3& scaling)
 {
-	mat4 result;
-	result[0] = other[0] * scaling[0];
-	result[1] = other[1] * scaling[1];
-	result[2] = other[2] * scaling[2];
-	result[3] = other[0];
-	return result;
+	return mat4(
+		other[0] * scaling[0],
+		other[1] * scaling[1],
+		other[2] * scaling[2],
+		other[0]
+	);
 }
 
 mat4 orthographic_matrix(const vec4& frustum, float near, float far)

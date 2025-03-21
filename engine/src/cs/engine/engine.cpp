@@ -260,7 +260,7 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
     _renderer->initialize(window, backend);
 
     Shared_Ptr<Perspective_Camera> default_camera = Shared_Ptr<Perspective_Camera>::create();
-    default_camera->FOV_deg = 45.0f;
+    default_camera->FOV = 45deg;
     default_camera->near_d = 0.0f;
     default_camera->far_d = 1000.0f;
     default_camera->position = {0.0f, -5.0f, 2.0f};

@@ -5,21 +5,27 @@
 
 #include "cs/cs.hpp"
 
-class  vec2
+class fvec2
 {
 public:
-    static vec2 zero_vector;
-    static vec2 one_vector;
+    static fvec2 zero_vector;
+    static fvec2 one_vector;
 
 public:
     float x, y;
 
 public:
-    vec2(float v = 0.0f);
-    vec2(float x, float y);
+    fvec2() = default;
+    fvec2(float v);
+    fvec2(float x, float y);
+    
+    float length_squared() const;
+    float length() const;
+    fvec2& normalize();
+    fvec2 normalized() const;
 };
 
-#define DECOMPOSE_VEC2(v2) v2.x, v2.y
+using vec2 = fvec2;
 
 class  ivec2
 {
@@ -27,8 +33,7 @@ public:
     int32 x, y;
 
 public:
-    ivec2(int32 v = 0);
+    ivec2() = default;
+    ivec2(int32 v);
     ivec2(int32 x, int32 y);
 };
-
-#define DECOMPOSE_IVEC2(iv2) iv2.x, iv2.y

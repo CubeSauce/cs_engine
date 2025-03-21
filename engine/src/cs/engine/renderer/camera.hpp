@@ -14,7 +14,7 @@ public:
 	float aspect_ratio { 0.0f };
 
 public:
-	Camera(const mat4& projection = mat4(), const mat4& view = mat4());
+	Camera(const mat4& projection = mat4(1.0f), const mat4& view = mat4(1.0f));
 	virtual ~Camera() = default;
 
 	virtual void calculate_projection() = 0;
@@ -48,7 +48,7 @@ public:
 class Perspective_Camera : public Camera
 {
 public:
-	float FOV_deg { 0.0f };
+	float FOV { 0.0f };
 	float near_d { 0.0f };
 	float far_d { 0.0f };
 

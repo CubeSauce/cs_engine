@@ -5,56 +5,29 @@
 
 #include "cs/math/box.hpp"
 
-
-Box::Box()
-{
-
-}
+Box Box::empty_box = Box(vec3::max_float_vector, vec3::min_float_vector);
 
 Box::Box(const vec3& in_min, const vec3& in_max)
     : min(in_min), max(in_max)
 {
-    _check_and_fix();
-}
-
-Box::Box(const Box& other)
-    : min(other.min), max(other.max)
-{
-}
-
-Box::Box(Box&& other) noexcept
-    : min(other.min), max(other.max)
-{
-    other.min = vec3::max_float_vector;
-    other.max = vec3::min_float_vector;
-}
-
-Box& Box::operator=(const Box& other)
-{
-    min = other.min;
-    max = other.max;
-    return *this;
-}
-
-Box& Box::operator=(Box&& other) noexcept
-{
-    min = other.min;
-    other.min = vec3::max_float_vector;
-    max = other.max;
-    other.max = vec3::min_float_vector;
-    return *this;
 }
 
 void Box::expand(const vec3& p)
 {
-    if (min > p)
+    if (p < min)
     {
         min = p;
     }
-    else if (max < p)
+    else if (p > max)
     {
         max = p;
     }
+}
+
+void Box::expand(const Box& other)
+{
+    expand(other.min);
+    expand(other.max);
 }
 
 bool Box::intersects(const Box& other) const

@@ -13,10 +13,14 @@ public:
     vec4 columns[4];
 
 public:
-	mat4();
 	mat4(float v);
 	mat4(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3);
 	mat4(const mat4& other);
+	mat4(
+		float m00, float m01, float m02, float m03,
+		float m10, float m11, float m12, float m13,
+		float m20, float m21, float m22, float m23,
+		float m30, float m31, float m32, float m33);
 
     vec4& operator[](int32 index);
     const vec4& operator[](int32 index) const;

@@ -85,10 +85,7 @@ void DirectX11_Mesh::upload_data()
         DirectX11_Submesh &submesh = submeshes[s];
         const Submesh_Data &submesh_data = mesh_resource->submeshes[s];
 
-        submesh.vertices_count = submesh_data.vertices.size();
-
         D3D11_BUFFER_DESC buffer_desc = {};
-
         buffer_desc.ByteWidth = submesh_data.vertices.size_in_bytes();
         buffer_desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
         buffer_desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
@@ -96,6 +93,13 @@ void DirectX11_Mesh::upload_data()
         D3D11_SUBRESOURCE_DATA resource_data = {};
         resource_data.pSysMem = submesh_data.vertices.begin();
         assert(SUCCEEDED(device->CreateBuffer(&buffer_desc, &resource_data, &submesh.vertex_buffer)));
+        
+        buffer_desc.ByteWidth = submesh_data.indices.size_in_bytes();
+        buffer_desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+        buffer_desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
+
+        resource_data.pSysMem = submesh_data.indices.begin();
+        assert(SUCCEEDED(device->CreateBuffer(&buffer_desc, &resource_data, &submesh.index_buffer)));
     }
 }
 
@@ -250,6 +254,7 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
 
         _device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         _device_context->IASetVertexBuffers(0, 1, submesh.vertex_buffer.GetAddressOf(), &vertex_stride, &vertex_offset);
+        _device_context->IASetIndexBuffer(submesh.index_buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
         if (Shared_Ptr<DirectX11_Texture> dx11_texture = submesh.material.texture)
         {
@@ -257,7 +262,7 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
         }
 
         submesh.material.shader->bind();
-        _device_context->Draw(submesh.vertices_count, 0);
+        _device_context->DrawIndexed(submesh.num_indices, 0, 0);
         submesh.material.shader->unbind();
     }
 }
@@ -341,7 +346,7 @@ Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_R
 
         // TODO: map with materials and existing shaders so we don't duplicate
         dx_submesh.material = _create_material(submesh.material_resource);
-        dx_submesh.vertices_count = submesh.vertices.size();
+        dx_submesh.num_indices = submesh.indices.size();
 
         dx_mesh->submeshes.add(dx_submesh);
     }
@@ -610,6 +615,24 @@ void DirectX11_Renderer_Backend::_initialize_render_stuff()
         _framebuffers[VR_Eye::Left] = _create_framebuffer();
         _framebuffers[VR_Eye::Right] = _create_framebuffer();
     }
+
+    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    depth_stencil_desc.DepthEnable = TRUE; // Enable depth testing
+    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // Allow writing to the depth buffer
+    depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS; // Closer pixels pass
+    
+    ID3D11DepthStencilState* depth_stencil_state = nullptr;
+    _device->CreateDepthStencilState(&depth_stencil_desc, &depth_stencil_state);
+    _device_context->OMSetDepthStencilState(depth_stencil_state, 1);
+
+    D3D11_RASTERIZER_DESC rasterizer_desc = {};
+    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
+    rasterizer_desc.CullMode = D3D11_CULL_BACK; // Cull back faces
+    rasterizer_desc.FrontCounterClockwise = FALSE; // Default for right-handed coordinates
+
+    ID3D11RasterizerState* rasterizer_state;
+    _device->CreateRasterizerState(&rasterizer_desc, &rasterizer_state);
+    _device_context->RSSetState(rasterizer_state);
 }
 
 void DirectX11_Renderer_Backend::_cleanup_render_stuff()

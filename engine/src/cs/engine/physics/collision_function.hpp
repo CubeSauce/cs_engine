@@ -20,15 +20,3 @@ namespace Collision_Test_Function
     bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration);
     bool convex_convex(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration);
 }
-
-struct Physics_Body;
-struct Collision_Result;
-struct Resolve_Result;
-namespace Collision_Resolve_Function
-{
-    typedef void (*Definition)(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
-
-    void sphere_sphere(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
-    void sphere_capsule(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
-    void capsule_capsule(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
-}

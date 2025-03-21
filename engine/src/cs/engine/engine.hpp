@@ -8,7 +8,9 @@
 #include "cs/engine/event.hpp"
 #include "cs/engine/window.hpp"
 #include "cs/memory/unique_ptr.hpp"
+#include "cs/engine/input.hpp"
 #include "cs/engine/task_system.hpp"
+#include "cs/engine/game/game_instance.hpp"
 #include "cs/engine/net/net_instance.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/renderer/renderer.hpp"
@@ -17,19 +19,10 @@
 
 #include "openvr.h"
 
-struct Engine_Create_Descriptor
-{
-    Window_Framework::Type window_framework { Window_Framework::GLFW };
-    uint32 window_width { 800 };
-    uint32 window_height { 600 };
-    const char* window_title = "CS Engine Window";
-    Renderer_API::Type renderer_api { Renderer_API::DirectX11 };
-};
 class VR_System;
 class CVar_Registry;
 class Net_Instance;
 class Game_Instance;
-class Input_System;
 class Physics_System;
 class Thread_Pool;
 class Profiler;

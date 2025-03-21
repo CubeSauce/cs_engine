@@ -6,27 +6,27 @@
 #include <cmath>
 #include <limits>
 
-vec3 vec3::right_vector     = vec3(1.0f, 0.0f, 0.0f);
-vec3 vec3::forward_vector   = vec3(0.0f, 1.0f, 0.0f);
-vec3 vec3::up_vector        = vec3(0.0f, 0.0f, 1.0f);
-vec3 vec3::zero_vector      = vec3(0.0f);
-vec3 vec3::one_vector       = vec3(1.0f);
-vec3 vec3::min_float_vector = vec3(-FLT_MAX);
-vec3 vec3::max_float_vector = vec3(FLT_MAX);
+fvec3 fvec3::right_vector     = fvec3(1.0f, 0.0f, 0.0f);
+fvec3 fvec3::forward_vector   = fvec3(0.0f, 1.0f, 0.0f);
+fvec3 fvec3::up_vector        = fvec3(0.0f, 0.0f, 1.0f);
+fvec3 fvec3::zero_vector      = fvec3(0.0f);
+fvec3 fvec3::one_vector       = fvec3(1.0f);
+fvec3 fvec3::min_float_vector = fvec3(-FLT_MAX);
+fvec3 fvec3::max_float_vector = fvec3(FLT_MAX);
 
-vec3::vec3(float v)
+fvec3::fvec3(float v)
     :x(v), y(v), z(v)
 {
 
 }
 
-vec3::vec3(float x, float y, float z)
+fvec3::fvec3(float x, float y, float z)
     :x(x), y(y), z(z)
 {
 
 }
 
-bool vec3::nearly_equal(const vec3& other, float delta) const
+bool fvec3::nearly_equal(const fvec3& other, float delta) const
 {
     return 
         fabs(x - other.x) < delta &&
@@ -34,7 +34,7 @@ bool vec3::nearly_equal(const vec3& other, float delta) const
         fabs(z - other.z) < delta;
 }
 
-float vec3::operator[](int32 index) const
+float fvec3::operator[](int32 index) const
 {
     if(index < 0 || index > 2)
     {
@@ -44,7 +44,7 @@ float vec3::operator[](int32 index) const
     return data[index];
 }
 
-float& vec3::operator[](int32 index)
+float& fvec3::operator[](int32 index)
 {
     if(index < 0 || index > 2)
     {
@@ -54,7 +54,7 @@ float& vec3::operator[](int32 index)
     return data[index];
 }
 
-vec3& vec3::operator+=(float v)
+fvec3& fvec3::operator+=(float v)
 {
     x += v;
     y += v;
@@ -63,16 +63,16 @@ vec3& vec3::operator+=(float v)
     return *this;
 }
 
-vec3 vec3::operator+(float v) const
+fvec3 fvec3::operator+(float v) const
 {
-    return vec3(
+    return fvec3(
         x + v,
         y + v,
         z + v
     );
 }
 
-vec3& vec3::operator-=(float v)
+fvec3& fvec3::operator-=(float v)
 {
     x -= v;
     y -= v;
@@ -81,16 +81,16 @@ vec3& vec3::operator-=(float v)
     return *this;
 }
 
-vec3 vec3::operator-(float v) const
+fvec3 fvec3::operator-(float v) const
 {
-    return vec3(
+    return fvec3(
         x - v,
         y - v,
         z - v
     );
 }
 
-vec3& vec3::operator*=(float v)
+fvec3& fvec3::operator*=(float v)
 {
     x *= v;
     y *= v;
@@ -99,16 +99,16 @@ vec3& vec3::operator*=(float v)
     return *this;
 }
 
-vec3 vec3::operator*(float v) const
+fvec3 fvec3::operator*(float v) const
 {
-    return vec3(
+    return fvec3(
         x * v,
         y * v,
         z * v
     );
 }
 
-vec3& vec3::operator/=(float v)
+fvec3& fvec3::operator/=(float v)
 {
     x /= v;
     y /= v;
@@ -117,16 +117,16 @@ vec3& vec3::operator/=(float v)
     return *this;
 }
 
-vec3 vec3::operator/(float v) const
+fvec3 fvec3::operator/(float v) const
 {
-    return vec3(
+    return fvec3(
         x / v,
         y / v,
         z / v
     );
 }
 
-vec3& vec3::operator+=(const vec3& other)
+fvec3& fvec3::operator+=(const fvec3& other)
 {
     x += other.x;
     y += other.y;
@@ -135,16 +135,16 @@ vec3& vec3::operator+=(const vec3& other)
     return *this;
 }
 
-vec3 vec3::operator+(const vec3& other) const
+fvec3 fvec3::operator+(const fvec3& other) const
 {
-    return vec3(
+    return fvec3(
         x + other.x,
         y + other.y,
         z + other.z
     );
 }
 
-vec3& vec3::operator-=(const vec3& other)
+fvec3& fvec3::operator-=(const fvec3& other)
 {
     x -= other.x;
     y -= other.y;
@@ -153,16 +153,16 @@ vec3& vec3::operator-=(const vec3& other)
     return *this;
 }
 
-vec3 vec3::operator-(const vec3& other) const
+fvec3 fvec3::operator-(const fvec3& other) const
 {
-    return vec3(
+    return fvec3(
         x - other.x,
         y - other.y,
         z - other.z
     );
 }
 
-vec3& vec3::operator*=(const vec3& other)
+fvec3& fvec3::operator*=(const fvec3& other)
 {
     x *= other.x;
     y *= other.y;
@@ -171,9 +171,9 @@ vec3& vec3::operator*=(const vec3& other)
     return *this;
 }
 
-vec3 vec3::operator*(const vec3& other) const
+fvec3 fvec3::operator*(const fvec3& other) const
 {
-    return vec3(
+    return fvec3(
         x * other.x,
         y * other.y,
         z * other.z
@@ -181,104 +181,118 @@ vec3 vec3::operator*(const vec3& other) const
 }
 
 
-vec3& vec3::operator/=(const vec3& other)
+fvec3& fvec3::operator/=(const fvec3& other)
 {
-    x /= NEAR_ZERO_CHECK(other.x);
-    y /= NEAR_ZERO_CHECK(other.y);
-    z /= NEAR_ZERO_CHECK(other.z);
+    x /= other.x;
+    y /= other.y;
+    z /= other.z;
 
     return *this;
 }
 
-vec3 vec3::operator/(const vec3& other) const
+fvec3 fvec3::operator/(const fvec3& other) const
 {
-    return vec3(
-        x / NEAR_ZERO_CHECK(other.x),
-        y / NEAR_ZERO_CHECK(other.y),
-        z / NEAR_ZERO_CHECK(other.z)
+    return fvec3(
+        x / other.x,
+        y / other.y,
+        z / other.z
     );
 }
 
-vec3 vec3::operator-() const
+fvec3 fvec3::operator-() const
 {
-    return vec3(-x, -y, -z);
+    return fvec3(-x, -y, -z);
 }
 
-bool vec3::operator>(const vec3& other) const
+bool fvec3::operator>(const fvec3& other) const
 {
     return x > other.x && y > other.y && z > other.z;
 }
 
-bool vec3::operator>=(const vec3& other) const
+bool fvec3::operator>=(const fvec3& other) const
 {
     return x >= other.x && y >= other.y && z >= other.z;
 }
 
-bool vec3::operator<(const vec3& other) const
+bool fvec3::operator<(const fvec3& other) const
 {
     return x < other.x && y < other.y && z < other.z;
 }
 
-bool vec3::operator<=(const vec3& other) const
+bool fvec3::operator<=(const fvec3& other) const
 {
     return x <= other.x && y <= other.y && z <= other.z;
 }
 
-float vec3::length_squared() const
+float fvec3::length_squared() const
 {
     return x * x + y * y + z * z;
 }
 
-float vec3::length() const
+float fvec3::length() const
 {
     return sqrtf(length_squared());
 }
 
-vec3& vec3::normalize()
+fvec3& fvec3::normalize()
 {
     float len = length();
-    *this /= NEAR_ZERO_CHECK(len);
+    *this /= len;
     return *this;
 }
 
-vec3 vec3::normalized() const
+fvec3 fvec3::normalized() const
 {
-    float len = NEAR_ZERO_CHECK(length());
+    float len = length();
     return *this / len;
 }
 
-vec3 vec3::cross(const vec3& other) const
+fvec3 fvec3::cross(const fvec3& other) const
 {
-    return vec3(
+    return fvec3(
         data[1] * other[2] - data[2] * other[1],
         data[2] * other[0] - data[0] * other[2],
         data[0] * other[1] - data[1] * other[0]
     );
 }
 
-float vec3::dot(const vec3& other) const
+float fvec3::dot(const fvec3& other) const
 {
     return data[0] * other[0] +
         data[1] * other[1] +
         data[2] * other[2];
 }
 
-vec3 sin(const vec3& other)
+
+fvec3 sin(const fvec3& other)
 {
-    return vec3(
+    return fvec3(
         sin(other.x),
         sin(other.y),
         sin(other.z)
     );
 }
 
-vec3 cos(const vec3& other)
+fvec3 cos(const fvec3& other)
 {
-    return vec3(
+    return fvec3(
         cos(other.x),
         cos(other.y),
         cos(other.z)
     );
+}
+
+fvec3 fvec3::perpendicular() const
+{
+    // Choose the smallest component to avoid zero vectors
+    if (fabs(x) > fabs(z)) 
+    {
+        return fvec3(-y, x, 0).normalized();
+    } 
+    else
+    {
+        return fvec3(0, -z, y).normalized();
+    }
 }
 
 ivec3::ivec3(int32 v)

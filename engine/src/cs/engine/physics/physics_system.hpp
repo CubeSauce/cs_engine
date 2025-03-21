@@ -24,11 +24,11 @@ struct Capsule_Shape
     float length;
 };
 
-#define CONVEX_HULL_MAX_VERTICES 128
+#define CONVEX_HULL_MAX_NUM_VERTICES 512
 struct Convex_Hull_Shape
 {
     int32 count;
-    vec3 vertices[CONVEX_HULL_MAX_VERTICES];
+    vec3 vertices[CONVEX_HULL_MAX_NUM_VERTICES];
 };
 
 struct Collider
@@ -49,33 +49,7 @@ struct Collider
         Capsule_Shape capsule;
         Convex_Hull_Shape convex_hull;
     } shape;
-
-    Collider& operator=(const Collider& other);
-
-    Box get_bounds() const
-    {
-        switch(type)
-        {
-        case Sphere:{
-            return {
-                -vec3(shape.sphere.radius),
-                 vec3(shape.sphere.radius)
-            };
-        }
-        case Capsule:{
-            return {
-                vec3(0.0f, 0.0f, -shape.capsule.length * 0.5f) - vec3(shape.sphere.radius),
-                vec3(0.0f, 0.0f, +shape.capsule.length * 0.5f) + vec3(shape.sphere.radius)
-            };
-            break;
-        }
-        case Cylinder:
-        case OBB:
-        case Convex_Hull:
-        default:
-            return Box();
-        }
-    }
+    Box bounds;
 };
 
 struct Physics_Body
@@ -123,56 +97,12 @@ struct Physics_Body
 
     Box get_transformed_bounds() const;
 
-    Physics_Body& operator=(const Physics_Body& other);
+    void update_state(float dt);
+    void update_transform(float dt);
 
-    void update_state(float dt)
-    {
-        if (type == Dynamic)
-        {
-            state.velocity += state.accumulated_forces * dt;
-        }
-        else if (type == Kinematic)
-        {
-            state.velocity = (transform.position - old_transform.position) / dt;
-            old_transform = transform;
-        }
-    }
-
-    void update_transform(float dt)
-    {
-        if (type != Dynamic)
-        {
-            return;
-        }
-
-        transform.position += state.velocity * dt;
-        dirty = true;
-    }
-
-    void apply_force(const vec3& force)
-    {
-        if (type != Dynamic)
-        {
-            return;
-        }
-
-        state.accumulated_forces += force;
-    }
-
-    void apply_impulse(const vec3& impulse)
-    {
-        if (type != Dynamic)
-        {
-            return;
-        }
-
-        state.accumulated_forces += impulse * inverse_mass;
-    }
-
-    void clear_forces()
-    {
-        state.accumulated_forces = vec3::zero_vector;
-    }
+    void apply_force(const vec3& force);
+    void apply_impulse(const vec3& impulse);
+    void clear_forces();
 };
 
 struct Collision_Result
@@ -190,11 +120,13 @@ public:
     void initialize();
     void update(float dt);
 
+    void render_physics_bodies();
+
 private:
     Dynamic_Array<Physics_Body> _bodies;
     std::unordered_map<uint32, int32> _id_to_index;
 
-    Spatial_Hash_Grid _hash_grid = Spatial_Hash_Grid(3.0f);
+    Spatial_Hash_Grid _hash_grid = Spatial_Hash_Grid(1.50f);
 
     void _init_collision_functions();
 
@@ -204,7 +136,8 @@ private:
     void _execute_broadphase(float dt);
     void _execute_narrowphase(float dt);
     void _resolve_collisions(float dt);
+    void _resolve_collision(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
     
     Collision_Test_Function::Definition _collision_functions[Collider::TYPE_COUNT][Collider::TYPE_COUNT];
-    Collision_Resolve_Function::Definition _resolve_functions[Collider::TYPE_COUNT][Collider::TYPE_COUNT];
+
 };

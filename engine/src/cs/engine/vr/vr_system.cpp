@@ -49,7 +49,7 @@ void VR_System::initialize()
         _camera[i] = Shared_Ptr<VR_Camera>::create();
     }
 
-    _camera[2]->FOV_deg = 45.0f;
+    _camera[2]->FOV = 45deg;
     _camera[2]->near_d = 0.0f;
     _camera[2]->far_d = 1000.0f;
     _camera[2]->aspect_ratio = 1.0f;
@@ -237,7 +237,7 @@ mat4 vr_to_mat4(const vr::HmdMatrix44_t &mat)
 }
 #endif //CS_WITH_VR_SUPPORT
 
-static mat4 toZup = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(90.0f), 0.0f, 0.0f)).to_mat4();
+static mat4 toZup = quat::from_euler_angles(vec3(90deg, 0.0f, 0.0f)).to_mat4();
 void VR_System::_update_camera(float dt)
 {
     PROFILE_FUNCTION()

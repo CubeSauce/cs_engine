@@ -6,44 +6,63 @@
 #include "cs/cs.hpp"
 #include "cs/math/vec3.hpp"
 
-struct  vec4
+struct fvec4
 {
 public:
-    static vec4 zero_vector;
-    static vec4 one_vector;
+    static fvec4 zero_vector;
+    static fvec4 one_vector;
 
     union
     {
         float data[4];
-        struct {
-            union {
-                struct {
+        struct 
+        {
+            union 
+            {
+                struct 
+                {
                     float x, y, z;
                 };
-                vec3 xyz;
+                fvec3 xyz;
+                struct 
+                {
+                    float r, g, b;
+                };
+                fvec3 rgb;
             };
-            float w;
+            union
+            {
+                float w;
+                float a;
+            };            
+        };
+        struct
+        {
+            fvec2 xy, zw;
         };
     };
 
 public:
-    vec4(float v = float(0.0));
-    vec4(float x, float y, float z, float w);
-	vec4(const vec4& other);
-	vec4(const vec3& other, float w);
-	vec4(float x, const vec3& other);
+    fvec4() = default;
+    fvec4(float v);
+    fvec4(float x, float y, float z, float w);
+	fvec4(const fvec4& other);
+	fvec4(const vec3& other, float w);
+	fvec4(float x, const vec3& other);
 
     const float& operator[](int32 index) const;
 	float& operator[](int32 index);
 
-	vec4 operator+(float other) const;
-	vec4 operator-(float other) const;
-	vec4 operator*(float other) const;
-	vec4 operator+(const vec4& other) const;
-	vec4 operator-(const vec4& other) const;
-	vec4 operator*(const vec4& other) const;
+	fvec4 operator+(float other) const;
+	fvec4 operator-(float other) const;
+	fvec4 operator*(float other) const;
+	fvec4 operator+(const fvec4& other) const;
+	fvec4 operator-(const fvec4& other) const;
+	fvec4 operator*(const fvec4& other) const;
 
 };
+
+using vec4 = fvec4;
 
 struct  ivec4
 {

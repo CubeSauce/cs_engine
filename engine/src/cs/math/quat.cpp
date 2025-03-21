@@ -5,24 +5,24 @@
 
 #include <cmath>
 
-quat quat::zero_quat = quat(0.0f, 1.0f);
+fquat fquat::zero_quat = fquat(0.0f, 1.0f);
 
-quat::quat()
+fquat::fquat()
 	: v(0.0f), w(1.0f)
 {
 }
 
-quat::quat(const vec3& v, float w)
+fquat::fquat(const vec3& v, float w)
 	: v(v), w(w)
 {
 }
 
-quat::quat(const quat& other)
+fquat::fquat(const fquat& other)
 	: v(other.v), w(other.w)
 {
 }
 
-mat4 quat::to_mat4() const
+mat4 fquat::to_mat4() const
 {
 	float qxx(v.x * v.x);
 	float qyy(v.y * v.y);
@@ -50,7 +50,7 @@ mat4 quat::to_mat4() const
 	return res;
 }
 
-quat quat::from_mat4(const mat4& m)
+fquat fquat::from_mat4(const mat4& m)
 {
 	float fourXSquaredMinus1 = m[0][0] - m[1][1] - m[2][2];
 	float fourYSquaredMinus1 = m[1][1] - m[0][0] - m[2][2];
@@ -80,43 +80,43 @@ quat quat::from_mat4(const mat4& m)
 
 	switch (biggestIndex)
 	{
-	case 0: return quat(vec3(biggestVal, (m[1][2] - m[2][1]) * mult, (m[2][0] - m[0][2]) * mult), (m[0][1] - m[1][0]) * mult);
-	case 1: return quat(vec3((m[1][2] - m[2][1]) * mult, biggestVal, (m[0][1] + m[1][0]) * mult), (m[2][0] + m[0][2]) * mult);
-	case 2: return quat(vec3((m[2][0] - m[0][2]) * mult, (m[0][1] + m[1][0]) * mult, biggestVal), (m[1][2] + m[2][1]) * mult);
-	case 3: return quat(vec3((m[0][1] - m[1][0]) * mult, (m[2][0] + m[0][2]) * mult, (m[1][2] + m[2][1]) * mult), biggestVal);
+	case 0: return fquat(vec3(biggestVal, (m[1][2] - m[2][1]) * mult, (m[2][0] - m[0][2]) * mult), (m[0][1] - m[1][0]) * mult);
+	case 1: return fquat(vec3((m[1][2] - m[2][1]) * mult, biggestVal, (m[0][1] + m[1][0]) * mult), (m[2][0] + m[0][2]) * mult);
+	case 2: return fquat(vec3((m[2][0] - m[0][2]) * mult, (m[0][1] + m[1][0]) * mult, biggestVal), (m[1][2] + m[2][1]) * mult);
+	case 3: return fquat(vec3((m[0][1] - m[1][0]) * mult, (m[2][0] + m[0][2]) * mult, (m[1][2] + m[2][1]) * mult), biggestVal);
 	}
 
 	assert(false);
 	return zero_quat;
 }
 
-quat quat::from_direction(const vec3& direction)
+fquat fquat::from_direction(const vec3& direction)
 {
 	const vec3 forward = direction.normalized();
 
 	float dot = vec3::forward_vector.dot(forward);
 	if (dot > 0.9999f)
 	{
-		return quat::zero_quat;
+		return fquat::zero_quat;
 	}
 
 	if (dot < -0.9999f)
 	{
-		return quat::from_rotation_axis(vec3::up_vector, MATH_DEG_TO_RAD(180.0f));
+		return fquat::from_rotation_axis(vec3::up_vector, 180deg);
 	}
 
 	const vec3 axis = vec3::forward_vector.cross(forward).normalize();
 	const float angle = acos(dot);
 
-	return quat::from_rotation_axis(axis, angle);
+	return fquat::from_rotation_axis(axis, angle);
 }
 
-quat quat::from_euler_angles(const vec3& euler)
+fquat fquat::from_euler_angles(const vec3& euler)
 {
     vec3 c = cos(euler * 0.5f);
     vec3 s = sin(euler * 0.5f);
 
-	quat ret;
+	fquat ret;
 	ret.w = c.x * c.y * c.z + s.x * s.y * s.z;
     ret.v.x = s.x * c.y * c.z - c.x * s.y * s.z;
     ret.v.y = c.x * s.y * c.z + s.x * c.y * s.z;
@@ -125,57 +125,57 @@ quat quat::from_euler_angles(const vec3& euler)
 	return ret;
 }
 
-quat quat::from_rotation_axis(const vec3& axis, float angle)
+fquat fquat::from_rotation_axis(const vec3& axis, float angle)
 {
-	return quat(axis * sin(angle * 0.5f), cos(angle * 0.5f));
+	return fquat(axis * sin(angle * 0.5f), cos(angle * 0.5f));
 }
 
-quat quat::mul(const quat& other) const
+fquat fquat::mul(const fquat& other) const
 {
-	return quat(
+	return fquat(
 		other.v * w + v * other.w + v.cross(other.v), 
 		w * other.w - v.dot(other.v)
 	).normalized();
 }
 
-vec3 quat::mul(const vec3& other) const
+vec3 fquat::mul(const vec3& other) const
 {
 	const vec3 t = v.cross(other) * 2.0f;
 	return other + t * w + v.cross(t);
 }
     
-void quat::normalize()
+void fquat::normalize()
 {
 	const float length = sqrt(v.dot(v) + w * w);
 	v /= length;
 	w /= length;
 }
 
-quat quat::normalized() const
+fquat fquat::normalized() const
 {
-	quat result(*this);
+	fquat result(*this);
 	result.normalize();
 	return result;
 }
 
-quat quat::conjugate() const
+fquat fquat::conjugate() const
 {
-	return quat(vec3::zero_vector - v, w);
+	return fquat(vec3::zero_vector - v, w);
 }
 
-vec3 quat::get_direction(const vec3& forward_axis)
+vec3 fquat::get_direction(const vec3& forward_axis)
 {
 	return forward_axis + (v.cross(forward_axis) + forward_axis * w).cross(v) * 2.0f;
 }
 
-mat4 rotation(const quat& rotation)
+mat4 rotation(const fquat& rotation)
 {
 	return rotation.to_mat4();
 }
 
-quat slerp(quat qa, quat qb, float t)
+fquat slerp(fquat qa, fquat qb, float t)
 {
-	quat qm;
+	fquat qm;
 
 	float cosHalfTheta = qa.w * qb.w + qa.v.x * qb.v.x + qa.v.y * qb.v.y + qa.v.z * qb.v.z;
 

@@ -2,30 +2,60 @@
 // Author: matija.martinec@protonmail.com
 
 #include "cs/engine/physics/physics_system.hpp"
-
-Collider& Collider::operator=(const Collider& other)
-{
-    type = other.type;
-    shape = other.shape;
-
-    return *this;
-}
+#include "cs/engine/renderer/renderer.hpp"
 
 Box Physics_Body::get_transformed_bounds() const
 {
-    Box bounds = collider.get_bounds();
-    return { bounds.min + transform.position, bounds.max + transform.position };
+    return { collider.bounds.min + transform.position, collider.bounds.max + transform.position };
 }
 
-Physics_Body& Physics_Body::operator=(const Physics_Body& other)
+void Physics_Body::update_state(float dt)
 {
-    id = other.id;
-    type = other.type;
-    transform = other.transform;
-    state = other.state;
-    collider = other.collider;
+    if (type == Dynamic)
+    {
+        state.velocity += state.accumulated_forces * dt;
+    }
+    else if (type == Kinematic)
+    {
+        state.velocity = (transform.position - old_transform.position) / dt;
+        old_transform = transform;
+    }
+}
 
-    return *this;
+void Physics_Body::update_transform(float dt)
+{
+    if (type != Dynamic)
+    {
+        return;
+    }
+
+    transform.position += state.velocity * dt;
+    dirty = true;
+}
+
+void Physics_Body::apply_force(const vec3& force)
+{
+    if (type != Dynamic)
+    {
+        return;
+    }
+
+    state.accumulated_forces += force;
+}
+
+void Physics_Body::apply_impulse(const vec3& impulse)
+{
+    if (type != Dynamic)
+    {
+        return;
+    }
+
+    state.accumulated_forces += impulse * inverse_mass;
+}
+
+void Physics_Body::clear_forces()
+{
+    state.accumulated_forces = vec3::zero_vector;
 }
 
 template<> 
@@ -62,6 +92,11 @@ void Physics_System::update(float dt)
     _resolve_collisions(dt);
 }
 
+void Physics_System::render_physics_bodies()
+{
+    Shared_Ptr<Renderer_Backend> renderer_backend = Renderer::get().backend;
+}
+
 void Physics_System::_init_collision_functions()
 {
     _collision_functions[Collider::Sphere][Collider::Sphere] = Collision_Test_Function::sphere_sphere;
@@ -69,8 +104,6 @@ void Physics_System::_init_collision_functions()
     _collision_functions[Collider::Capsule][Collider::Sphere] = Collision_Test_Function::capsule_sphere;
     _collision_functions[Collider::Capsule][Collider::Capsule] = Collision_Test_Function::capsule_capsule;
     _collision_functions[Collider::Convex_Hull][Collider::Convex_Hull] = Collision_Test_Function::convex_convex;
-
-    _resolve_functions[Collider::Sphere][Collider::Sphere] = Collision_Resolve_Function::sphere_sphere;
 }
 
 void Physics_System::_execute_broadphase(float dt)
@@ -142,14 +175,7 @@ void Physics_System::_resolve_collisions(float dt)
             Physics_Body& this_body =  _bodies[collision.a_index];
             Physics_Body& other_body = _bodies[collision.b_index];
 
-            Collision_Resolve_Function::Definition f = _resolve_functions[this_body.collider.type][other_body.collider.type];
-            if (f == nullptr)
-            {
-                printf("Can't find collision resolve function for given collider types.\n");
-                continue;
-            }
-            
-            f(this_body, other_body, collision);
+            _resolve_collision(this_body, other_body, collision);
         }
     }
 
@@ -162,4 +188,45 @@ void Physics_System::_resolve_collisions(float dt)
     {
         body.clear_forces();
     }
+}
+
+void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const Collision_Result& collision)
+{
+    // Position correction vectors
+    const float inverse_total_mass = a.inverse_mass + b.inverse_mass;
+    if (inverse_total_mass > 0.0f)
+    {
+        const vec3 c = collision.normal * (collision.penetration / inverse_total_mass);
+
+        if (a.type == Physics_Body::Dynamic)
+        {
+            a.transform.position -= c * a.inverse_mass;
+            a.dirty = true;
+        } 
+        if (b.type == Physics_Body::Dynamic)
+        {
+            b.transform.position += c * b.inverse_mass;
+            b.dirty = true;
+        } 
+    }
+
+    const vec3 relative_velocity = b.state.velocity - a.state.velocity;
+    const float normal_velocity = relative_velocity.dot(collision.normal);
+
+    // Already separated
+    if (normal_velocity > 0) return;
+
+    const float impulse_magnitude = -(1 + a.restitution) * normal_velocity / inverse_total_mass;
+    const vec3 impulse = collision.normal * impulse_magnitude;
+
+    if (a.type == Physics_Body::Dynamic)
+    {
+        a.state.velocity -= impulse * a.inverse_mass;
+        a.dirty = true;
+    } 
+    if (b.type == Physics_Body::Dynamic)
+    {
+        b.state.velocity += impulse * b.inverse_mass;
+        b.dirty = true;
+    } 
 }

@@ -19,9 +19,11 @@ public:
 
         _init_player();
 
-        kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj");
+        Mesh_Import_Settings import_settings = Mesh_Import_Settings::default_import_settings;
+        import_settings.import_rotation = quat::from_euler_angles(vec3(-90.0deg, 0.0f, 0.0f));
+        kimono = Shared_Ptr<Mesh_Resource>::create("assets/mesh/kimono.obj", import_settings);
 
-        _add_object("kimono", vec3(0.0f, 0.0f, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono, Physics_Body::Kinematic);
+        _add_object("kimono", vec3::zero_vector, quat::zero_quat, kimono, Physics_Body::Kinematic);
     }
 
     float t = 0;
@@ -30,8 +32,8 @@ public:
         PROFILE_FUNCTION()
 
         t += dt;
-        _transform_components.get("kimono")->local_position.x = cosf(t) * 3.0f;
-        _transform_components.get("kimono")->local_position.y = sinf(t) * 3.0f;
+        _transform_components.get("kimono")->local_position.x = cosf(t * 3.0f) * 2.5f;
+        _transform_components.get("kimono")->local_position.y = sinf(t * 3.0f) * 2.5f;
         _transform_components.get("kimono")->dirty = true;
         
         _update_transform_components();
@@ -79,10 +81,10 @@ public:
         {
             timer = 0.0f;
             count++;
-            float x = 3.0f * (rand() % 1000) / 1000.0f;
-            float y = 3.0f * (rand() % 1000) / 1000.0f;
+            float x = -2.0f + 5.0f * (rand() % 1000) / 1000.0f;
+            float y = -2.0f + 5.0f * (rand() % 1000) / 1000.0f;
             
-            _add_object(std::format("kimono{}", count).c_str(), vec3(x, y, 0.0f), quat::from_rotation_axis(vec3::right_vector, MATH_DEG_TO_RAD(-90.0f)), kimono, Physics_Body::Dynamic);
+            _add_object(std::format("kimono{}", count).c_str(), vec3(x, y, 0.0f), quat::zero_quat, kimono, Physics_Body::Dynamic);
         }
     }
 
@@ -149,8 +151,8 @@ private:
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
         camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, 30.0f, 10.0f);
-        camera_transform.local_orientation = quat::from_rotation_axis(vec3(1.0f, 0.0f, 0.0f), MATH_RAD_TO_DEG(-25.0f));
+        camera_transform.local_position = vec3(0.0f, 30.0f, 30.0f);
+        camera_transform.local_orientation = quat::from_euler_angles(vec3(35deg, 0.0f, 0.0f));
     }
 
     void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
@@ -166,10 +168,19 @@ private:
 
         Physics_Body_Component& pb = _physics_body_components.add(name);
         pb.type = type;
-        //pb.bounds = mesh_resource->bounds;
         pb.component_id = name;
-        pb.collider.type = Collider::Sphere;
-        pb.collider.shape.sphere = { .radius = 1.0f };
+        if (mesh_resource)
+        {
+            const Box& mesh_bounds = mesh_resource->bounds;
+            const vec3& extents = mesh_bounds.get_extents();
+            float capsule_radius = extents.xy.length() * 0.5f;
+            float capsule_length = extents.z - capsule_radius * 2;
+
+            pb.collider.type = Collider::Sphere;
+            //pb.collider.type = Collider::Capsule;
+            pb.collider.shape.capsule = { .radius = capsule_radius , .length = capsule_length };
+            pb.collider.bounds = Box(vec3(-capsule_radius), vec3(capsule_radius));
+        }
     }
 
     void _update_transform_components()

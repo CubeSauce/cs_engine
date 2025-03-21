@@ -29,7 +29,7 @@ inline float map(float x, float in_min, float in_max, float out_min, float out_m
     return (((x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
 }
 
-inline bool is_nearly_equal(float a, float b, float delta = NEARLY_ZERO)
+inline bool is_nearly_equal(float a, float b, float delta = EPSILON)
 {
     return a < (b - delta) ? false : (a > (b + delta) ? false : true);
 }

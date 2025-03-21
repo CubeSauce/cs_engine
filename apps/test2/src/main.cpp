@@ -127,20 +127,27 @@ void collision_test()
 
   Collider sphere;
   sphere.type = Collider::Sphere;
+  
   sphere.shape.sphere.radius = 1.0f;
+  sphere.bounds = { vec3(-1.0f), vec3(1.0f) };
 
   Collider capsule;
   capsule.type = Collider::Capsule;
   capsule.shape.capsule.length = 1.0f;
   capsule.shape.capsule.radius = 1.0f;
+  capsule.bounds = { vec3(-1.0f, -1.0f, -1.5f), vec3(1.0f, 1.0f, 1.5f) };
 
-  Collider tetrahedron;
-  tetrahedron.type = Collider::Convex_Hull;
-  tetrahedron.shape.convex_hull.count = 4;
-  tetrahedron.shape.convex_hull.vertices[0] = vec3(-1.0f, -1.0f, 0.0f);
-  tetrahedron.shape.convex_hull.vertices[1] = vec3(1.0f, -1.0f, 0.0f);
-  tetrahedron.shape.convex_hull.vertices[2] = vec3(0.0f, 1.0f, 0.0f);
-  tetrahedron.shape.convex_hull.vertices[3] = vec3(0.0f, 0.0f, 1.0f);
+  Shared_Ptr<Mesh_Resource> ch_mesh = Shared_Ptr<Mesh_Resource>::create("assets/mesh/ch_cube.obj");
+  assert(ch_mesh->submeshes[0].vertices.size() < CONVEX_HULL_MAX_NUM_VERTICES);
+
+  Collider convex;
+  convex.type = Collider::Convex_Hull;
+  convex.shape.convex_hull.count = ch_mesh->submeshes[0].vertices.size();
+  int32 count = 0;
+  for (const Vertex_Data& vertex : ch_mesh->submeshes[0].vertices)
+  {
+    convex.shape.convex_hull.vertices[count++] = vertex.vertex_location;
+  }
 
   // Sphere - Sphere
   { // Full overlap
@@ -176,7 +183,7 @@ void collision_test()
   { // Contact, no overlap - XY
     are_colliding = Collision_Test_Function::sphere_sphere(
       sphere, vec3::zero_vector, quat::zero_quat,
-      sphere, vec3(2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.0f), quat::zero_quat,
+      sphere, vec3(2.0f * sin(45deg), 2.0f * sin(45deg), 0.0f), quat::zero_quat,
       result_normal, result_penetration);
 
     assert(are_colliding);
@@ -238,7 +245,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::sphere_capsule(
       sphere, vec3::zero_vector, quat::zero_quat,
-      capsule, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.5f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(45deg), 0.5f + 2.0f * cos(45deg)), quat::zero_quat,
       result_normal, result_penetration);
 
     assert(are_colliding);
@@ -300,7 +307,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::capsule_capsule(
       capsule, vec3::zero_vector, quat::zero_quat,
-      capsule, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 1.0f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(45deg), 1.0f + 2.0f * cos(45deg)), quat::zero_quat,
       result_normal, result_penetration);
 
     assert(are_colliding);
@@ -362,7 +369,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::capsule_sphere(
       capsule, vec3::zero_vector, quat::zero_quat,
-      sphere, vec3(0.0f, 2.0f * sin(MATH_DEG_TO_RAD(45.0f)), 0.5f + 2.0f * cos(MATH_DEG_TO_RAD(45.0f))), quat::zero_quat,
+      sphere, vec3(0.0f, 2.0f * sin(45deg), 0.5f + 2.0f * cos(45deg)), quat::zero_quat,
       result_normal, result_penetration);
 
     assert(are_colliding);
@@ -370,20 +377,37 @@ void collision_test()
     assert(is_nearly_equal(result_penetration, 0.0f));
   }
 
-  //for (int i = 0; i < 10; ++i)
+  // Convex - Convex
   { // Full overlap
     are_colliding = Collision_Test_Function::convex_convex(
-      tetrahedron, vec3::zero_vector, quat::zero_quat,
-      tetrahedron, vec3(0.0f, 0.0f, 0.1f), quat::zero_quat,
+      convex, vec3::zero_vector, quat::zero_quat,
+      convex, vec3(0.0f, 0.0f, 0.0f), quat::zero_quat,
       result_normal, result_penetration);
 
     assert(are_colliding);
-    // assert(result_normal.nearly_equal(vec3::up_vector));
-    // assert(is_nearly_equal(result_penetration, 2.0f));
+    //assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 2.0f));
   }
+  { // Half overlap
+    are_colliding = Collision_Test_Function::convex_convex(
+      convex, vec3::zero_vector, quat::zero_quat,
+      convex, vec3(0.0f, 0.0f, 1.0f), quat::zero_quat,
+      result_normal, result_penetration);
 
-  //Collision_Test_Function::sphere_capsule();
-  //Collision_Test_Function::capsule_sphere();
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 1.0f));
+  }
+  { // Contact. overlap
+    are_colliding = Collision_Test_Function::convex_convex(
+      convex, vec3::zero_vector, quat::zero_quat,
+      convex, vec3(0.0f, 0.0f, 2.0f), quat::zero_quat,
+      result_normal, result_penetration);
+
+    assert(are_colliding);
+    assert(result_normal.nearly_equal(vec3::up_vector));
+    assert(is_nearly_equal(result_penetration, 0.0f));
+  }
 }
 
 void engine_test(const Dynamic_Array<std::string>& args)

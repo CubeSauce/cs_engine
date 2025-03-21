@@ -9,25 +9,21 @@
 struct Box
 {
 public:
-    vec3 min { vec3::max_float_vector };
-    vec3 max { vec3::min_float_vector };
+    static Box empty_box;
 
 public:
-    Box();
+    vec3 min;
+    vec3 max;
+
+public:
+    Box() = default;
     Box(const vec3& in_min, const vec3& in_max);
 
-    Box(const Box& other);
-    Box(Box&& other) noexcept;
-    
-    Box& operator=(const Box& other);
-    Box& operator=(Box&& other) noexcept;
-
     void expand(const vec3& p);
+    void expand(const Box& other);
 
     bool intersects(const Box& other) const;
 
-    vec3 get_min() const;
-    vec3 get_max() const;
     vec3 get_center() const;
     vec3 get_extents() const;
     vec3 get_half_extents() const;

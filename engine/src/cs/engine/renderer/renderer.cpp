@@ -2,6 +2,9 @@
 #include "cs/engine/window.hpp"
 #include "cs/engine/renderer/camera.hpp"
 
+template<> 
+Renderer* Singleton<Renderer>::_singleton { nullptr };
+
 Renderer::Renderer()
 {
 }

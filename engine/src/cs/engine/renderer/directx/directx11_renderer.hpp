@@ -84,7 +84,8 @@ struct DirectX11_Submesh
 {
     DirectX11_Material material;
     ComPtr<ID3D11Buffer> vertex_buffer;
-    int32 vertices_count{0};
+    ComPtr<ID3D11Buffer> index_buffer;
+    int32 num_indices{0};
 };
 
 class DirectX11_Mesh : public Mesh

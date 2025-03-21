@@ -46,7 +46,7 @@ void Orthographic_Camera::calculate_view()
 
 void Perspective_Camera::calculate_projection()
 {
-	_projection = perspective_matrix(MATH_DEG_TO_RAD(FOV_deg), aspect_ratio, near_d, far_d);
+	_projection = perspective_matrix(FOV, aspect_ratio, near_d, far_d);
 }
 
 const mat4 correction = {

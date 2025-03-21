@@ -12,23 +12,30 @@
 #include <cstring>
 #include <filesystem>
 
-Mesh_Resource::Mesh_Resource(const std::string& filepath)
+Mesh_Import_Settings Mesh_Import_Settings::default_import_settings = { vec3::zero_vector, quat::zero_quat, vec3(1.0f) };
+
+Mesh_Resource::Mesh_Resource(const std::string& filepath, const Mesh_Import_Settings& import_settings)
 {
-    initialize_from_file(filepath);
+    initialize_from_file(filepath, import_settings);
 }
 
-bool Mesh_Resource::initialize_from_file(const std::string& filepath)
+bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh_Import_Settings& import_settings)
 {
     name = filepath.c_str();
 
-    mat4 qmat = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f)).to_mat4();
+    import_settings.import_offset;
+    import_settings.import_rotation;
+    import_settings.import_scale;
+
+    const mat4 import_mat = import_settings.import_rotation.to_mat4();
+    const mat4 import_mat_inv = import_mat.inverse();
 
     const char* extension = strrchr(filepath.c_str(), '.');
     assert(extension);
     assert(aiIsExtensionSupported(extension) == AI_TRUE);
 
     const char* folder = strrchr(filepath.c_str(), '/');
-    int32 folder_index = folder - filepath.c_str() + 1;
+    uint32 folder_index = folder - filepath.c_str() + 1;
 
     std::string folder_path(filepath);
     folder_path = folder_path.substr(0, folder_index);
@@ -79,43 +86,45 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath)
         const uint32 num_vertices = (int32)(ai_mesh->mNumFaces * 3);
         for (uint32 f = 0; f < ai_mesh->mNumFaces; ++f)
         {
-            Vertex_Data vertex;
+            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[2]);
+            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[1]);
+            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[0]);
+        }
+        
+        Vertex_Data vertex;
 
-            const aiFace& ai_face = ai_mesh->mFaces[f];
+        int32 indices[] = {2, 1, 0};  // TODO: Do this with culling
+        for (uint32 i = 0; i < ai_mesh->mNumVertices; ++i)
+        {                
+            const aiVector3D& v = ai_mesh->mVertices[i];
+            vertex.vertex_location = import_mat * vec3(v.x, v.y, v.z);
 
-            int32 indices[] = {2, 1, 0};  // TODO: Do this with culling
-            for (uint32 i = 0; i < ai_face.mNumIndices; ++i)
+            // Calculate mesh bounds for later
+            submesh_data.bounds.expand(vertex.vertex_location);
+            bounds.expand(vertex.vertex_location);
+
+            const aiVector3D& n = ai_mesh->mNormals[i];
+            vertex.vertex_normal = import_mat_inv * vec3(n.x, n.y, n.z);
+
+            vertex.vertex_color = material_color;
+
+            //TODO: Support multiple colors
+            if (has_uvs)
             {
-                int32 index = ai_face.mIndices[indices[i]];
-
-                const aiVector3D& v = ai_mesh->mVertices[index];
-                vertex.vertex_location = {v.x, v.y, v.z};
-
-                // Calculate mesh bounds for later
-                submesh_data.bounds.expand(vertex.vertex_location);
-                bounds.expand(vertex.vertex_location);
-
-                const aiVector3D& n = ai_mesh->mNormals[index];
-                vertex.vertex_normal = {n.x, n.y, n.z};
-
-                vertex.vertex_color = material_color;
-
-                //TODO: Support multiple colors
-                if (has_uvs)
+                for (uint32 u = 0; u < ai_mesh->GetNumUVChannels(); ++u)
                 {
-                    for (uint32 u = 0; u < ai_mesh->GetNumUVChannels(); ++u)
+                    if (ai_mesh->mTextureCoords[u])
                     {
-                        if (ai_mesh->mTextureCoords[u])
-                        {
-                            const aiVector3D& uv = ai_mesh->mTextureCoords[u][index];
-                            vertex.vertex_texture_coordinate = {uv.x, uv.y};
-                            break;
-                        }
+                        const aiVector3D& uv = ai_mesh->mTextureCoords[u][i];
+                        vertex.vertex_texture_coordinate = {uv.x, uv.y};
+                        break;
                     }
                 }
-
-                submesh_data.vertices.add(vertex);
             }
+
+            bounds.expand(vertex.vertex_location);
+            submesh_data.bounds.expand(vertex.vertex_location);
+            submesh_data.vertices.add(vertex);
         }
 
         submeshes.add(submesh_data);

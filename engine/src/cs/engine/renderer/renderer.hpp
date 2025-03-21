@@ -51,7 +51,7 @@ public:
     virtual Shared_Ptr<Texture> create_texture(const Shared_Ptr<Texture_Resource>& texture_resource) = 0;
 };
 
-class Renderer
+class Renderer : public Singleton<Renderer>
 {
 public:
     Shared_Ptr<Window> window;

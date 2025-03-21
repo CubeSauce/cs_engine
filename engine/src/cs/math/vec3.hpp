@@ -4,8 +4,9 @@
 #pragma once
 
 #include "cs/cs.hpp"
+#include "cs/math/vec2.hpp"
 
-struct  vec3
+struct fvec3
 {
 public:
     union
@@ -14,66 +15,79 @@ public:
         struct {
             float x, y, z;
         };
+        struct {
+            float r, g, b;
+        };
+        struct {
+            vec2 xy;
+            float z;
+        };
+        struct {
+            float x;
+            vec2 yz;
+        };
     };
 
-    static vec3 right_vector;
-    static vec3 forward_vector;
-    static vec3 up_vector;
+    static fvec3 right_vector;
+    static fvec3 forward_vector;
+    static fvec3 up_vector;
 
-    static vec3 zero_vector;
-    static vec3 one_vector;
+    static fvec3 zero_vector;
+    static fvec3 one_vector;
     
-    static vec3 min_float_vector;
-    static vec3 max_float_vector;
+    static fvec3 min_float_vector;
+    static fvec3 max_float_vector;
 
 public:
 
-    vec3() = default;
-    vec3(float v);
-    vec3(float x, float y, float z);
+    fvec3() = default;
+    fvec3(float v);
+    fvec3(float x, float y, float z);
 
-    bool nearly_equal(const vec3& other, float delta = NEARLY_ZERO) const;
+    bool nearly_equal(const fvec3& other, float delta = NEARLY_ZERO) const;
 
     float operator[](int32 index) const;
     float& operator[](int32 index);
 
-    vec3& operator+=(float v);
-    vec3 operator+(float v) const;
-    vec3& operator-=(float v);
-    vec3 operator-(float v) const;
-    vec3& operator*=(float v);
-    vec3 operator*(float v) const;
-    vec3& operator/=(float v);
-    vec3 operator/(float v) const;
+    fvec3& operator+=(float v);
+    fvec3 operator+(float v) const;
+    fvec3& operator-=(float v);
+    fvec3 operator-(float v) const;
+    fvec3& operator*=(float v);
+    fvec3 operator*(float v) const;
+    fvec3& operator/=(float v);
+    fvec3 operator/(float v) const;
     
-    vec3& operator+=(const vec3& other);
-    vec3 operator+(const vec3& other) const;
-    vec3& operator-=(const vec3& other);
-    vec3 operator-(const vec3& other) const;
-    vec3& operator*=(const vec3& other);
-    vec3 operator*(const vec3& other) const;
-    vec3& operator/=(const vec3& other);
-    vec3 operator/(const vec3& other) const;
+    fvec3& operator+=(const fvec3& other);
+    fvec3 operator+(const fvec3& other) const;
+    fvec3& operator-=(const fvec3& other);
+    fvec3 operator-(const fvec3& other) const;
+    fvec3& operator*=(const fvec3& other);
+    fvec3 operator*(const fvec3& other) const;
+    fvec3& operator/=(const fvec3& other);
+    fvec3 operator/(const fvec3& other) const;
 
-    vec3 operator-() const;
+    fvec3 operator-() const;
 
-    bool operator>(const vec3& other) const;
-    bool operator>=(const vec3& other) const;
-    bool operator<(const vec3& other) const;
-    bool operator<=(const vec3& other) const;
+    bool operator>(const fvec3& other) const;
+    bool operator>=(const fvec3& other) const;
+    bool operator<(const fvec3& other) const;
+    bool operator<=(const fvec3& other) const;
 
     float length_squared() const;
     float length() const;
-    vec3& normalize();
-    vec3 normalized() const;
-    vec3 cross(const vec3& other) const;
-    float dot(const vec3& other) const;
+    fvec3& normalize();
+    fvec3 normalized() const;
+    fvec3 cross(const fvec3& other) const;
+    float dot(const fvec3& other) const;
+
+    fvec3 perpendicular() const;
 };
 
-vec3 sin(const vec3& other);
-vec3 cos(const vec3& other);
+fvec3 sin(const fvec3& other);
+fvec3 cos(const fvec3& other);
 
-#define DECOMPOSE_VEC3(v3) v3.x, v3.y, v3.z
+using vec3 = fvec3;
 
 struct  ivec3
 {
