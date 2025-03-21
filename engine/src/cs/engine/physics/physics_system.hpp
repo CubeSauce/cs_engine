@@ -29,6 +29,7 @@ struct Convex_Hull_Shape
 {
     int32 count;
     vec3 vertices[CONVEX_HULL_MAX_NUM_VERTICES];
+    float volume;
 };
 
 struct Collider
@@ -38,7 +39,7 @@ struct Collider
         Sphere,
         Capsule,
         Cylinder,
-        OBB,
+        Box,
         Convex_Hull,
         TYPE_COUNT
     };
@@ -47,6 +48,11 @@ struct Collider
     union {
         Sphere_Shape sphere;
         Capsule_Shape capsule;
+        struct
+        {
+            float radius;
+            float height;
+        } cylinder;
         Convex_Hull_Shape convex_hull;
     } shape;
     Box bounds;
@@ -68,6 +74,9 @@ struct Physics_Body
     Name_Id id;
     Type type { None };
 
+    vec3 center_of_mass { vec3::zero_vector };
+    mat4 inverse_inertia_tensor { mat4(1.0f) };
+
     float inverse_mass { 1.0f };
     // 0 -> inelastic, 1 -> perfect elastic
     float restitution { 0.5f };
@@ -81,14 +90,10 @@ struct Physics_Body
     struct State
     {
         vec3 accumulated_forces { vec3::zero_vector };
+        vec3 accumulated_torque { vec3::zero_vector };
 
         vec3 velocity { vec3::zero_vector };
         vec3 angular_velocity { vec3::zero_vector };
-        
-        /*
-        vec3 acceleration;
-        vec3 angular_acceleration;
-        */
     } state;
 
     Collider collider;
@@ -100,15 +105,21 @@ struct Physics_Body
     void update_state(float dt);
     void update_transform(float dt);
 
+    // Does not produce torque
     void apply_force(const vec3& force);
     void apply_impulse(const vec3& impulse);
-    void clear_forces();
+    // Produces torque
+    void apply_force_at_offset(const vec3& force, const vec3& force_offset);
+    void apply_impulse_at_offset(const vec3& impulse, const vec3& force_offset);
 };
 
+// All values in relation to body a
 struct Collision_Result
 {
     int32 a_index { -1 }, b_index { -1 };
     vec3 normal { vec3::zero_vector };
+    vec3 contact_point_a { vec3::zero_vector };
+    vec3 contact_point_b { vec3::zero_vector };
     float penetration { 0.0f };
 };
 

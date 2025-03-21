@@ -14,12 +14,16 @@ void Physics_Body::update_state(float dt)
     if (type == Dynamic)
     {
         state.velocity += state.accumulated_forces * dt;
+        state.angular_velocity += inverse_inertia_tensor * state.accumulated_torque * dt;
     }
     else if (type == Kinematic)
     {
         state.velocity = (transform.position - old_transform.position) / dt;
         old_transform = transform;
     }
+
+    state.accumulated_forces = vec3::zero_vector;
+    state.accumulated_torque = vec3::zero_vector;
 }
 
 void Physics_Body::update_transform(float dt)
@@ -30,6 +34,9 @@ void Physics_Body::update_transform(float dt)
     }
 
     transform.position += state.velocity * dt;
+    transform.orientation = transform.orientation.mul(quat(state.angular_velocity * 0.5f * dt, 1.0f));
+    transform.orientation.normalize();
+
     dirty = true;
 }
 
@@ -53,9 +60,26 @@ void Physics_Body::apply_impulse(const vec3& impulse)
     state.accumulated_forces += impulse * inverse_mass;
 }
 
-void Physics_Body::clear_forces()
+void Physics_Body::apply_force_at_offset(const vec3& force, const vec3& force_offset)
 {
-    state.accumulated_forces = vec3::zero_vector;
+    if (type != Dynamic)
+    {
+        return;
+    }
+
+    state.accumulated_forces += force;
+    state.accumulated_torque += (force_offset - center_of_mass).cross(force);
+}
+
+void Physics_Body::apply_impulse_at_offset(const vec3& impulse, const vec3& force_offset)
+{
+    if (type != Dynamic)
+    {
+        return;
+    }
+
+    state.accumulated_forces += impulse * inverse_mass;
+    state.accumulated_torque += (force_offset - center_of_mass).cross(impulse * inverse_mass);
 }
 
 template<> 
@@ -152,7 +176,7 @@ void Physics_System::_execute_narrowphase(float dt)
         result.b_index = other_index;
         if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
             other_body.collider, other_body.transform.position, other_body.transform.orientation, 
-            result.normal, result.penetration))
+            result))
         {
             _narrowphase_collisions[collision_pair.a].add(result);
         }
@@ -209,11 +233,6 @@ void Physics_System::_resolve_collisions(float dt)
     {
         body.update_transform(dt);
     }
-
-    for (Physics_Body& body : _bodies)
-    {
-        body.clear_forces();
-    }
 }
 
 void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const Collision_Result& collision)
@@ -236,23 +255,40 @@ void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const 
         } 
     }
 
-    const vec3 relative_velocity = b.state.velocity - a.state.velocity;
+    const vec3 r_a = collision.contact_point_a;// - a.transform.position;
+    const vec3 r_b = collision.contact_point_b;// - a.transform.position;
+
+    //Vector3f vRel = (A.velocity + A.angularVelocity.cross(rA)) - (B.velocity + B.angularVelocity.cross(rB));
+
+    const vec3 vel_a = a.state.velocity + a.state.angular_velocity.cross(r_a);
+    const vec3 vel_b = b.state.velocity + b.state.angular_velocity.cross(r_b);
+    const vec3 relative_velocity = vel_b - vel_a;
     const float normal_velocity = relative_velocity.dot(collision.normal);
 
     // Already separated
     if (normal_velocity > 0) return;
 
-    const float impulse_magnitude = -(1 + a.restitution) * normal_velocity / inverse_total_mass;
-    const vec3 impulse = collision.normal * impulse_magnitude;
+    const mat4& iit_a = a.inverse_inertia_tensor;
+    const mat4& iit_b = b.inverse_inertia_tensor;
 
+    const float denominator = inverse_total_mass + 
+        r_a.cross(collision.normal).dot(iit_a * r_a.cross(collision.normal)) +
+        r_b.cross(collision.normal).dot(iit_b * r_b.cross(collision.normal));
+
+    // Stiffer body regulates outcome
+    const float impulse_magnitude = -(1 + std::min(a.restitution, b.restitution)) * normal_velocity / denominator;
+
+    vec3 impulse_vector = collision.normal * impulse_magnitude;
     if (a.type == Physics_Body::Dynamic)
     {
-        a.state.velocity -= impulse * a.inverse_mass;
+        a.state.velocity -= impulse_vector * a.inverse_mass;
+        a.state.angular_velocity -= iit_a * r_a.cross(impulse_vector);
         a.dirty = true;
     } 
     if (b.type == Physics_Body::Dynamic)
     {
-        b.state.velocity += impulse * b.inverse_mass;
+        b.state.velocity += collision.normal * impulse_magnitude * b.inverse_mass;
+        b.state.angular_velocity += iit_b * r_b.cross(impulse_vector);
         b.dirty = true;
     } 
 }

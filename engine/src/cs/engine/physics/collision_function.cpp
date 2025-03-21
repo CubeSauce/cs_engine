@@ -7,6 +7,89 @@
 
 namespace Collision_Helpers
 {
+    mat4 _inertia_tensor_sphere(const Collider& collider, const float mass)
+    {
+        const float radius = collider.shape.sphere.radius;
+        const float inertia = (2.0f/5.0f) * radius * radius * mass;
+        return mat4(inertia).inverse();
+    }
+
+    mat4 _inertia_tensor_capsule(const Collider& collider, const float mass)
+    {
+        const float radius = collider.shape.capsule.radius;
+        const float height = collider.shape.capsule.length;
+        
+        const float cylinderMass = mass * (height / (height + 2 * radius));
+        const float sphereMass = (mass - cylinderMass) / 2.0f;
+        const float Ixx_cyl = (1.0f / 12.0f) * cylinderMass * (3 * radius * radius + height * height);
+        const float Izz_cyl = (1.0f / 2.0f) * cylinderMass * radius * radius;
+        const float Ixx_sphere = (2.0f / 5.0f) * sphereMass * radius * radius * 0.5f;
+        const float Izz_sphere = Ixx_sphere;
+        const float Ixx = Ixx_cyl + 2.0f * Ixx_sphere;
+        const float Iyy = Ixx;
+        const float Izz = Izz_cyl + 2.0f * Izz_sphere;
+    
+        return mat4(
+            vec4( Ixx, 0.0f, 0.0f, 0.0f),
+            vec4(0.0f,  Iyy, 0.0f, 0.0f),
+            vec4(0.0f, 0.0f,  Izz, 0.0f),
+            vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        ).inverse();
+    }
+
+    mat4 _inertia_tensor_cylinder(const Collider& collider, const float mass)
+    {
+        const float height = collider.shape.cylinder.height;
+        const float radius = collider.shape.cylinder.radius;
+        float Ixx = (1.0f / 12.0f) * (3 * radius * radius + height * height) * mass;
+        float Iyy = Ixx;
+        float Izz = (1.0f / 2.0f) * radius * radius * mass;
+        
+        return mat4(
+            vec4( Ixx, 0.0f, 0.0f, 0.0f),
+            vec4(0.0f,  Iyy, 0.0f, 0.0f),
+            vec4(0.0f, 0.0f,  Izz, 0.0f),
+            vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        ).inverse();
+    }
+
+    mat4 _inertia_tensor_box(const Collider& collider, const float mass)
+    {
+        //TODO: add box collider
+        const Box box = Box::empty_box;
+        const vec3 box_extents = box.get_extents();        
+        float Ixx = (1.0f / 12.0f) * (box_extents.z * box_extents.z + box_extents.y * box_extents.y) * mass;
+        float Iyy = (1.0f / 12.0f) * (box_extents.x * box_extents.x + box_extents.y * box_extents.y) * mass;
+        float Izz = (1.0f / 12.0f) * (box_extents.x * box_extents.x + box_extents.z * box_extents.z) * mass;
+        
+        return mat4(
+            vec4( Ixx, 0.0f, 0.0f, 0.0f),
+            vec4(0.0f,  Iyy, 0.0f, 0.0f),
+            vec4(0.0f, 0.0f,  Izz, 0.0f),
+            vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        ).inverse();
+    }
+
+    mat4 _inertia_tensor_convex(const Collider& collider, const float mass)
+    {
+        //TODO: tetrahedral decomposition
+        return mat4(1.0f);
+    }
+
+    mat4 inertia_tensor(const Collider& collider, const float mass)
+    {
+        switch(collider.type)
+        {
+        case Collider::Sphere: return _inertia_tensor_sphere(collider, mass);
+        case Collider::Capsule: return _inertia_tensor_capsule(collider, mass);
+        case Collider::Cylinder: return _inertia_tensor_cylinder(collider, mass);
+        case Collider::Box: return _inertia_tensor_box(collider, mass);
+        case Collider::Convex_Hull: return _inertia_tensor_convex(collider, mass);
+        }
+
+        return mat4(1.0f);
+    }
+
     void closest_line_point_segment(const vec3& s_a, const vec3& e_a, const vec3& s_b, const vec3& e_b, vec3& out_closest_a, vec3& out_closest_b)
     {
         const vec3 d1 = e_a - s_a; // Direction of segment A
@@ -347,7 +430,7 @@ namespace Collision_Helpers
     // Expanding polytope algorithm - https://winter.dev/articles/epa-algorithm
     bool epa(const vec3 (&vertices_a)[CONVEX_HULL_MAX_NUM_VERTICES], int32 count_a, const vec3& p_a,
         const vec3 (&vertices_b)[CONVEX_HULL_MAX_NUM_VERTICES], int32 count_b, const vec3& p_b, 
-        const vec3 (&simplex)[4], vec3& out_normal, float& out_penetration)
+        const vec3 (&simplex)[4], Collision_Result& result)
     {
         std::vector<vec3> polytope = { simplex[0], simplex[1], simplex[2], simplex[3] };
         std::vector<size_t> faces = {
@@ -363,6 +446,7 @@ namespace Collision_Helpers
 
         vec3 min_normal;
         float min_distance = FLT_MAX;
+        vec3 support;
 
         while (min_distance == FLT_MAX)
         {
@@ -445,8 +529,10 @@ namespace Collision_Helpers
             }
         }
 
-        out_normal = min_normal;
-        out_penetration = min_distance;
+        result.normal = min_normal;
+        result.penetration = min_distance;
+        result.contact_point_a = support - min_normal * min_distance * 0.5f;
+        result.contact_point_b = support + min_normal * min_distance * 0.5f;
 
         return true;
     }
@@ -454,7 +540,7 @@ namespace Collision_Helpers
 
 namespace Collision_Test_Function
 {
-    bool sphere_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    bool sphere_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
     {
         PROFILE_FUNCTION()
         
@@ -473,19 +559,21 @@ namespace Collision_Test_Function
         const float dist = sqrt(distance_squared);
         if (dist > 0.0f)
         {
-            out_normal = direction / dist;
+            result.normal = direction / dist;
         }
         else
         {
-            out_normal = vec3::up_vector;
+            result.normal = vec3::up_vector;
         }
 
-        out_penetration = sum_r - dist;
-
+        result.penetration = sum_r - dist;
+        result.contact_point_a = p_a + result.normal * result.penetration;
+        result.contact_point_b = p_b - result.normal * result.penetration;
+        
         return true;
     }
 
-    bool sphere_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    bool sphere_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
     {
         PROFILE_FUNCTION()
         
@@ -503,20 +591,20 @@ namespace Collision_Test_Function
         Collider sphere_b;
         sphere_b.type = Collider::Sphere;
         sphere_b.shape.sphere.radius = b.shape.capsule.radius;
-        return sphere_sphere(a, p_a, o_a, sphere_b, closest_b, o_b, out_normal, out_penetration);
+        return sphere_sphere(a, p_a, o_a, sphere_b, closest_b, o_b, result);
     }
 
-    bool capsule_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    bool capsule_sphere(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
     {
         PROFILE_FUNCTION()
         
         assert(a.type == Collider::Capsule);
         assert(b.type == Collider::Sphere);
 
-        return sphere_capsule(b, p_b, o_b, a, p_a, o_a, out_normal, out_penetration);
+        return sphere_capsule(b, p_b, o_b, a, p_a, o_a, result);
     }
 
-    bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
     {
         PROFILE_FUNCTION()
 
@@ -541,11 +629,11 @@ namespace Collision_Test_Function
         sphere_a.shape.sphere.radius = a.shape.capsule.radius;
         sphere_b.type = Collider::Sphere;
         sphere_b.shape.sphere.radius = b.shape.capsule.radius;
-        return sphere_sphere(sphere_a, closest_a, o_a, sphere_b, closest_b, o_b, out_normal, out_penetration);
+        return sphere_sphere(sphere_a, closest_a, o_a, sphere_b, closest_b, o_b, result);
     }
 
     // Massive thanks to https://winter.dev/ for extremely intuitive explanation and an implementation example
-    bool convex_convex(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, vec3& out_normal, float& out_penetration)
+    bool convex_convex(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
     {
         PROFILE_FUNCTION()
 
@@ -568,6 +656,6 @@ namespace Collision_Test_Function
             return false;
         }
 
-        return Collision_Helpers::epa(vertices_a, count_a, p_a, vertices_b, count_b, p_b, simplex, out_normal, out_penetration);
+        return Collision_Helpers::epa(vertices_a, count_a, p_a, vertices_b, count_b, p_b, simplex, result);
     }
 }

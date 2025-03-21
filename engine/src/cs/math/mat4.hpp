@@ -13,6 +13,7 @@ public:
     vec4 columns[4];
 
 public:
+	mat4() = default;
 	mat4(float v);
 	mat4(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3);
 	mat4(const mat4& other);

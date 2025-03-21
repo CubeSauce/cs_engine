@@ -19,5 +19,5 @@ vec3 Transform_Component::get_world_position() const
 
 quat Transform_Component::get_world_orientation() const
 {
-    return quat::from_mat4(local_to_world).mul(local_orientation);
+    return {local_to_world * local_orientation.v, local_orientation.w};
 }
