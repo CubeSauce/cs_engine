@@ -18,11 +18,14 @@ Build using CMake
 - [x] Input system
 - [x] Multithreading (Task/Job system)
 - [x] Profiling ([chrometracing](https://www.chromium.org/developers/how-tos/trace-event-profiling-tool/))
-- [x] Basic physics system
+### Physics
+- [x] Broadphase Sweep and Prune
+- [x] GJK and EPA for Convex to Convex collisions
+- [ ] Example integration with game code
 ### Rendering
 - [x] DirectX
 - [ ] Vulkan
-- [x] OpenGL
+- [ ] OpenGL
 - [ ] Batch rendering
 - [ ] Hot-Reloading shaders
 ### Window framework
