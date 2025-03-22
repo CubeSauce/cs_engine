@@ -16,7 +16,11 @@ class Task : public Shared_From_This<Task>
 {
 public:
     using Job = std::function<void(void)>;
+#if defined CS_PLATFORM_WINDOWS
     using Binding = std::_Binder<std::_Unforced, void (Task::*)(), Task *>;
+#else
+    using Binding = std::__bind<void (Task::*)(), Task *>;
+#endif
 
     Task(const Job& job);
 
