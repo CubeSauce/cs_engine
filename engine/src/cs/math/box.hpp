@@ -6,23 +6,23 @@
 #include "cs/cs.hpp"
 #include "cs/math/vec3.hpp"
 
-struct Box
+struct AABB
 {
 public:
-    static Box empty_box;
+    static AABB empty_box;
 
 public:
     vec3 min;
     vec3 max;
 
 public:
-    Box() = default;
-    Box(const vec3& in_min, const vec3& in_max);
+    AABB() = default;
+    AABB(const vec3& in_min, const vec3& in_max);
 
     void expand(const vec3& p);
-    void expand(const Box& other);
+    void expand(const AABB& other);
 
-    bool intersects(const Box& other) const;
+    bool intersects(const AABB& other) const;
 
     vec3 get_center() const;
     vec3 get_extents() const;

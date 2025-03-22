@@ -72,6 +72,7 @@ struct Physics_Body_Component : public Component
 {
     Physics_Body::Type type;
     Collider collider;
+    float mass{1};
 };
 DECLARE_PRINT_TYPE(Physics_Body_Component)
 

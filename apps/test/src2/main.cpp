@@ -23,9 +23,8 @@ public:
         import_settings.import_rotation = quat::from_euler_angles(vec3(-90.0deg, 0.0f, 0.0f));
         mesh_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/sphere.obj", import_settings);
 
-        _add_object("floor", vec3::zero_vector, quat::zero_quat, Shared_Ptr<Mesh_Resource>(), Physics_Body::Static);
+        //_add_object("floor", vec3::zero_vector, quat::zero_quat, Shared_Ptr<Mesh_Resource>(), Physics_Body::Static);
         _add_object("kimono", vec3::zero_vector, quat::zero_quat, mesh_res, Physics_Body::Kinematic);
-
         _add_object(std::format("kimono{}", 2).c_str(), vec3(-2.5f, 0.0f, 0.5f), quat::zero_quat, mesh_res, Physics_Body::Dynamic);
     }
 
@@ -155,8 +154,8 @@ private:
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
         camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, -15.0f, 15.0f);
-        camera_transform.local_orientation = quat::from_euler_angles(vec3(-35deg, 0.0f, 0deg));
+        camera_transform.local_position = vec3(0.0f, -15.0f, -15.0f);
+        camera_transform.local_orientation = quat::from_euler_angles(vec3(35deg, 0.0f, 0deg));
     }
 
     void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
@@ -173,9 +172,10 @@ private:
         Physics_Body_Component& pb = _physics_body_components.add(name);
         pb.type = type;
         pb.component_id = name;
+        pb.mass = 0.01f;
         if (mesh_resource)
         {
-            const Box& mesh_bounds = mesh_resource->bounds;
+            const AABB& mesh_bounds = mesh_resource->bounds;
             const vec3& extents = mesh_bounds.get_extents();
             float capsule_radius = extents.xy.length() * 0.5f;
             float capsule_length = extents.z - capsule_radius * 2;
@@ -184,7 +184,7 @@ private:
             pb.collider.shape.sphere.radius = 1.0f;
             //pb.collider.type = Collider::Capsule;
             //pb.collider.shape.capsule = { .radius = capsule_radius , .length = capsule_length };
-            pb.collider.bounds = Box(vec3(-capsule_radius), vec3(capsule_radius));
+            pb.collider.bounds = AABB(vec3(-1.0f), vec3(1.0f));
         }
         else
         {
@@ -263,6 +263,7 @@ private:
                 body.transform.orientation = transform_component->get_world_orientation();
     
                 body.collider = component.collider;
+                body.inverse_mass = 1.0f / component.mass;
             }
 
             if (body.type != Physics_Body::Kinematic ||

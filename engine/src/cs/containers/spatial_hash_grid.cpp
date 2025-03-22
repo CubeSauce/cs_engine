@@ -14,7 +14,7 @@ Spatial_Hash_Grid::Spatial_Hash_Grid(float cell_size)
     assert(fabs(_cell_size) > NEARLY_ZERO);
 }
 
-void Spatial_Hash_Grid::add(const Name_Id& in_id, const Box& in_bounds)
+void Spatial_Hash_Grid::add(const Name_Id& in_id, const AABB& in_bounds)
 {
     PROFILE_FUNCTION()
 
@@ -44,7 +44,7 @@ void Spatial_Hash_Grid::add(const Name_Id& in_id, const Box& in_bounds)
     }
 }
 
-void Spatial_Hash_Grid::update(const Name_Id& in_id, const Box& in_bounds)
+void Spatial_Hash_Grid::update(const Name_Id& in_id, const AABB& in_bounds)
 {
     PROFILE_FUNCTION()
     
@@ -63,7 +63,7 @@ void Spatial_Hash_Grid::update(const Name_Id& in_id, const Box& in_bounds)
     add(in_id, in_bounds);
 }
 
-int32 Spatial_Hash_Grid::get_potential_collisions(const Name_Id& in_id, const Box& in_bounds, Dynamic_Array<Name_Id>& out_potential_colliders)
+int32 Spatial_Hash_Grid::get_potential_collisions(const Name_Id& in_id, const AABB& in_bounds, Dynamic_Array<Name_Id>& out_potential_colliders)
 {
     PROFILE_FUNCTION()
 
@@ -119,7 +119,7 @@ void Spatial_Hash_Grid::sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_I
         for (int32 ai = 0; ai < cell.object_ids.size(); ++ai)
         {
             const Name_Id& a = cell.object_ids[ai];
-            const Box& bounds_a = _bounds[a];
+            const AABB& bounds_a = _bounds[a];
             for (int32 bi = ai + 1; bi < cell.object_ids.size(); ++bi)
             {
                 const Name_Id& b = cell.object_ids[bi];
@@ -128,7 +128,7 @@ void Spatial_Hash_Grid::sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_I
                     continue;
                 }
 
-                const Box& bounds_b = _bounds[b];
+                const AABB& bounds_b = _bounds[b];
 
                 if (bounds_b.min.x > bounds_a.max.x)
                 {
@@ -154,7 +154,7 @@ bool Spatial_Hash_Grid::_check_aabb_intersection(const Name_Id& a_id, const Name
     return _bounds[a_id].intersects(_bounds[b_id]);
 }
 
-void Spatial_Hash_Grid::_get_cells_for_bounds(const Box& in_bounds, ivec3& out_min, ivec3& out_max) const 
+void Spatial_Hash_Grid::_get_cells_for_bounds(const AABB& in_bounds, ivec3& out_min, ivec3& out_max) const 
 {
     out_min = { 
         static_cast<int32>(std::floor(in_bounds.min.x / _cell_size)),

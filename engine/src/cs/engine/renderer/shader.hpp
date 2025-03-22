@@ -4,24 +4,7 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/math/math.hpp"
-#include "cs/engine/name_id.hpp"
-#include "cs/memory/shared_ptr.hpp"
-#include "cs/engine/resource.hpp"
-
-class Shader_Resource : public Resource
-{
-public:
-    struct
-    {
-        const char* vertex_filepath = "";
-        const char* geometry_filepath = "";
-        union {
-            const char* fragment_filepath = "";
-            const char* pixel_filepath;
-        };
-    } source_paths [5]; // TODO: This would be nicer if we could compile from one source
-};
+#include "cs/engine/resource/renderer_resources.hpp"
 
 class Shader
 {

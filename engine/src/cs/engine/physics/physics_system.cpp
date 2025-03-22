@@ -4,7 +4,7 @@
 #include "cs/engine/physics/physics_system.hpp"
 #include "cs/engine/renderer/renderer.hpp"
 
-Box Physics_Body::get_transformed_bounds() const
+AABB Physics_Body::get_transformed_bounds() const
 {
     return { collider.bounds.min + transform.position, collider.bounds.max + transform.position };
 }
@@ -19,6 +19,17 @@ void Physics_Body::update_state(float dt)
     else if (type == Kinematic)
     {
         state.velocity = (transform.position - old_transform.position) / dt;
+        const quat delta = transform.orientation.mul(old_transform.orientation.conjugate()).normalized();
+        const float theta = 2.0f * acosf(delta.w);
+        const float s2t = sinf(theta * 0.5f);
+        if (!is_nearly_equal(s2t, 0))
+        {
+            state.angular_velocity = (delta.v / s2t) * (theta / dt);
+        }
+        else
+        {
+            state.angular_velocity = vec3::zero_vector;
+        }
         old_transform = transform;
     }
 
@@ -125,8 +136,28 @@ void Physics_System::_init_collision_functions()
 {
     _collision_functions[Collider::Sphere][Collider::Sphere] = Collision_Test_Function::sphere_sphere;
     _collision_functions[Collider::Sphere][Collider::Capsule] = Collision_Test_Function::sphere_capsule;
+    _collision_functions[Collider::Sphere][Collider::Cylinder] = Collision_Test_Function::sphere_cylinder;
+    _collision_functions[Collider::Sphere][Collider::Box] = Collision_Test_Function::sphere_box;
+    _collision_functions[Collider::Sphere][Collider::Convex_Hull] = Collision_Test_Function::sphere_convex;
     _collision_functions[Collider::Capsule][Collider::Sphere] = Collision_Test_Function::capsule_sphere;
     _collision_functions[Collider::Capsule][Collider::Capsule] = Collision_Test_Function::capsule_capsule;
+    _collision_functions[Collider::Capsule][Collider::Cylinder] = Collision_Test_Function::capsule_cylinder;
+    _collision_functions[Collider::Capsule][Collider::Box] = Collision_Test_Function::capsule_box;
+    _collision_functions[Collider::Capsule][Collider::Convex_Hull] = Collision_Test_Function::capsule_convex;
+    _collision_functions[Collider::Cylinder][Collider::Sphere] = Collision_Test_Function::cylinder_sphere;
+    _collision_functions[Collider::Cylinder][Collider::Capsule] = Collision_Test_Function::cylinder_capsule;
+    _collision_functions[Collider::Cylinder][Collider::Cylinder] = Collision_Test_Function::cylinder_cylinder;
+    _collision_functions[Collider::Cylinder][Collider::Box] = Collision_Test_Function::cylinder_box;
+    _collision_functions[Collider::Cylinder][Collider::Convex_Hull] = Collision_Test_Function::cylinder_convex;
+    _collision_functions[Collider::Box][Collider::Sphere] = Collision_Test_Function::box_sphere;
+    _collision_functions[Collider::Box][Collider::Capsule] = Collision_Test_Function::box_capsule;
+    _collision_functions[Collider::Box][Collider::Cylinder] = Collision_Test_Function::box_cylinder;
+    _collision_functions[Collider::Box][Collider::Box] = Collision_Test_Function::box_box;
+    _collision_functions[Collider::Box][Collider::Convex_Hull] = Collision_Test_Function::box_convex;
+    _collision_functions[Collider::Convex_Hull][Collider::Sphere] = Collision_Test_Function::convex_sphere;
+    _collision_functions[Collider::Convex_Hull][Collider::Capsule] = Collision_Test_Function::convex_capsule;
+    _collision_functions[Collider::Convex_Hull][Collider::Cylinder] = Collision_Test_Function::convex_cylinder;
+    _collision_functions[Collider::Convex_Hull][Collider::Box] = Collision_Test_Function::convex_box;
     _collision_functions[Collider::Convex_Hull][Collider::Convex_Hull] = Collision_Test_Function::convex_convex;
 }
 
@@ -143,12 +174,6 @@ void Physics_System::_execute_broadphase(float dt)
     }
 
     _hash_grid.sweep_and_prune_cells(_broadphase_collision_pairs);
-
-    // Sweep and Prune
-    //for (const Physics_Body& body : _bodies)
-    //{
-    //    _hash_grid.get_potential_collisions(body.id, body.get_transformed_bounds(), _broadphase_collisions[body.id]);
-    //}
 }
 
 void Physics_System::_execute_narrowphase(float dt)
@@ -181,37 +206,6 @@ void Physics_System::_execute_narrowphase(float dt)
             _narrowphase_collisions[collision_pair.a].add(result);
         }
     }
-
-    // for (const auto& potential_collisions : _broadphase_collisions)
-    // {
-    //     const uint32 this_hash = potential_collisions.first;
-        
-    //     const int32 this_index = _id_to_index[this_hash];
-    //     Physics_Body& this_body = _bodies[this_index];
-
-    //     for (const Name_Id& other_id : potential_collisions.second)
-    //     {
-    //         const int32 other_index = _id_to_index[other_id];
-    //         Physics_Body& other_body = _bodies[other_index];
-
-    //         Collision_Test_Function::Definition f = _collision_functions[this_body.collider.type][other_body.collider.type];
-    //         if (f == nullptr)
-    //         {
-    //             printf("Can't find collision test function for given collider types.\n");
-    //             continue;
-    //         }
-
-    //         Collision_Result result;
-    //         result.a_index = this_index;
-    //         result.b_index = other_index;
-    //         if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
-    //             other_body.collider, other_body.transform.position, other_body.transform.orientation, 
-    //             result.normal, result.penetration))
-    //         {
-    //             _narrowphase_collisions[this_hash].add(result);
-    //         }
-    //     }
-    // }
 }
 
 void Physics_System::_resolve_collisions(float dt)
@@ -241,7 +235,8 @@ void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const 
     const float inverse_total_mass = a.inverse_mass + b.inverse_mass;
     if (inverse_total_mass > 0.0f)
     {
-        const vec3 c = collision.normal * (collision.penetration / inverse_total_mass);
+        // Apply a fraction of position correction
+        const vec3 c = collision.normal * 0.1f * (collision.penetration / inverse_total_mass);
 
         if (a.type == Physics_Body::Dynamic)
         {
@@ -255,10 +250,8 @@ void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const 
         } 
     }
 
-    const vec3 r_a = collision.contact_point_a;// - a.transform.position;
-    const vec3 r_b = collision.contact_point_b;// - a.transform.position;
-
-    //Vector3f vRel = (A.velocity + A.angularVelocity.cross(rA)) - (B.velocity + B.angularVelocity.cross(rB));
+    const vec3 r_a = collision.contact_point - a.transform.position;
+    const vec3 r_b = collision.contact_point - b.transform.position;
 
     const vec3 vel_a = a.state.velocity + a.state.angular_velocity.cross(r_a);
     const vec3 vel_b = b.state.velocity + b.state.angular_velocity.cross(r_b);
@@ -266,7 +259,10 @@ void Physics_System::_resolve_collision(Physics_Body& a, Physics_Body& b, const 
     const float normal_velocity = relative_velocity.dot(collision.normal);
 
     // Already separated
-    if (normal_velocity > 0) return;
+    if (normal_velocity > 0) 
+    {
+        return;
+    }
 
     const mat4& iit_a = a.inverse_inertia_tensor;
     const mat4& iit_b = b.inverse_inertia_tensor;

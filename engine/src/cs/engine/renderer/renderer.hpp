@@ -5,6 +5,7 @@
 #include "cs/engine/renderer/mesh.hpp"
 #include "cs/engine/renderer/camera.hpp"
 #include "cs/engine/renderer/shader.hpp"
+#include "cs/engine/renderer/texture.hpp"
 #include "cs/engine/renderer/material.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 

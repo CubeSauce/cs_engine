@@ -5,10 +5,10 @@
 
 #include "cs/cs.hpp"
 #include "cs/math/math.hpp"
-#include "cs/engine/name_id.hpp"
 #include "cs/containers/dynamic_array.hpp"
-#include "cs/engine/profiling/profiler.hpp"
 #include "cs/containers/spatial_hash_grid.hpp"
+#include "cs/engine/name_id.hpp"
+#include "cs/engine/profiling/profiler.hpp"
 #include "cs/engine/physics/collision_function.hpp"
 
 #include <unordered_map>
@@ -53,9 +53,10 @@ struct Collider
             float radius;
             float height;
         } cylinder;
+        AABB bounding_box;
         Convex_Hull_Shape convex_hull;
     } shape;
-    Box bounds;
+    AABB bounds;
 };
 
 struct Physics_Body
@@ -100,7 +101,7 @@ struct Physics_Body
 
     bool dirty;
 
-    Box get_transformed_bounds() const;
+    AABB get_transformed_bounds() const;
 
     void update_state(float dt);
     void update_transform(float dt);
@@ -113,13 +114,12 @@ struct Physics_Body
     void apply_impulse_at_offset(const vec3& impulse, const vec3& force_offset);
 };
 
-// All values in relation to body a
 struct Collision_Result
 {
     int32 a_index { -1 }, b_index { -1 };
     vec3 normal { vec3::zero_vector };
-    vec3 contact_point_a { vec3::zero_vector };
-    vec3 contact_point_b { vec3::zero_vector };
+    // World space
+    vec3 contact_point { vec3::zero_vector };
     float penetration { 0.0f };
 };
 
