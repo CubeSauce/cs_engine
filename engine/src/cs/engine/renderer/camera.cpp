@@ -63,9 +63,9 @@ void Perspective_Camera::calculate_view()
 	quat inverseRotation = orientation.conjugate();
     mat4 R = inverseRotation.to_mat4();
 
-    vec3 right = vec3(0.0f) - R[0].xyz;
-    vec3 up = vec3(0.0f) - R[2].xyz; 
-    vec3 forward = vec3(0.0f) - R[1].xyz; // +Z is forward in DirectX
+    vec3 right = -R[0].xyz;
+    vec3 up = R[2].xyz; 
+    vec3 forward = -R[1].xyz; // +Z is forward in DirectX
 
     _view = mat4(
         {right.x, up.x, forward.x, 0.0f},

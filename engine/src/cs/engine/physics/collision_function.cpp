@@ -673,7 +673,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Capsule);
         assert(b.type == Collider::Sphere);
 
-        return sphere_capsule(b, p_b, o_b, a, p_a, o_a, result);
+        if (sphere_capsule(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool capsule_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -808,7 +814,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Cylinder);
         assert(b.type == Collider::Sphere);
 
-        return sphere_capsule(b, p_b, o_b, a, p_a, o_a, result);
+        if (sphere_cylinder(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool cylinder_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -818,7 +830,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Cylinder);
         assert(b.type == Collider::Sphere);
 
-        return capsule_cylinder(b, p_b, o_b, a, p_a, o_a, result);
+        if (capsule_cylinder(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool cylinder_cylinder(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -923,7 +941,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Box);
         assert(b.type == Collider::Sphere);
 
-        return sphere_box(b, p_b, o_b, a, p_a, o_a, result);
+        if (sphere_box(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool box_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -933,7 +957,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Box);
         assert(b.type == Collider::Capsule);
 
-        return capsule_box(b, p_b, o_b, a, p_a, o_a, result);
+        if (capsule_box(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool box_cylinder(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -943,7 +973,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Box);
         assert(b.type == Collider::Cylinder);
 
-        return cylinder_box(b, p_b, o_b, a, p_a, o_a, result);
+        if (cylinder_box(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool box_box(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -975,7 +1011,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Convex_Hull);
         assert(b.type == Collider::Sphere);
 
-        return sphere_convex(b, p_b, o_b, a, p_a, o_a, result);
+        if (sphere_convex(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool convex_capsule(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -985,7 +1027,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Convex_Hull);
         assert(b.type == Collider::Capsule);
 
-        return capsule_convex(b, p_b, o_b, a, p_a, o_a, result);
+        if (capsule_convex(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool convex_cylinder(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -995,7 +1043,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Convex_Hull);
         assert(b.type == Collider::Cylinder);
 
-        return cylinder_convex(b, p_b, o_b, a, p_a, o_a, result);
+        if (cylinder_convex(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     bool convex_box(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -1005,7 +1059,13 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Convex_Hull);
         assert(b.type == Collider::Box);
 
-        return box_convex(b, p_b, o_b, a, p_a, o_a, result);
+        if (box_convex(b, p_b, o_b, a, p_a, o_a, result))
+        {
+            result.normal = -result.normal;
+            return true;
+        }
+
+        return false;
     }
 
     // Massive thanks to https://winter.dev/ for extremely intuitive explanation and an implementation example

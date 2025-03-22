@@ -10,7 +10,8 @@
 
 class Game : public Game_Instance
 {
-    Shared_Ptr<Mesh_Resource> mesh_res;
+    Shared_Ptr<Mesh_Resource> sphere_res;
+    Shared_Ptr<Mesh_Resource> box_res;
 
 public:
     virtual void init() override
@@ -21,11 +22,31 @@ public:
 
         Mesh_Import_Settings import_settings = Mesh_Import_Settings::default_import_settings;
         import_settings.import_rotation = quat::from_euler_angles(vec3(-90.0deg, 0.0f, 0.0f));
-        mesh_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/sphere.obj", import_settings);
+
+        sphere_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/sphere.obj", import_settings);
+        box_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/big_box.obj", import_settings);
 
         //_add_object("floor", vec3::zero_vector, quat::zero_quat, Shared_Ptr<Mesh_Resource>(), Physics_Body::Static);
-        _add_object("kimono", vec3::zero_vector, quat::zero_quat, mesh_res, Physics_Body::Kinematic);
-        _add_object(std::format("kimono{}", 2).c_str(), vec3(-2.5f, 0.0f, 0.5f), quat::zero_quat, mesh_res, Physics_Body::Dynamic);
+        //_add_object("kimono", vec3::zero_vector, quat::zero_quat, sphere_res, Physics_Body::Kinematic);
+
+        {
+            Name_Id name("plane");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position.z = 0.0f;
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = box_res;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Static;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Box;
+            pb.collider.bounds = box_res->bounds;
+            pb.collider.shape.bounding_box = box_res->bounds;
+        }
+
+        _add_object(std::format("kimono{}", 2).c_str(), vec3(0.0f, 0.0f, 10.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
     }
 
     float t = 0;
@@ -34,10 +55,10 @@ public:
         PROFILE_FUNCTION()
 
         t += dt;
-        _transform_components.get("kimono")->local_position.x = cosf(t * 3.0f) * 2.5f;
-        _transform_components.get("kimono")->local_position.y = sinf(t * 3.0f) * 2.5f;
-        _transform_components.get("kimono")->local_position.z = 0.0f;
-        _transform_components.get("kimono")->dirty = true;
+        //_transform_components.get("kimono")->local_position.x = cosf(t * 3.0f) * 2.5f;
+        //_transform_components.get("kimono")->local_position.y = sinf(t * 3.0f) * 2.5f;
+        //_transform_components.get("kimono")->local_position.z = 0.0f;
+        //_transform_components.get("kimono")->dirty = true;
         
         _update_transform_components();
         _update_physics_components();
@@ -87,7 +108,7 @@ public:
             float x = -2.0f + 5.0f * (rand() % 1000) / 1000.0f;
             float y = -2.0f + 5.0f * (rand() % 1000) / 1000.0f;
             
-            _add_object(std::format("dynamic{}", count).c_str(), vec3(x, y, 0.0f), quat::zero_quat, mesh_res, Physics_Body::Dynamic);
+            //_add_object(std::format("dynamic{}", count).c_str(), vec3(x, y, 0.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
         }
     }
 
@@ -154,8 +175,8 @@ private:
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
         camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, -15.0f, -15.0f);
-        camera_transform.local_orientation = quat::from_euler_angles(vec3(35deg, 0.0f, 0deg));
+        camera_transform.local_position = vec3(0.0f, -15.0f, 15.0f);
+        camera_transform.local_orientation = quat::from_euler_angles(vec3(-45deg, 0.0f, 0deg));
     }
 
     void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
@@ -190,6 +211,8 @@ private:
         {
             pb.collider.type = Collider::Box;
         }
+
+        pb.initial_state.velocity.x = 1.0f;
     }
 
     void _update_transform_components()
@@ -264,11 +287,18 @@ private:
     
                 body.collider = component.collider;
                 body.inverse_mass = 1.0f / component.mass;
+
+                body.state = component.initial_state;
             }
 
             if (body.type != Physics_Body::Kinematic ||
                 current_world_position.nearly_equal(body.transform.position))
             {
+                if (body.type == Physics_Body::Dynamic)
+                {
+                    body.apply_force(vec3(0.0f, 0.0f, -9.81f));
+                }
+
                 continue;
             }
 
