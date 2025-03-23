@@ -33,6 +33,7 @@ public:
             Name_Id name("plane");
             Transform_Component& transform = _transform_components.add(name);
             transform.local_position.z = 0.0f;
+            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0.0f, 180deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = box_res;
@@ -46,7 +47,7 @@ public:
             pb.collider.shape.bounding_box = box_res->bounds;
         }
 
-        _add_object(std::format("kimono{}", 2).c_str(), vec3(0.0f, 0.0f, 10.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
+        _add_object(std::format("kimono{}", 2).c_str(), vec3(0.0f, 0.0f, 2.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
     }
 
     float t = 0;
@@ -175,8 +176,8 @@ private:
             
         Transform_Component& camera_transform = _transform_components.add(camera_id);
         camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, -15.0f, 15.0f);
-        camera_transform.local_orientation = quat::from_euler_angles(vec3(-45deg, 0.0f, 0deg));
+        camera_transform.local_position = vec3(0.0f, -15.0f, 2.0f);
+        camera_transform.local_orientation = quat::from_euler_angles(vec3(-0deg, 0.0f, 0deg));
     }
 
     void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
@@ -193,7 +194,7 @@ private:
         Physics_Body_Component& pb = _physics_body_components.add(name);
         pb.type = type;
         pb.component_id = name;
-        pb.mass = 0.01f;
+        pb.mass = 1.0f;
         if (mesh_resource)
         {
             const AABB& mesh_bounds = mesh_resource->bounds;
@@ -212,7 +213,8 @@ private:
             pb.collider.type = Collider::Box;
         }
 
-        pb.initial_state.velocity.x = 1.0f;
+        //pb.initial_state.accumulated_forces.x = 100.0f;
+        //pb.initial_state.angular_velocity.z = 4.0f;
     }
 
     void _update_transform_components()
@@ -288,7 +290,7 @@ private:
                 body.collider = component.collider;
                 body.inverse_mass = 1.0f / component.mass;
 
-                body.state = component.initial_state;
+                body.inverse_inertia_tensor = Collision_Helpers::inertia_tensor(body.collider, component.mass);
             }
 
             if (body.type != Physics_Body::Kinematic ||

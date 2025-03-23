@@ -88,14 +88,13 @@ struct Physics_Body
         quat orientation { quat::zero_quat };
     } transform, old_transform;
 
-    struct State
-    {
-        vec3 accumulated_forces { vec3::zero_vector };
-        vec3 accumulated_torque { vec3::zero_vector };
+    float max_linear_velocity = FLT_MAX;
+    vec3 accumulated_forces { vec3::zero_vector };
+    vec3 linear_velocity { vec3::zero_vector };
 
-        vec3 velocity { vec3::zero_vector };
-        vec3 angular_velocity { vec3::zero_vector };
-    } state;
+    float max_angular_velocity = FLT_MAX;
+    vec3 accumulated_torque { vec3::zero_vector };
+    vec3 angular_velocity { vec3::zero_vector };
 
     Collider collider;
 

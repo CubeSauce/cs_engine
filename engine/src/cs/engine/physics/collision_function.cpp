@@ -11,7 +11,7 @@ namespace Collision_Helpers
     {
         const float radius = collider.shape.sphere.radius;
         const float inertia = (2.0f/5.0f) * radius * radius * mass;
-        return mat4(inertia).inverse();
+        return mat4(inertia);
     }
 
     mat4 _inertia_tensor_capsule(const Collider& collider, const float mass)
@@ -34,7 +34,7 @@ namespace Collision_Helpers
             vec4(0.0f,  Iyy, 0.0f, 0.0f),
             vec4(0.0f, 0.0f,  Izz, 0.0f),
             vec4(0.0f, 0.0f, 0.0f, 1.0f)
-        ).inverse();
+        );
     }
 
     mat4 _inertia_tensor_cylinder(const Collider& collider, const float mass)
@@ -50,14 +50,13 @@ namespace Collision_Helpers
             vec4(0.0f,  Iyy, 0.0f, 0.0f),
             vec4(0.0f, 0.0f,  Izz, 0.0f),
             vec4(0.0f, 0.0f, 0.0f, 1.0f)
-        ).inverse();
+        );
     }
 
     mat4 _inertia_tensor_box(const Collider& collider, const float mass)
     {
         //TODO: add box collider
-        const AABB box = AABB::empty_box;
-        const vec3 box_extents = box.get_extents();        
+        const vec3 box_extents = collider.shape.bounding_box.get_extents();        
         float Ixx = (1.0f / 12.0f) * (box_extents.z * box_extents.z + box_extents.y * box_extents.y) * mass;
         float Iyy = (1.0f / 12.0f) * (box_extents.x * box_extents.x + box_extents.y * box_extents.y) * mass;
         float Izz = (1.0f / 12.0f) * (box_extents.x * box_extents.x + box_extents.z * box_extents.z) * mass;
@@ -67,7 +66,7 @@ namespace Collision_Helpers
             vec4(0.0f,  Iyy, 0.0f, 0.0f),
             vec4(0.0f, 0.0f,  Izz, 0.0f),
             vec4(0.0f, 0.0f, 0.0f, 1.0f)
-        ).inverse();
+        );
     }
 
     mat4 _inertia_tensor_convex(const Collider& collider, const float mass)
