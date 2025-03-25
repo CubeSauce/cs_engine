@@ -92,6 +92,7 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
         Shared_Ptr<Material_Resource> material_resource = Shared_Ptr<Material_Resource>::create();
         
         Submesh_Data submesh_data;
+        submesh_data.bounds = AABB::empty_box;
 
         bool has_uvs = ai_mesh->HasTextureCoords(0);
         if(has_uvs)
@@ -133,10 +134,6 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
             const aiVector3D& v = ai_mesh->mVertices[i];
             vertex.vertex_location = import_mat * vec3(v.x, v.y, v.z);
 
-            // Calculate mesh bounds for later
-            submesh_data.bounds.expand(vertex.vertex_location);
-            bounds.expand(vertex.vertex_location);
-
             const aiVector3D& n = ai_mesh->mNormals[i];
             vertex.vertex_normal = import_mat_inv * vec3(n.x, n.y, n.z);
 
@@ -156,8 +153,10 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
                 }
             }
 
-            bounds.expand(vertex.vertex_location);
+
+            // Calculate mesh bounds for later
             submesh_data.bounds.expand(vertex.vertex_location);
+            bounds.expand(vertex.vertex_location);
             submesh_data.vertices.add(vertex);
         }
 

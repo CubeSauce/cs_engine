@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <limits>
+#include <format>
 
 fvec3 fvec3::right_vector     = fvec3(1.0f, 0.0f, 0.0f);
 fvec3 fvec3::forward_vector   = fvec3(0.0f, 1.0f, 0.0f);
@@ -293,6 +294,11 @@ fvec3 fvec3::perpendicular() const
     {
         return fvec3(0, -z, y).normalized();
     }
+}
+
+std::string fvec3::to_string(const std::string& name) const
+{
+    return std::format("{}({}, {}, {})", name, x, y, z).c_str();
 }
 
 ivec3::ivec3(int32 v)

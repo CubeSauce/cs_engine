@@ -80,5 +80,6 @@ class Mesh_Resource;
 struct Render_Component : public Component
 {
     Shared_Ptr<Mesh_Resource> mesh;
+    bool visible { true };
 };
 DECLARE_PRINT_TYPE(Render_Component)

@@ -26,6 +26,7 @@ public:
     static fquat from_rotation_axis(const vec3& axis, float angle);
     
     fquat mul(const fquat& other) const;
+    fquat mul(float other) const;
     vec3 mul(const vec3& other) const;
 
     void normalize();

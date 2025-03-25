@@ -10,44 +10,176 @@
 
 class Game : public Game_Instance
 {
-    Shared_Ptr<Mesh_Resource> sphere_res;
-    Shared_Ptr<Mesh_Resource> box_res;
+    Shared_Ptr<Mesh_Resource> unit_sphere;
+    Shared_Ptr<Mesh_Resource> unit_capsule;
+    Shared_Ptr<Mesh_Resource> unit_cylinder;
+    Shared_Ptr<Mesh_Resource> unit_box;
+    Shared_Ptr<Mesh_Resource> unit_convex;
+
+    Shared_Ptr<Mesh_Resource> floor;
 
 public:
     virtual void init() override
     {
         PROFILE_FUNCTION()
 
-        _init_player();
-
         Mesh_Import_Settings import_settings = Mesh_Import_Settings::default_import_settings;
-        import_settings.import_rotation = quat::from_euler_angles(vec3(-90.0deg, 0.0f, 0.0f));
+        import_settings.import_rotation = quat::from_euler_angles(vec3(0deg, 0.0f, 0.0f));
 
-        sphere_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/sphere.obj", import_settings);
-        box_res = Shared_Ptr<Mesh_Resource>::create("assets/mesh/big_box.obj", import_settings);
-
-        //_add_object("floor", vec3::zero_vector, quat::zero_quat, Shared_Ptr<Mesh_Resource>(), Physics_Body::Static);
-        //_add_object("kimono", vec3::zero_vector, quat::zero_quat, sphere_res, Physics_Body::Kinematic);
+        unit_sphere = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_sphere.obj", import_settings);
+        unit_capsule = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_capsule.obj", import_settings);
+        unit_cylinder = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_cylinder.obj", import_settings);
+        unit_box = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_box.obj", import_settings);
+        unit_convex = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_convex.obj", import_settings);
+        floor = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/floor.obj", import_settings);
+        {
+            Transform_Component& player_transform = _transform_components.add("player");
+                
+            Transform_Component& camera_transform = _transform_components.add("player_camera");
+            camera_transform.parent_id = "player";
+            camera_transform.local_position = vec3(-10.0f, -10.0f, 2.0f);
+            camera_transform.local_orientation = quat::from_euler_angles(vec3(-0deg, 0.0f, -45deg));
+        }
 
         {
-            Name_Id name("plane");
+            Name_Id name("floor");
             Transform_Component& transform = _transform_components.add(name);
-            transform.local_position.z = 0.0f;
-            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0.0f, 180deg));
+            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
 
             Render_Component& render = _render_components.add(name);
-            render.mesh = box_res;
+            render.mesh = floor;
+            //render.visible = false;
+            
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Static;
+            pb.component_id = name;
+            pb.mass = FLT_MAX;
+            pb.collider.type = Collider::Box;
+            pb.collider.bounds = floor->bounds;
+            pb.collider.shape.bounding_box = floor->bounds;
+        }
+
+        if (1)
+        {
+            Name_Id name("sphere");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(0.0f, 0.0f, 10.0f);
+            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0deg, 0.0f));
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_sphere;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Dynamic;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Sphere;
+            pb.collider.bounds = unit_sphere->bounds;
+            pb.collider.shape.sphere.radius = 1.0f;
+        }
+
+        if (0)
+        {
+            Name_Id name("sphere2");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(5.0f, 0.0f, 10.0f);
+            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0deg, 0.0f));
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_sphere;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Dynamic;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Sphere;
+            pb.collider.bounds = unit_sphere->bounds;
+            pb.collider.shape.sphere.radius = 1.0f;
+        }
+
+        if (1)
+        {
+            Name_Id name("capsule");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(5.0f, 0.0f, 10.0f);
+            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_capsule;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Dynamic;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Capsule;
+            pb.collider.bounds = unit_capsule->bounds;
+            pb.collider.shape.capsule.radius = 1.0f;
+            pb.collider.shape.capsule.length = 1.0f;
+        }
+
+        if (0)
+        {
+            Name_Id name("cylinder");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(-5.0f, 0.0f, 3.0f);
+            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_cylinder;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Static;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Cylinder;
+            pb.collider.bounds = unit_cylinder->bounds;
+            pb.collider.shape.cylinder.radius = 1.0f;
+            pb.collider.shape.cylinder.height = 1.0f;
+        }
+
+        if (0)
+        {
+            Name_Id name("box");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(2.5f, 0.0f, 10.0f);
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_box;
 
             Physics_Body_Component& pb = _physics_body_components.add(name);
             pb.type = Physics_Body::Static;
             pb.component_id = name;
             pb.mass = 1.0f;  //Is this valid?
             pb.collider.type = Collider::Box;
-            pb.collider.bounds = box_res->bounds;
-            pb.collider.shape.bounding_box = box_res->bounds;
+            pb.collider.bounds = unit_box->bounds;
+            pb.collider.shape.bounding_box = unit_box->bounds;
         }
 
-        _add_object(std::format("kimono{}", 2).c_str(), vec3(0.0f, 0.0f, 2.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
+        if (0)
+        {
+            Name_Id name("convex");
+            Transform_Component& transform = _transform_components.add(name);
+            transform.local_position = vec3(-2.5f, 0.0f, 10.0f);
+
+            Render_Component& render = _render_components.add(name);
+            render.mesh = unit_convex;
+
+            Physics_Body_Component& pb = _physics_body_components.add(name);
+            pb.type = Physics_Body::Static;
+            pb.component_id = name;
+            pb.mass = 1.0f;  //Is this valid?
+            pb.collider.type = Collider::Convex_Hull;
+            pb.collider.bounds = unit_convex->bounds;
+            pb.collider.shape.convex_hull.count = unit_convex->submeshes[0].vertices.size();
+            assert(pb.collider.shape.convex_hull.count < CONVEX_HULL_MAX_NUM_VERTICES);
+
+            uint32 count = 0;
+            for (const Vertex_Data& vertex : unit_convex->submeshes[0].vertices)
+            {
+                pb.collider.shape.convex_hull.vertices[count++] = vertex.vertex_location;
+            }
+        }
+
+        //_add_object(std::format("kimono{}", 2).c_str(), vec3(0.0f, 0.0f, 10.0f), quat::zero_quat, sphere_res, Physics_Body::Dynamic);
     }
 
     float t = 0;
@@ -56,6 +188,14 @@ public:
         PROFILE_FUNCTION()
 
         t += dt;
+
+        if (t > 10.0f)
+        {
+            t = 0.0f;
+            Physics_System& physics_system = Physics_System::get();
+            physics_system.get_body("sphere").apply_impulse(vec3(500.0f, 0.0f, 0.0f));
+        }
+
         //_transform_components.get("kimono")->local_position.x = cosf(t * 3.0f) * 2.5f;
         //_transform_components.get("kimono")->local_position.y = sinf(t * 3.0f) * 2.5f;
         //_transform_components.get("kimono")->local_position.z = 0.0f;
@@ -120,7 +260,7 @@ public:
         std::shared_lock lock(_mutex);
     
         Shared_Ptr<Renderer_Backend> renderer_backend = renderer->backend;
-        const Transform_Component* p_camera_transform = _transform_components.get(camera_id);
+        const Transform_Component* p_camera_transform = _transform_components.get("player_camera");
         if (!p_camera_transform)
         {
           return;
@@ -140,6 +280,11 @@ public:
         for (int32 i = 0; i < _render_components.components.size(); ++i)
         {
             const Render_Component& render_component = _render_components.components[i];
+            if (!render_component.visible)
+            {
+                continue;
+            }
+
             const Shared_Ptr<Mesh_Resource>& mesh_resource = render_component.mesh;
             const Shared_Ptr<Mesh>& mesh = renderer_backend->get_mesh(mesh_resource);
 
@@ -164,58 +309,6 @@ private:
     Component_Container<Transform_Component> _transform_components;
     Component_Container<Physics_Body_Component> _physics_body_components;
     Component_Container<Render_Component> _render_components;
-
-    static inline const Name_Id player_id = Name_Id("player");
-    static inline const Name_Id camera_id = Name_Id("player_camera");
-
-    void _init_player()
-    {
-        PROFILE_FUNCTION()
-
-        Transform_Component& player_transform = _transform_components.add(player_id);
-            
-        Transform_Component& camera_transform = _transform_components.add(camera_id);
-        camera_transform.parent_id = player_id;
-        camera_transform.local_position = vec3(0.0f, -15.0f, 2.0f);
-        camera_transform.local_orientation = quat::from_euler_angles(vec3(-0deg, 0.0f, 0deg));
-    }
-
-    void _add_object(const Name_Id& name, const vec3& position, const quat& orientation, const Shared_Ptr<Mesh_Resource>& mesh_resource, Physics_Body::Type type)
-    {
-        PROFILE_FUNCTION()
-
-        Transform_Component& transform = _transform_components.add(name);
-        transform.local_position = position;
-        transform.local_orientation = orientation;
-
-        Render_Component& render = _render_components.add(name);
-        render.mesh = mesh_resource;
-
-        Physics_Body_Component& pb = _physics_body_components.add(name);
-        pb.type = type;
-        pb.component_id = name;
-        pb.mass = 1.0f;
-        if (mesh_resource)
-        {
-            const AABB& mesh_bounds = mesh_resource->bounds;
-            const vec3& extents = mesh_bounds.get_extents();
-            float capsule_radius = extents.xy.length() * 0.5f;
-            float capsule_length = extents.z - capsule_radius * 2;
-
-            pb.collider.type = Collider::Sphere;
-            pb.collider.shape.sphere.radius = 1.0f;
-            //pb.collider.type = Collider::Capsule;
-            //pb.collider.shape.capsule = { .radius = capsule_radius , .length = capsule_length };
-            pb.collider.bounds = AABB(vec3(-1.0f), vec3(1.0f));
-        }
-        else
-        {
-            pb.collider.type = Collider::Box;
-        }
-
-        //pb.initial_state.accumulated_forces.x = 100.0f;
-        //pb.initial_state.angular_velocity.z = 4.0f;
-    }
 
     void _update_transform_components()
     {
@@ -250,7 +343,7 @@ private:
 
             if (parent_transform_component)
             {
-                component.local_to_world = component.local_to_world * parent_transform_component->local_to_world;
+                component.local_to_world = parent_transform_component->local_to_world * component.local_to_world;
             }
         }
 
@@ -288,9 +381,17 @@ private:
                 body.transform.orientation = transform_component->get_world_orientation();
     
                 body.collider = component.collider;
-                body.inverse_mass = 1.0f / component.mass;
+                if (body.type == Physics_Body::Static)
+                {
+                    body.inverse_mass = 0.0f;
+                }
+                else
+                {
+                    body.inverse_mass = 1.0f / component.mass;
+                    body.inverse_inertia_tensor = Collision_Helpers::inertia_tensor(body.collider, component.mass);
+                }
 
-                body.inverse_inertia_tensor = Collision_Helpers::inertia_tensor(body.collider, component.mass);
+                //body.apply_impulse(vec3(100.0f, 0.0f, 0.0f));
             }
 
             if (body.type != Physics_Body::Kinematic ||

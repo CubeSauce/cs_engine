@@ -14,13 +14,16 @@ AABB::AABB(const vec3& in_min, const vec3& in_max)
 
 void AABB::expand(const vec3& p)
 {
-    if (p < min)
+    for (int i = 0; i < 3; ++i)
     {
-        min = p;
-    }
-    else if (p > max)
-    {
-        max = p;
+        if (p[i] < min[i])
+        {
+            min[i] = p[i];
+        }
+        if (p[i] > max[i])
+        {
+            max[i] = p[i];
+        }
     }
 }
 
@@ -40,7 +43,7 @@ bool AABB::intersects(const AABB& other) const
 
 vec3 AABB::get_center() const
 {
-    return (max - min) * 0.5f;
+    return (min + max) * 0.5f;
 }
 
 vec3 AABB::get_extents() const

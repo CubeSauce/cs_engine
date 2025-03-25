@@ -9,7 +9,7 @@ mat4 Transform_Component::get_world_matrix() const
 {
     mat4 ret = translate(mat4(1.0f), local_position);
     ret  = ret * local_orientation.to_mat4();
-    return ret * local_to_world;
+    return local_to_world * ret;
 }
 
 vec3 Transform_Component::get_world_position() const

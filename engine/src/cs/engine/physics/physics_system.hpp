@@ -81,6 +81,7 @@ struct Physics_Body
     float inverse_mass { 1.0f };
     // 0 -> inelastic, 1 -> perfect elastic
     float restitution { 0.5f };
+    float dynamic_friction { 0.2f };
 
     struct Transform
     {
@@ -89,12 +90,20 @@ struct Physics_Body
     } transform, old_transform;
 
     float max_linear_velocity = FLT_MAX;
+    float linear_damping { 0.001f };
     vec3 accumulated_forces { vec3::zero_vector };
     vec3 linear_velocity { vec3::zero_vector };
 
     float max_angular_velocity = FLT_MAX;
+    float angular_damping { 0.01f };
     vec3 accumulated_torque { vec3::zero_vector };
     vec3 angular_velocity { vec3::zero_vector };
+
+    bool is_awake { true };
+    float sleep_timer { 0.0f };
+    float sleep_time_threshold { 2.0f };
+    float sleep_linear_velocity_threshold { 0.1f };
+    float sleep_angular_velocity_threshold { 0.1f };
 
     Collider collider;
 
@@ -103,7 +112,10 @@ struct Physics_Body
     AABB get_transformed_bounds() const;
 
     void update_state(float dt);
-    void update_transform(float dt);
+    
+    void update_transform_euler(float dt);
+
+    void wake_up();
 
     // Does not produce torque
     void apply_force(const vec3& force);
@@ -149,7 +161,7 @@ private:
     void _execute_narrowphase(float dt);
     void _resolve_collisions(float dt);
     void _resolve_collision(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
-    
+    void _position_correction(Physics_Body& a, Physics_Body& b, const Collision_Result& collision);
     Collision_Test_Function::Definition _collision_functions[Collider::TYPE_COUNT][Collider::TYPE_COUNT];
 
 };

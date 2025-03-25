@@ -89,7 +89,7 @@ namespace Collision_Helpers
         return mat4(1.0f);
     }
 
-    void closest_line_point_segment(const vec3& s_a, const vec3& e_a, const vec3& s_b, const vec3& e_b, vec3& out_closest_a, vec3& out_closest_b)
+    void closest_point_on_two_segments(const vec3& s_a, const vec3& e_a, const vec3& s_b, const vec3& e_b, vec3& out_closest_a, vec3& out_closest_b)
     {
         const vec3 d1 = e_a - s_a; // Direction of segment A
         const vec3 d2 = e_b - s_b; // Direction of segment B
@@ -138,6 +138,14 @@ namespace Collision_Helpers
 
         out_closest_a = s_a + d1 * s;
         out_closest_b = s_b + d2 * t;
+    }
+
+    vec3 closest_point_on_line(const vec3& a, const vec3& b, const vec3& p)
+    {
+        vec3 ab = b - a;
+        //TODO: check ab
+        float t = clamp((p-a).dot(ab) / ab.dot(ab), 0.0f, 1.0f);
+        return a + ab * t;
     }
 
     // Finding the point furthest from the origin in a given direction using the Separation Axis theorem
@@ -372,7 +380,7 @@ namespace Collision_Helpers
 
             Collision_Helpers::add_to_simplex(simplex, count_s, support);
 
-            printf("adding to simplex support: %f %f %f\n", support.x, support.y, support.z);
+            //printf("adding to simplex support: %f %f %f\n", support.x, support.y, support.z);
             if (Collision_Helpers::next_simplex(simplex, count_s, direction))
             {
                 return true;
@@ -536,27 +544,18 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Sphere);
         assert(b.type == Collider::Sphere);
 
-        const vec3 direction = p_b - p_a;
-        const float distance_squared = direction.length_squared();
+        const vec3 delta = p_b - p_a;
+        const float distance_sq = delta.length_squared();
         const float sum_r = a.shape.sphere.radius + b.shape.sphere.radius;
     
-        if (distance_squared > (sum_r * sum_r)) 
+        if (distance_sq > (sum_r * sum_r)) 
         {
             return false;
         }
 
-        const float dist = sqrt(distance_squared);
-        if (dist > 0.0f)
-        {
-            result.normal = direction / dist;
-        }
-        else
-        {
-            result.normal = vec3::up_vector;
-        }
-
-        result.penetration = sum_r - dist;
-        result.contact_point = p_a + result.normal * result.penetration;
+        result.normal = delta.normalized();
+        result.penetration = sum_r - sqrt(distance_sq);
+        result.contact_point = p_a  + result.normal * a.shape.sphere.radius;
         
         return true;
     }
@@ -568,18 +567,26 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Sphere);
         assert(b.type == Collider::Capsule);
 
+        //TODO: axis
         const vec3 segment_b(0.0f ,0.0f, b.shape.capsule.length);
         const vec3 start_b = p_b - segment_b * 0.5f;
         const vec3 end_b = p_b + segment_b * 0.5f;
-        const float r_b = b.shape.capsule.radius;
 
-        vec3 closest_a, closest_b;
-        Collision_Helpers::closest_line_point_segment(p_a, p_a, start_b, end_b, closest_a, closest_b);
+        const vec3 closest_point_capsule = Collision_Helpers::closest_point_on_line(start_b, end_b, p_a);
+        const float sum_r = a.shape.sphere.radius + b.shape.capsule.radius;
+
+        const vec3 delta = closest_point_capsule - p_a;
+        const float distance_sq = delta.length_squared();
+        if (distance_sq > (sum_r * sum_r))
+        {
+            return false;
+        }
         
-        Collider sphere_b;
-        sphere_b.type = Collider::Sphere;
-        sphere_b.shape.sphere.radius = b.shape.capsule.radius;
-        return sphere_sphere(a, p_a, o_a, sphere_b, closest_b, o_b, result);
+        result.normal = delta.normalized();
+        result.penetration = sum_r - sqrt(distance_sq);
+        result.contact_point = p_a - result.normal * a.shape.sphere.radius;
+
+        return true;
     }
 
     bool sphere_cylinder(const Collider& a, const vec3& p_a, const quat& o_a, const Collider& b, const vec3& p_b, const quat& o_b, Collision_Result& result)
@@ -620,36 +627,38 @@ namespace Collision_Test_Function
         assert(b.type == Collider::Box);
 
         // Step 1: Transform sphere center to OBB local space
-        vec3 local_center = p_a - p_b;
-        
+       
+        const mat4 rot_b = o_b.to_mat4();
         const vec3 box_axes[3] = {
-            o_b.mul(vec3::right_vector),
-            o_b.mul(vec3::forward_vector),
-            o_b.mul(vec3::up_vector)
+            rot_b[0].xyz.normalized(),
+            rot_b[1].xyz.normalized(),
+            rot_b[2].xyz.normalized(),
         };
 
         vec3 box_half_extents = b.shape.bounding_box.get_half_extents();
 
-        vec3 min_point = p_b; 
-        for (int i = 0; i < 3; ++i) 
+        vec3 local_center = p_a - p_b;
+        vec3 closest_point = p_b; 
+        for (int i = 0; i < 3; ++i)
         {
             // Project onto OBB axis
-            const float dist = std::clamp(local_center.dot(box_axes[i]), -box_half_extents[i], box_half_extents[i]);
-            // Compute closest point
-            min_point += box_axes[i] * dist;
+            const float projection = local_center.dot(box_axes[i]);
+            const float clamped_projection = std::clamp(projection, -box_half_extents[i], box_half_extents[i]);
+            closest_point += box_axes[i] * clamped_projection;
         }
-        
-        const vec3 delta = min_point - p_a;
-        const float dist2 = delta.length_squared();
 
-        if (dist2 > a.shape.sphere.radius * a.shape.sphere.radius)
+        const vec3 delta = closest_point - p_a;
+        const float dist_sq = delta.length_squared();
+
+        if (dist_sq > a.shape.sphere.radius * a.shape.sphere.radius)
         {
             return false;
         }
 
+        // From other obj to sphere
         result.normal = delta.normalized();
-        result.penetration = a.shape.sphere.radius - sqrtf(dist2);
-        result.contact_point = min_point;
+        result.penetration = a.shape.sphere.radius - sqrtf(dist_sq);
+        result.contact_point = closest_point;
         
         return true;
     }
@@ -699,7 +708,7 @@ namespace Collision_Test_Function
         const float r_b = b.shape.capsule.radius;
 
         vec3 closest_a, closest_b;
-        Collision_Helpers::closest_line_point_segment(start_a, end_a, start_b, end_b, closest_a, closest_b);
+        Collision_Helpers::closest_point_on_two_segments(start_a, end_a, start_b, end_b, closest_a, closest_b);
 
         Collider sphere_a, sphere_b;
         sphere_a.type = Collider::Sphere;
@@ -753,45 +762,61 @@ namespace Collision_Test_Function
         
         assert(a.type == Collider::Capsule);
         assert(b.type == Collider::Box);
-
-        const vec3 capsule_axis = o_a.mul(vec3::up_vector);
-        const vec3 capsule_bot = p_a - a.shape.capsule.length * 0.5f;
-
-        const float t_capsule = clamp((p_b - capsule_bot).dot(capsule_axis) / (a.shape.capsule.length * a.shape.capsule.length), 0.0f, 1.0f);
-        const vec3 contact_point_capsule = capsule_bot + capsule_axis + t_capsule;
-
-        // Step 1: Transform capsule center to OBB local space
-        vec3 local_center = contact_point_capsule - p_b;
         
-        const vec3 box_axes[3] = {
-            o_b.mul(vec3::right_vector),
-            o_b.mul(vec3::forward_vector),
-            o_b.mul(vec3::up_vector)
-        };
+        const mat4 rot_a = o_a.to_mat4();
+        const vec3 capsule_axis = rot_a[2].xyz.normalized();
 
+        const vec3 capsule_bot = p_a - capsule_axis * (a.shape.capsule.length * 0.5f);
+        const vec3 capsule_top = p_a + capsule_axis * (a.shape.capsule.length * 0.5f);
+
+        const mat4 rot_b = o_b.to_mat4();
+        const vec3 box_axes[3] = {
+            rot_b[0].xyz.normalized(),
+            rot_b[1].xyz.normalized(),
+            rot_b[2].xyz.normalized(),
+        };
+        
         vec3 box_half_extents = b.shape.bounding_box.get_half_extents();
 
-        vec3 min_point = p_b; 
+        vec3 local_capsule_bot = capsule_bot - p_b;
+        vec3 local_capsule_top = capsule_top - p_b;
+        vec3 closest_to_bot = p_b; 
+        vec3 closest_to_top = p_b; 
         for (int i = 0; i < 3; ++i) 
         {
-            // Project onto OBB axis
-            const float dist = std::clamp(local_center.dot(box_axes[i]), -box_half_extents[i], box_half_extents[i]);
-            // Compute closest point
-            min_point += box_axes[i] * dist;
+            const float projection_bot = local_capsule_bot.dot(box_axes[i]);
+            const float clamped_projection_bot = std::clamp(projection_bot, -box_half_extents[i], box_half_extents[i]);
+            closest_to_bot += box_axes[i] * clamped_projection_bot;
+            
+            const float projection_top = local_capsule_top.dot(box_axes[i]);
+            const float clamped_projection_top = std::clamp(projection_top, -box_half_extents[i], box_half_extents[i]);
+            closest_to_top += box_axes[i] * clamped_projection_top;
         }
         
-        const vec3 delta = min_point - contact_point_capsule;
-        const float dist2 = delta.length_squared();
+        const vec3 delta_bot = closest_to_bot - capsule_bot;
+        const vec3 delta_top = closest_to_top - capsule_top;
+        const float dist_sq_bot = delta_bot.length_squared();
+        const float dist_sq_top = delta_top.length_squared();
 
-        if (dist2 > a.shape.capsule.radius * a.shape.capsule.radius)
+        if (dist_sq_bot > a.shape.capsule.radius * a.shape.capsule.radius && dist_sq_top > a.shape.capsule.radius * a.shape.capsule.radius)
         {
             return false;
         }
 
-        result.normal = delta.normalized();
-        result.penetration = a.shape.capsule.radius - sqrtf(dist2);
-        result.contact_point = min_point; //TODO: check point
-        
+        if (dist_sq_bot < dist_sq_top)
+        {
+            result.normal = delta_bot.normalized();
+            result.penetration = a.shape.capsule.radius - sqrtf(dist_sq_bot);
+            result.contact_point = closest_to_bot; //TODO: check point
+        }
+        else
+        {
+
+            result.normal = delta_top.normalized();
+            result.penetration = a.shape.capsule.radius - sqrtf(dist_sq_top);
+            result.contact_point = closest_to_top; //TODO: check point
+        }
+
         return true;
     }
 
@@ -881,44 +906,51 @@ namespace Collision_Test_Function
         assert(a.type == Collider::Cylinder);
         assert(b.type == Collider::Box);
 
-        const vec3 cylinder_axis = o_a.mul(vec3::up_vector);
-        const vec3 cylinder_bot = p_a - a.shape.capsule.length * 0.5f;
+        const mat4 rot_a = o_a.to_mat4();
+        const vec3 cylinder_axis = rot_a[2].xyz.normalized();
 
-        const float t_cylinder = clamp((p_b - cylinder_bot).dot(cylinder_axis) / (a.shape.cylinder.height * a.shape.cylinder.height), 0.0f, 1.0f);
-        const vec3 contact_point_cylinder = cylinder_bot + cylinder_axis + t_cylinder;
-
-        // Step 1: Transform capsule center to OBB local space
-        const vec3 local_center = contact_point_cylinder - p_b;
-        
+        const mat4 rot_b = o_b.to_mat4();
         const vec3 box_axes[3] = {
-            o_b.mul(vec3::right_vector),
-            o_b.mul(vec3::forward_vector),
-            o_b.mul(vec3::up_vector)
+            rot_b[0].xyz.normalized(),
+            rot_b[1].xyz.normalized(),
+            rot_b[2].xyz.normalized(),
         };
+        
+        vec3 box_half_extents = b.shape.bounding_box.get_half_extents();
 
-        const vec3 box_half_extents = b.shape.bounding_box.get_half_extents();
+        const float t = clamp((p_b - p_a).dot(cylinder_axis) / (a.shape.cylinder.height * a.shape.cylinder.height), -0.5f, 0.5f);
+        const vec3 closest_point = p_a + cylinder_axis * (t * a.shape.cylinder.height);
 
-        vec3 min_point = p_b; 
+        vec3 local_point = closest_point - p_b; 
+        vec3 closest_projected = p_b; 
         for (int i = 0; i < 3; ++i) 
         {
-            // Project onto OBB axis
-            const float dist = std::clamp(local_center.dot(box_axes[i]), -box_half_extents[i], box_half_extents[i]);
-            // Compute closest point
-            min_point += box_axes[i] * dist;
+            float clamped_projection = clamp(local_point.dot(box_axes[i]), -box_half_extents[i], box_half_extents[i]);
+            closest_projected += box_axes[i] * clamped_projection;
         }
-        
-        const vec3 delta = min_point - contact_point_cylinder;
-        const float dist2 = delta.length_squared();
 
-        if (dist2 > a.shape.cylinder.radius * a.shape.cylinder.radius)
+        const vec3 delta = closest_projected - closest_point;
+        const float dist_sq = delta.length_squared();
+
+        if (dist_sq > a.shape.cylinder.radius * a.shape.cylinder.radius)
         {
             return false;
         }
 
         result.normal = delta.normalized();
-        result.penetration = a.shape.cylinder.radius - sqrtf(dist2);
-        result.contact_point = min_point; //TODO: check point
-        
+        result.contact_point = closest_projected;
+
+        vec3 d = cylinder_axis.cross(result.normal);
+        // Check if cylinder is falling flat - check with height
+        if (d.length_squared() < NEARLY_ZERO)
+        {
+            result.penetration = a.shape.cylinder.height * 0.5f - sqrtf(dist_sq);
+        }
+        else
+        {
+            result.penetration = a.shape.cylinder.radius - sqrtf(dist_sq);
+        }
+
         return true;
     }
 
@@ -974,7 +1006,6 @@ namespace Collision_Test_Function
 
         if (cylinder_box(b, p_b, o_b, a, p_a, o_a, result))
         {
-            result.normal = -result.normal;
             return true;
         }
 

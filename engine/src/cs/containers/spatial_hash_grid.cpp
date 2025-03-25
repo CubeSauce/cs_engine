@@ -138,10 +138,12 @@ void Spatial_Hash_Grid::sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_I
                 if (bounds_a.intersects(bounds_b))
                 {
                     // Don't add already detected pairs
+                    auto pair = Pair(a, b);
                     auto inverse_pair = Pair(b, a);
-                    if (out_potential_collision_pairs.find_first(inverse_pair) == -1)
+                    if (out_potential_collision_pairs.find_first(pair) == -1 &&
+                    out_potential_collision_pairs.find_first(inverse_pair) == -1)
                     {
-                        out_potential_collision_pairs.add(Pair(a, b));
+                        out_potential_collision_pairs.add(pair);
                     }
                 }
             }

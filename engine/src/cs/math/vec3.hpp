@@ -6,6 +6,8 @@
 #include "cs/cs.hpp"
 #include "cs/math/vec2.hpp"
 
+#include <string>
+
 struct fvec3
 {
 public:
@@ -82,6 +84,8 @@ public:
     float dot(const fvec3& other) const;
 
     fvec3 perpendicular() const;
+
+    std::string to_string(const std::string& name = std::string()) const;
 };
 
 fvec3 sin(const fvec3& other);

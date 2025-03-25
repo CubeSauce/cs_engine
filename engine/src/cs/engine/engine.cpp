@@ -72,7 +72,7 @@ void Engine::run()
         game_instance->init();
     }
 
-    const float _dt = 1/60.0f;
+    const float _dt = 1/120.0f;
 
     TimePoint previousTime = Clock::now();
     double accumulator = 0.0;
@@ -95,7 +95,7 @@ void Engine::run()
         
         float dt = _dt * _cvar_dt_mult->get();
         // Fixed time-step physics update
-        while (accumulator >= dt) 
+        while (accumulator >= _dt) 
         {
             Scoped_Profiler frame_scope("accumulator_frame");
 
@@ -119,7 +119,9 @@ void Engine::run()
                 game_instance->post_physics_update(dt);
             }
 
-            accumulator -= dt;
+            accumulator -= _dt;
+
+            //printf("accumulator: %f\n", accumulator);
         }
 
         //TODO forward to rendering
