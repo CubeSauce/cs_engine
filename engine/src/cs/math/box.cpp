@@ -1,8 +1,6 @@
 // CS Engine
 // Author: matija.martinec@protonmail.com
 
-#pragma once
-
 #include "cs/math/box.hpp"
 
 AABB AABB::empty_box = AABB(vec3::max_float_vector, vec3::min_float_vector);

@@ -3,6 +3,8 @@
 
 #include "cs/math/vec2.hpp"
 
+#include <cmath>
+
 fvec2 fvec2::zero_vector = fvec2(0.0f);
 fvec2 fvec2::one_vector = fvec2(1.0f);
 

@@ -1,8 +1,6 @@
 // CS Engine
 // Author: matija.martinec@protonmail.com
 
-#pragma once
-
 #include "cs/engine/resource/renderer_resources.hpp"
 #include "cs/engine/engine.hpp"
 

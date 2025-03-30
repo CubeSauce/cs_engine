@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cfloat>
 #include <cstdint>
 #include <concepts>
 
@@ -23,22 +24,22 @@ using int64 = int64_t;
 #define MATH_RAD_TO_DEG(x) x * 57.2957795131
 
 #pragma warning(disable : 4455)  // Disable warning C4455 - we don't care about future std stuff
-constexpr float operator""deg(long double value) noexcept
+constexpr float operator"" _deg(long double value) noexcept
 {
   return static_cast<float>(MATH_DEG_TO_RAD(value));
 }
 
-constexpr float operator""deg(unsigned long long value) noexcept
+constexpr float operator"" _deg(unsigned long long value) noexcept
 {
   return static_cast<float>(MATH_DEG_TO_RAD(static_cast<float>(value)));
 }
 
-constexpr double operator""ddeg(long double value) noexcept
+constexpr double operator"" _ddeg(long double value) noexcept
 {
   return MATH_DEG_TO_RAD(value);
 }
 
-constexpr double operator""ddeg(unsigned long long value) noexcept
+constexpr double operator"" _ddeg(unsigned long long value) noexcept
 {
   return MATH_DEG_TO_RAD(static_cast<double>(value));
 }

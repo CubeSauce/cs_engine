@@ -102,7 +102,7 @@ fquat fquat::from_direction(const vec3& direction)
 
 	if (dot < -0.9999f)
 	{
-		return fquat::from_rotation_axis(vec3::up_vector, 180deg);
+		return fquat::from_rotation_axis(vec3::up_vector, 180_deg);
 	}
 
 	const vec3 axis = vec3::forward_vector.cross(forward).normalize();

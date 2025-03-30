@@ -45,10 +45,10 @@ target_sources(cs_engine PRIVATE ${cs_engine_src})
 target_include_directories(cs_engine PUBLIC ${cs_engine_includes} 
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glew/include" 
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/openvr/headers")
-target_link_libraries(cs_engine PUBLIC glfw glew_s OpenGL::GL assimp 
+target_link_libraries(cs_engine PUBLIC glfw glew_s assimp 
 )
 if (WIN32)
-    target_link_libraries(cs_engine PUBLIC 
+    target_link_libraries(cs_engine PUBLIC OpenGL::GL
     d3d11.lib D3DCompiler.lib dxgi.lib dxguid.lib uuid.lib
     kernel32.lib user32.lib
     comdlg32.lib advapi32.lib shell32.lib
@@ -56,12 +56,8 @@ if (WIN32)
     "C:\\Users\\Matija\\Documents\\GitHub\\cs_engine\\build\\lib\\Debug\\openvr_api64d.lib"
     )
 elseif(APPLE)
-    target_link_libraries(cs_engine PUBLIC "-framework Cocoa" "-framework IOKit" "-framework AppKit")
-    if(VR_SUPPORT)
     target_link_libraries(cs_engine PUBLIC 
-        "/Users/cubesauce/Projects/cs_engine/engine/third_party/openvr/bin/osx32/libopenvr_api.dylib"
-    )
-    endif()
+        "-framework Cocoa" "-framework Carbon" "-framework IOKit" "-framework AppKit" "-framework OpenGL")
 endif (WIN32)
 set_property(TARGET cs_engine PROPERTY CXX_STANDARD 20)
 

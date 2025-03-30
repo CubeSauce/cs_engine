@@ -15,18 +15,21 @@ public:
     {
         float data[3];
         struct {
-            float x, y, z;
+            union
+            {
+                struct
+                {
+                    vec2 xy;
+                };
+                struct
+                {
+                    float x, y;
+                };            
+            };
+            float  z;
         };
         struct {
             float r, g, b;
-        };
-        struct {
-            vec2 xy;
-            float z;
-        };
-        struct {
-            float x;
-            vec2 yz;
         };
     };
 

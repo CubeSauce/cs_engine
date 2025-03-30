@@ -24,27 +24,27 @@ public:
         PROFILE_FUNCTION()
 
         Mesh_Import_Settings import_settings = Mesh_Import_Settings::default_import_settings;
-        import_settings.import_rotation = quat::from_euler_angles(vec3(0deg, 0.0f, 0.0f));
+        import_settings.import_rotation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
 
-        unit_sphere = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_sphere.obj", import_settings);
-        unit_capsule = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_capsule.obj", import_settings);
-        unit_cylinder = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_cylinder.obj", import_settings);
-        unit_box = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_box.obj", import_settings);
-        unit_convex = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/unit_convex.obj", import_settings);
-        floor = Shared_Ptr<Mesh_Resource>::create("assets/mesh/test/floor.obj", import_settings);
+        unit_sphere = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/unit_sphere.obj", import_settings);
+        unit_capsule = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/unit_capsule.obj", import_settings);
+        unit_cylinder = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/unit_cylinder.obj", import_settings);
+        unit_box = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/unit_box.obj", import_settings);
+        unit_convex = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/unit_convex.obj", import_settings);
+        floor = Shared_Ptr<Mesh_Resource>::create("assets/meshes/test/floor.obj", import_settings);
         {
             Transform_Component& player_transform = _transform_components.add("player");
                 
             Transform_Component& camera_transform = _transform_components.add("player_camera");
             camera_transform.parent_id = "player";
             camera_transform.local_position = vec3(-10.0f, -10.0f, 2.0f);
-            camera_transform.local_orientation = quat::from_euler_angles(vec3(-0deg, 0.0f, -45deg));
+            camera_transform.local_orientation = quat::from_euler_angles(vec3(-0_deg, 0_deg, -45_deg));
         }
 
         {
             Name_Id name("floor");
             Transform_Component& transform = _transform_components.add(name);
-            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
+            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = floor;
@@ -64,7 +64,7 @@ public:
             Name_Id name("sphere");
             Transform_Component& transform = _transform_components.add(name);
             transform.local_position = vec3(0.0f, 0.0f, 10.0f);
-            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0deg, 0.0f));
+            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = unit_sphere;
@@ -83,7 +83,7 @@ public:
             Name_Id name("sphere2");
             Transform_Component& transform = _transform_components.add(name);
             transform.local_position = vec3(5.0f, 0.0f, 10.0f);
-            transform.local_orientation = quat::from_euler_angles(vec3(0.0f, 0deg, 0.0f));
+            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = unit_sphere;
@@ -102,7 +102,7 @@ public:
             Name_Id name("capsule");
             Transform_Component& transform = _transform_components.add(name);
             transform.local_position = vec3(5.0f, 0.0f, 10.0f);
-            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
+            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = unit_capsule;
@@ -122,7 +122,7 @@ public:
             Name_Id name("cylinder");
             Transform_Component& transform = _transform_components.add(name);
             transform.local_position = vec3(-5.0f, 0.0f, 3.0f);
-            transform.local_orientation = quat::from_euler_angles(vec3(0deg, 0deg, 0deg));
+            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
             Render_Component& render = _render_components.add(name);
             render.mesh = unit_cylinder;
 

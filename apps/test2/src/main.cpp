@@ -61,9 +61,9 @@ void smart_ptr_test()
     Shared_Ptr<int> p4 = p3;
     Shared_Ptr<int> p5 = p4;
     Weak_Ptr<int> wp3 = p5;
-    Weak_Ptr<int> wp4 = wp4;
-    Weak_Ptr<int> wp5 = wp5;
-    Weak_Ptr<int> wp6 = wp6;
+    Weak_Ptr<int> wp4 = p4;
+    Weak_Ptr<int> wp5 = p5;
+    Weak_Ptr<int> wp6 = wp5;
   }
 
   assert(p2.is_valid());
@@ -182,7 +182,7 @@ void collision_test()
   { // Contact, no overlap - XY
     are_colliding = Collision_Test_Function::sphere_sphere(
       sphere, vec3::zero_vector, quat::zero_quat,
-      sphere, vec3(2.0f * sin(45deg), 2.0f * sin(45deg), 0.0f), quat::zero_quat,
+      sphere, vec3(2.0f * sin(45_deg), 2.0f * sin(45_deg), 0.0f), quat::zero_quat,
       result);
 
     assert(are_colliding);
@@ -244,7 +244,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::sphere_capsule(
       sphere, vec3::zero_vector, quat::zero_quat,
-      capsule, vec3(0.0f, 2.0f * sin(45deg), 0.5f + 2.0f * cos(45deg)), quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(45_deg), 0.5f + 2.0f * cos(45_deg)), quat::zero_quat,
       result);
 
     assert(are_colliding);
@@ -306,7 +306,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::capsule_capsule(
       capsule, vec3::zero_vector, quat::zero_quat,
-      capsule, vec3(0.0f, 2.0f * sin(45deg), 1.0f + 2.0f * cos(45deg)), quat::zero_quat,
+      capsule, vec3(0.0f, 2.0f * sin(45_deg), 1.0f + 2.0f * cos(45_deg)), quat::zero_quat,
       result);
 
     assert(are_colliding);
@@ -368,7 +368,7 @@ void collision_test()
   { // Contact, no overlap - YZ
     are_colliding = Collision_Test_Function::capsule_sphere(
       capsule, vec3::zero_vector, quat::zero_quat,
-      sphere, vec3(0.0f, 2.0f * sin(45deg), 0.5f + 2.0f * cos(45deg)), quat::zero_quat,
+      sphere, vec3(0.0f, 2.0f * sin(45_deg), 0.5f + 2.0f * cos(45_deg)), quat::zero_quat,
       result);
 
     assert(are_colliding);

@@ -183,7 +183,7 @@ void Test_Game_Instance::_init_player()
 
   game_state.transform_components.add("player_mesh", {
     .parent_id = "player",
-    .local_orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+    .local_orientation = quat::from_euler_angles(vec3(MATH__deg_TO_RAD(-90.0f), 0.0f, 0.0f))
   });
 
   game_state.transform_components.add("camera", {
@@ -269,7 +269,7 @@ void Test_Game_Instance::_init_dust2()
     Name_Id name(std::format("test {}", i).c_str());
     game_state.transform_components.add(name, {
       .local_position = position,
-      .local_orientation = quat::from_euler_angles(vec3(MATH_DEG_TO_RAD(-90.0f), 0.0f, 0.0f))
+      .local_orientation = quat::from_euler_angles(vec3(MATH__deg_TO_RAD(-90.0f), 0.0f, 0.0f))
     });
     game_state.render_components.add(name, { .mesh = kimono });
     vec3 size(0.5f, 0.5f, 2.0f);
