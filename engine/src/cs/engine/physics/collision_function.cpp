@@ -84,6 +84,7 @@ namespace Collision_Helpers
         case Collider::Cylinder: return _inertia_tensor_cylinder(collider, mass);
         case Collider::Box: return _inertia_tensor_box(collider, mass);
         case Collider::Convex_Hull: return _inertia_tensor_convex(collider, mass);
+        default: assert(false);
         }
 
         return mat4(1.0f);

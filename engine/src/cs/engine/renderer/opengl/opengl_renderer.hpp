@@ -31,10 +31,7 @@ class OpenGL_Shader : public Shader
 {
 public:
     GLuint shader;
-    GLint world_location { -1 };
-    GLint world_inv_location { -1 };
-    GLint view_location { -1 };
-    GLint projection_location { -1 };
+    GLint texture_location;
 
 public:
     virtual ~OpenGL_Shader() override {}
@@ -44,13 +41,21 @@ public:
     virtual void unbind() const override;
 };
 
-struct OpenGL_Submesh
+struct OpenGL_Material
 {
     Shared_Ptr<OpenGL_Shader> shader;
-    int32 vertices_count{0};
+    uint32 albedo_texture;
+};
+
+struct OpenGL_Submesh
+{
+    int32 num_indices{0};
+
+    OpenGL_Material material;
 
     GLuint vertex_array;
     GLuint vertex_buffer;
+    GLuint index_buffer;
 };
 
 class OpenGL_Mesh : public Mesh
@@ -116,4 +121,8 @@ private:
 
     OpenGL_Framebuffer _create_framebuffer(int nWidth, int nHeight);
     void _destroy_framebuffer(OpenGL_Framebuffer& framebuffer);
+
+    Shared_Ptr<OpenGL_Shader> _create_shader(const Shared_Ptr<Shader_Resource> &shader_resource);
+    OpenGL_Material _create_material(const Shared_Ptr<Material_Resource>& material_resource);
+    GLuint _create_texture(const Shared_Ptr<Texture_Resource>& texture_resource);
 };

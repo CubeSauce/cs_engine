@@ -19,7 +19,9 @@ void OpenGL_Uniform_Buffer::unbind() const
 
 void OpenGL_Uniform_Buffer::set_data(const void *data, uint32 size, uint32 offset)
 {
+    glBindBuffer(GL_UNIFORM_BUFFER, buffer);
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);  
 }
 
 void OpenGL_Shader::bind() const
@@ -29,7 +31,7 @@ void OpenGL_Shader::bind() const
 
 void OpenGL_Shader::unbind() const
 {
-
+    glUseProgram(0);
 }
 
 void OpenGL_Mesh::upload_data()
@@ -193,7 +195,7 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
     }
     else if (_camera)
     {
-        _camera->aspect_ratio = 16.0f/9.0f;
+        _camera->aspect_ratio = m_viewport[2]/float(m_viewport[3]);
         _camera->calculate_projection();
         _camera->calculate_view();
 
@@ -202,23 +204,26 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
     }
 
     data.world = world_transform;
-    data.world_inv_tran = data.world.inverse();
+
+    data.world_inv_tran = data.world.inverse().transpose();
+    data.world.transpose();
+    data.view.transpose();
+    data.projection.transpose();
 
     for (const OpenGL_Submesh& submesh : gl_mesh->submeshes)
     {
         glBindVertexArray(submesh.vertex_array);
-        submesh.shader->bind();
-        
-		glUniformMatrix4fv(submesh.shader->world_location, 1, GL_FALSE, (GLfloat*)&data.world);
-		glUniformMatrix4fv(submesh.shader->world_inv_location, 1, GL_FALSE, (GLfloat*)&data.world_inv_tran);
-		glUniformMatrix4fv(submesh.shader->view_location, 1, GL_FALSE, (GLfloat*)&data.view);
-		glUniformMatrix4fv(submesh.shader->projection_location, 1, GL_FALSE, (GLfloat*)&data.projection);
+        submesh.material.shader->bind();
 
-        glDrawArrays(GL_TRIANGLES, 0, submesh.vertices_count);
-        submesh.shader->unbind();
+        _uniform_buffer->set_data(&data, sizeof(data), 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, submesh.material.albedo_texture);
+        glUniform1i(submesh.material.shader->texture_location, 0);
+
+        glDrawElements(GL_TRIANGLES, submesh.num_indices, GL_UNSIGNED_INT, nullptr);
+        submesh.material.shader->unbind();
         glBindVertexArray(0);
     }
-
 }
 
 Shared_Ptr<Buffer> OpenGL_Renderer_Backend::create_vertex_buffer(void *data, uint32 size)
@@ -235,7 +240,7 @@ Shared_Ptr<Buffer> OpenGL_Renderer_Backend::create_uniform_buffer(void *data, ui
     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, gl_buffer->buffer, 0, size);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, gl_buffer->buffer, 0, 2 * size);
 
     glBindBuffer(GL_UNIFORM_BUFFER, gl_buffer->buffer);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
@@ -277,69 +282,7 @@ void checkCompileErrors(GLuint shader, std::string type)
 
 Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
 {
-    Shared_Ptr<OpenGL_Shader> gl_shader = Shared_Ptr<OpenGL_Shader>::create();
-    gl_shader->shader_resource = shader_resource;
-
-    // 1. retrieve the vertex/fragment source code from filePath
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
-    std::string vertexCode;
-    std::string fragmentCode;
-
-    // ensure ifstream objects can throw exceptions:
-    vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-
-    // open files
-    std::string path = std::filesystem::current_path().string() + "/" + 
-        shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath;
-    vShaderFile.open(path);
-    path = std::filesystem::current_path().string() + "/" + 
-        shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath;
-    fShaderFile.open(path);
-    std::stringstream vShaderStream, fShaderStream;
-    // read file's buffer contents into streams
-    vShaderStream << vShaderFile.rdbuf();
-    fShaderStream << fShaderFile.rdbuf();		
-    // close file handlers
-    vShaderFile.close();
-    fShaderFile.close();
-    // convert stream into string
-    vertexCode = vShaderStream.str();
-    fragmentCode = fShaderStream.str();			
-
-    const char* vShaderCode = vertexCode.c_str();
-    const char * fShaderCode = fragmentCode.c_str();
-    // 2. compile shaders
-    unsigned int vertex, fragment;
-    // vertex shader
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
-    checkCompileErrors(vertex, "VERTEX");
-    // fragment Shader
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
-    checkCompileErrors(fragment, "FRAGMENT");
-    // shader Program
-    gl_shader->shader = glCreateProgram();
-    glAttachShader(gl_shader->shader, vertex);
-    glAttachShader(gl_shader->shader, fragment);
-    glLinkProgram(gl_shader->shader);
-    checkCompileErrors(gl_shader->shader, "PROGRAM");
-    // delete the shaders as they're linked into our program now and no longer necessary
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-
-    glUseProgram(gl_shader->shader);
-	gl_shader->world_location = glGetUniformLocation(gl_shader->shader, "World");
-	gl_shader->world_inv_location = glGetUniformLocation(gl_shader->shader, "WorldInverseTranspose");
-	gl_shader->view_location = glGetUniformLocation(gl_shader->shader, "View");
-	gl_shader->projection_location = glGetUniformLocation(gl_shader->shader, "Projection");
-    glUseProgram(0);
-
-    return gl_shader;
+    return _create_shader(shader_resource);
 }
 
 Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource)
@@ -359,6 +302,10 @@ Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Reso
         glBindBuffer(GL_ARRAY_BUFFER, gl_submesh.vertex_buffer);
         glBufferData(GL_ARRAY_BUFFER, submesh.vertices.size_in_bytes(), submesh.vertices.begin(), GL_STATIC_DRAW); 
 
+        glGenBuffers(1, &gl_submesh.index_buffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_submesh.index_buffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, submesh.indices.size_in_bytes(), submesh.indices.begin(), GL_STATIC_DRAW); 
+
         // set the vertex attribute pointers
         // vertex Positions
         glEnableVertexAttribArray(0);	
@@ -371,8 +318,8 @@ Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Reso
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_Data), (void*)offsetof(Vertex_Data, vertex_texture_coordinate));
 
         //index/elements buffer
-        gl_submesh.vertices_count = submesh.vertices.size(); 
-        gl_submesh.shader = create_shader(submesh.material_resource->shader_resource);
+        gl_submesh.num_indices = submesh.indices.size();
+        gl_submesh.material = _create_material(submesh.material_resource);
         gl_mesh->submeshes.add(gl_submesh);
     }
         
@@ -446,4 +393,110 @@ void OpenGL_Renderer_Backend::_destroy_framebuffer(OpenGL_Renderer_Backend::Open
     glDeleteFramebuffers( 1, &framebuffer.m_nRenderFramebufferId );
     glDeleteTextures( 1, &framebuffer.m_nResolveTextureId );
     glDeleteFramebuffers( 1, &framebuffer.m_nResolveFramebufferId );
+}
+
+Shared_Ptr<OpenGL_Shader> OpenGL_Renderer_Backend::_create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)
+{
+    Shared_Ptr<OpenGL_Shader> gl_shader = Shared_Ptr<OpenGL_Shader>::create();
+    gl_shader->shader_resource = shader_resource;
+
+    // 1. retrieve the vertex/fragment source code from filePath
+    std::ifstream vShaderFile;
+    std::ifstream fShaderFile;
+    std::string vertexCode;
+    std::string fragmentCode;
+
+    // ensure ifstream objects can throw exceptions:
+    vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+
+    // open files
+    std::string path = std::filesystem::current_path().string() + "/" + 
+        shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath;
+    vShaderFile.open(path);
+    path = std::filesystem::current_path().string() + "/" + 
+        shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath;
+    fShaderFile.open(path);
+    std::stringstream vShaderStream, fShaderStream;
+    // read file's buffer contents into streams
+    vShaderStream << vShaderFile.rdbuf();
+    fShaderStream << fShaderFile.rdbuf();		
+    // close file handlers
+    vShaderFile.close();
+    fShaderFile.close();
+    // convert stream into string
+    vertexCode = vShaderStream.str();
+    fragmentCode = fShaderStream.str();			
+
+    const char* vShaderCode = vertexCode.c_str();
+    const char * fShaderCode = fragmentCode.c_str();
+    // 2. compile shaders
+    unsigned int vertex, fragment;
+    // vertex shader
+    vertex = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex, 1, &vShaderCode, NULL);
+    glCompileShader(vertex);
+    checkCompileErrors(vertex, "VERTEX");
+    // fragment Shader
+    fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment, 1, &fShaderCode, NULL);
+    glCompileShader(fragment);
+    checkCompileErrors(fragment, "FRAGMENT");
+    // shader Program
+    gl_shader->shader = glCreateProgram();
+    glAttachShader(gl_shader->shader, vertex);
+    glAttachShader(gl_shader->shader, fragment);
+    glLinkProgram(gl_shader->shader);
+    checkCompileErrors(gl_shader->shader, "PROGRAM");
+    // delete the shaders as they're linked into our program now and no longer necessary
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
+    GLint count;
+    GLint size; // size of the variable
+    GLenum type; // type of the variable (float, vec3 or mat4, etc)
+    const GLsizei bufSize = 64; // maximum name length
+    GLchar name[bufSize]; // variable name in GLSL
+    GLsizei length; // name length
+   
+    glUseProgram(gl_shader->shader);
+    glGetProgramiv(gl_shader->shader, GL_ACTIVE_UNIFORMS, &count);
+    for (int32 i = 0; i < count; i++)
+    {
+        glGetActiveUniform(gl_shader->shader, (GLuint)i, bufSize, &length, &size, &type, name);
+      
+        if (std::string(name).find("VS_CONSTANT_BUFFER.World"))
+        {
+            glUniformBlockBinding(gl_shader->shader, i, 0);
+        }
+        else if (std::string(name).find("SPIRV_Cross_CombinedTextureSampler"))
+        {
+            gl_shader->texture_location = i;
+        }
+    }
+
+    glUseProgram(0);
+
+    return gl_shader;
+}
+
+OpenGL_Material OpenGL_Renderer_Backend::_create_material(const Shared_Ptr<Material_Resource>& material_resource)
+{
+    OpenGL_Material gl_material;
+
+    gl_material.shader = _create_shader(material_resource->shader_resource);
+    gl_material.albedo_texture = _create_texture(material_resource->texture_resource);
+
+    return gl_material;
+}
+
+GLuint OpenGL_Renderer_Backend::_create_texture(const Shared_Ptr<Texture_Resource>& texture_resource)
+{
+    if (!texture_resource)
+    {
+        return 0;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_resource->width, texture_resource->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_resource->data);
+    glGenerateMipmap(GL_TEXTURE_2D);
 }

@@ -17,8 +17,6 @@
 
 #include <string>
 
-#include "openvr.h"
-
 class VR_System;
 class CVar_Registry;
 class Net_Instance;

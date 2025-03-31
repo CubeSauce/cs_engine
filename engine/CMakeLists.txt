@@ -1,81 +1,76 @@
-add_subdirectory(third_party)
+cmake_minimum_required(VERSION 3.5...4.5)
 
-file(GLOB_RECURSE cs_engine_src
+project(cs_engine VERSION 0.0.2 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+
+option(cs_vr_support "Should use VR" OFF)
+
+file(GLOB_RECURSE ${PROJECT_NAME}_sources
     "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp"
 )
 
-file(GLOB cs_engine_includes
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party"
-)
-
-option(VR_SUPPORT "Should use VR" OFF)
-
-message("${CMAKE_SOURCE_DIR}/engine/third_party/glew/include")
+add_library(${PROJECT_NAME} ${${PROJECT_NAME}_sources})
 
 find_package(OpenGL REQUIRED)
-
-if(VR_SUPPORT)
-set(SIZEOF_VOIDP ${CMAKE_SIZEOF_VOID_P})
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(PROCESSOR_ARCH "64")
-else()
-    set(PROCESSOR_ARCH "32")
-endif()
-
-if(WIN32)
-    set(PLATFORM_NAME "win")
-elseif(UNIX AND NOT APPLE)
-    set(PLATFORM_NAME "linux")
-elseif(APPLE)
-    set(PLATFORM_NAME "osx")
-endif()
-
-find_library(OPENVR_LIB openvr_api64d HINTS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/openvr/bin/${PLATFORM_NAME}${PROCESSOR_ARCH}" 
-    NO_DEFAULT_PATH )
-endif()
-message(ASAS ${OPENVR_LIB})
-
-add_library(cs_engine)
+add_subdirectory(third_party/glfw)
+add_subdirectory(third_party/assimp)
+add_subdirectory(third_party/glew/build/cmake)
 if (VR_SUPPORT)
-target_add_compile_definitions(cs_engine PUBLIC CS_WITH_VR_SUPPORT)
+    add_subdirectory(third_party/openvr)
+    target_add_compile_definitions(${PROJECT_NAME} PUBLIC CS_WITH_VR_SUPPORT)
 endif()
-target_sources(cs_engine PRIVATE ${cs_engine_src})
-target_include_directories(cs_engine PUBLIC ${cs_engine_includes} 
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glew/include" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/openvr/headers")
-target_link_libraries(cs_engine PUBLIC glfw glew_s assimp 
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    PRIVATE
+        glfw
+        third_party
+        third_party/glew/include
+        third_party/assimp/include
 )
+
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        
+    PRIVATE
+        glfw
+        glew
+        assimp
+)
+
 if (WIN32)
-    target_link_libraries(cs_engine PUBLIC OpenGL::GL
-    d3d11.lib D3DCompiler.lib dxgi.lib dxguid.lib uuid.lib
-    kernel32.lib user32.lib
-    comdlg32.lib advapi32.lib shell32.lib
-    ole32.lib oleaut32.lib
-    "C:\\Users\\Matija\\Documents\\GitHub\\cs_engine\\build\\lib\\Debug\\openvr_api64d.lib"
+    target_link_libraries(${PROJECT_NAME} 
+        PUBLIC 
+            d3d11.lib D3DCompiler.lib dxgi.lib oleaut32.lib 
+            dxguid.lib uuid.lib kernel32.lib user32.lib 
+            comdlg32.lib advapi32.lib shell32.lib ole32.lib 
+            OpenGL::GL 
+            #"C:\\Users\\Matija\\Documents\\GitHub\\cs_engine\\build\\lib\\Debug\\openvr_api64d.lib"
     )
 elseif(APPLE)
-    target_link_libraries(cs_engine PUBLIC 
-        "-framework Cocoa" "-framework Carbon" "-framework IOKit" "-framework AppKit" "-framework OpenGL")
+    target_link_libraries(${PROJECT_NAME} 
+        PUBLIC 
+            "-framework Cocoa" "-framework Carbon" "-framework IOKit" 
+            "-framework AppKit" "-framework OpenGL"
+    )            
 endif (WIN32)
-set_property(TARGET cs_engine PROPERTY CXX_STANDARD 20)
 
 # Copy driver assets to output folder
 add_custom_command(
-    TARGET cs_engine
+    TARGET ${PROJECT_NAME} 
     PRE_BUILD 
     COMMAND ${CMAKE_COMMAND} -E copy_directory 
     ${CMAKE_SOURCE_DIR}/engine/assets/ 
-    $<TARGET_FILE_DIR:cs_engine>
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 
 add_custom_command(
-    TARGET cs_engine
+    TARGET ${PROJECT_NAME} 
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy 
-    $<TARGET_FILE:cs_engine>
-    $<TARGET_FILE_DIR:cs_engine>/bin/${PLATFORM_NAME}${PROCESSOR_ARCH}/$<TARGET_FILE_NAME:cs_engine>
+    $<TARGET_FILE:${PROJECT_NAME}>
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>/bin/${PLATFORM_NAME}${PROCESSOR_ARCH}/$<TARGET_FILE_NAME:cs_engine>
 )
 
 include("${CMAKE_SOURCE_DIR}/cmake/compile_shaders.cmake")

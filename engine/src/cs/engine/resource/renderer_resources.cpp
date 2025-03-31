@@ -55,10 +55,6 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
 {
     name = filepath.c_str();
 
-    import_settings.import_offset;
-    import_settings.import_rotation;
-    import_settings.import_scale;
-
     const mat4 import_mat = import_settings.import_rotation.to_mat4();
     const mat4 import_mat_inv = import_mat.inverse();
 

@@ -29,7 +29,7 @@ function(convert_spirv_to_glsl SPIRV_SHADERS GLSL_OUTPUT_DIR GLSL_OUTPUTS)
 
         add_custom_command(
             OUTPUT ${GLSL_FILE}
-            COMMAND ${SPIRV_CROSS} ${SPIRV_FILE} --output ${GLSL_FILE} --flatten-ubo
+            COMMAND ${SPIRV_CROSS} ${SPIRV_FILE} --output ${GLSL_FILE} --version 410
             DEPENDS ${SPIRV_FILE}
             COMMENT "Converting ${SPIRV_FILE} to ${GLSL_FILE}..."
         )
