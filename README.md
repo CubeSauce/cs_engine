@@ -4,7 +4,7 @@ Every iteration of every engine/game I tried to do from scratch is a part of thi
 
 Current version supports DirectX and Windows only, Vulkan and OpenGL with Win/Linux/MacOs coming soon
 
-Build using CMake 
+Build using CMake, requires manual GLEW snapshot (with generated sources).
 
 ## TODO:
 ### Engine
@@ -28,6 +28,7 @@ Build using CMake
 - [ ] OpenGL
 - [ ] Batch rendering
 - [ ] Hot-Reloading shaders
+- [ ] HLSL into SPIR-V/GLSL (kinda done, but there are errors in the shaders)
 ### Window framework
 - [x] GLFW
 - [ ] SDL
