@@ -25,7 +25,7 @@ Build using CMake, requires manual GLEW snapshot (with generated sources).
 ### Rendering
 - [x] DirectX
 - [ ] Vulkan
-- [ ] OpenGL
+- [x] OpenGL
 - [ ] Batch rendering
 - [ ] Hot-Reloading shaders
 - [ ] HLSL into SPIR-V/GLSL (kinda done, but there are errors in the shaders)
