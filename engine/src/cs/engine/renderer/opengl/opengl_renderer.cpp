@@ -499,4 +499,6 @@ GLuint OpenGL_Renderer_Backend::_create_texture(const Shared_Ptr<Texture_Resourc
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_resource->width, texture_resource->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_resource->data);
     glGenerateMipmap(GL_TEXTURE_2D);
+
+    return 0;
 }

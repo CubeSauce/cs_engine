@@ -95,7 +95,7 @@ void Physics_Body::update_transform_euler(float dt)
         //printf("sleep_timer: %f\n", sleep_timer);
         if (sleep_timer >= sleep_time_threshold)
         {
-            printf("%s is now asleep.\n", id.str);
+            printf("%s is now asleep.\n", id.c_str());
             is_awake = false;
             linear_velocity = vec3::zero_vector;
             angular_velocity = vec3::zero_vector;
@@ -111,14 +111,12 @@ void Physics_Body::wake_up()
         return;
     }
     
-    printf("%s is now awake.\n", id.str);
-
     is_awake = true;
     sleep_timer = 0.0f;
     // Reset any accumulated forces
     accumulated_forces = vec3::zero_vector;
     accumulated_torque = vec3::zero_vector;
-    printf("%s is now awake.\n", id.str);
+    printf("%s is now awake.\n", id.c_str());
 }
 
 void Physics_Body::apply_force(const vec3& force)

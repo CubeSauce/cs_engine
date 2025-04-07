@@ -7,95 +7,23 @@
 #include <cstring>
 #include <cassert>
 
-uint32_t crc32(const char *string, size_t length) 
+constexpr uint32 prime_32_const = 0x1000193;
+constexpr uint64 prime_64_const = 0x100000001b3;
+
+constexpr uint32 hash_32_fnv1a_const(const char* const str, const uint32 value) noexcept
 {
-    if(length == (size_t) -1)
-    {
-        length = strlen(string);    
-    } 
-
-	uint32_t crc = 0xFFFFFFFF;
-	
-	for(uint32 i = 0; i < length; i++)
-    {
-		char ch = string[i];
-		for (int32 j = 0; j < 8; j++)
-        {
-			uint32_t b = (ch ^ crc) & 1;
-			crc >>= 1;
-			if (b)
-            {            
-                crc=crc^0xEDB88320;
-            }
-
-			ch >>= 1;
-		}
-	}
-	
-	return ~crc;
+    return (str[0] == '\0') ? value : hash_32_fnv1a_const(&str[1], (value ^ uint32_t((uint8_t)str[0])) * prime_32_const);
 }
 
-static Hash_Table<const char*> *string_hash_table;
-
-uint32 get_hash(const char* str, size_t _size)
+constexpr uint64 hash_64_fnv1a_const(const char* const str, const uint64 value) noexcept
 {
-    return crc32(str, _size);
+    return (str[0] == '\0') ? value : hash_64_fnv1a_const(&str[1], (value ^ uint64_t((uint8_t)str[0])) * prime_64_const);
 }
 
-const char* get_hashed_string(uint32 hash)
+Name_Id Name_Id::Empty = Name_Id(0, "");
+
+Name_Id::Name_Id(const std::string& string)
+    :id(hash_32_fnv1a_const(string.c_str())), str(string)
 {
-    return (*string_hash_table)[hash];
+
 }
-
-uint32 operator ""_hashed(const char* str, size_t size)
-{
-    if (string_hash_table == nullptr)
-    {
-         string_hash_table = new Hash_Table<const char*>(2048);
-    }
-
-    const uint32 hash = get_hash(str, size);
-    (*string_hash_table)[hash] = strdup(str);
-
-    return hash;
-}
-
-Name_Id Name_Id::Empty = Name_Id("");
-
-Name_Id::Name_Id()
-    :id(0), str(nullptr)
-{
-}
-
-Name_Id::Name_Id(const char* string)
-    :id(get_hash(string)), str(strdup(string))
-{
-}
-
-/*
-template<>
-Archive& operator<<(Archive& archive, Name_Id& data)
-{
-    archive << data.id; //data.str;
-
-    int32 str_len;
-    if (archive.is_writing())
-    {
-        str_len = (int32) strlen(data.str) + 1;
-        archive << str_len;
-        archive.write((void*) data.str, sizeof(char), (size_t) str_len);
-    }
-    else
-    {
-        archive << str_len;
-        char* buf = new char[str_len];
-        archive.read((void*) buf, sizeof(char), (size_t) str_len);
-        
-        Name_Id read_name(buf);
-        CS_ASSERT(read_name.id == data.id);
-        data = read_name;
-    }
-
-    return archive;
-}
-*/

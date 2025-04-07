@@ -112,7 +112,7 @@ public:
         Shared_Ptr<CVar>& cvar = _cvars[in_cvar->name];
         if (cvar)
         {
-            printf("CVar already exists with name \"%s\"\n", cvar->name.str);
+            printf("CVar already exists with name \"%s\"\n", cvar->name.c_str());
             return;
         }
 
@@ -138,7 +138,7 @@ public:
                 return;
             }
 
-            printf("\'%s\' : \"%s\"\n", pair.data->name.str, pair.data->description.c_str());
+            printf("\'%s\' : \"%s\"\n", pair.data->name.c_str(), pair.data->description.c_str());
         });
     }
 
