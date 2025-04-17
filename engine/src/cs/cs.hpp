@@ -49,12 +49,6 @@
 #define CS_SHARED_PTR_SHOULD_INVOKE_DESTRUCTOR
 //#define CS_MATH_USE_float_PRECISION
 
-#define CS_WITH_PROFILING
-//#undef CS_WITH_PROFILING
-
-#define CS_WITH_VR_SUPPORT
-#undef CS_WITH_VR_SUPPORT
-
 template<typename Type>
 void swap(Type&& a, Type&& b)
 {
