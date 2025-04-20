@@ -6,6 +6,7 @@
 #include "cs/cs.hpp"
 #include "cs/math/math.hpp"
 #include "cs/engine/name_id.hpp"
+#include "cs/containers/pair.hpp"
 #include "cs/containers/dynamic_array.hpp"
 
 #include <unordered_map>

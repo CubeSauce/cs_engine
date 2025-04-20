@@ -5,7 +5,7 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/dynamic_array.hpp"
-#include "cs/containers/hash_table.hpp"
+#include "cs/containers/hash_map.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 
 struct Component
@@ -21,22 +21,22 @@ struct Component_Container
     static inline const Name_Id component_type_name = Name_Id(print_type<Type>());
 
     Dynamic_Array<Type> components;
-    Hash_Map<int32> id_to_index = Hash_Map<int32>(1024);
-    Hash_Map<Name_Id> index_to_id = Hash_Map<Name_Id>(1024);
+    Hash_Map<Name_Id, int64> id_to_index;
+    Hash_Map<int64, Name_Id> index_to_id;
 
     Type& add(const Name_Id& id)
     {
         // Don't add we already have something with this id
-        int32* p_index = id_to_index.find(id);
+        int64* p_index = id_to_index.find(id);
         if (p_index)
         {
             return components[*p_index];
         }
 
-        int32 new_index = components.size();
-        id_to_index.add(id, new_index);
-        index_to_id.add(new_index, id);
-        components.add(Type());
+        int64 new_index = components.size();
+        id_to_index.insert(id, new_index);
+        index_to_id.insert(new_index, id);
+        components.push_back(Type());
         //components[new_index].entity_id = id;
         components[new_index].dirty = true;
         return components[new_index]; 
@@ -44,7 +44,7 @@ struct Component_Container
 
     Type* get(const Name_Id& id)
     {
-        int32* p_index = id_to_index.find(id);
+        int64* p_index = id_to_index.find(id);
         if (p_index == nullptr)
         {
             return nullptr;

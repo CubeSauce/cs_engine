@@ -1,11 +1,7 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/math/math.hpp"
-#include "cs/engine/name_id.hpp"
 #include "cs/memory/shared_ptr.hpp"
-#include "cs/containers/hash_table.hpp"
-#include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 
 class Renderer;

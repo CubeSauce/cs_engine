@@ -1,6 +1,7 @@
 add_subdirectory(glfw)
 add_subdirectory(glew/build/cmake)
 add_subdirectory(assimp)
+add_subdirectory(cs_util)
 if(VR_SUPPORT)
 add_subdirectory(openvr)
 endif()

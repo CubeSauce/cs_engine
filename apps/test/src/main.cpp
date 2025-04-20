@@ -94,8 +94,8 @@ template<typename Type>
 struct Component_Container
 {
     Dynamic_Array<Type> components;
-    Hash_Map<int32> id_to_index = Hash_Map<int32>(1024);
-    Hash_Map<Name_Id> index_to_id = Hash_Map<Name_Id>(1024);
+    Hash_Map<Name_Id, int32> id_to_index = Hash_Map<Name_Id, int32>(1024);
+    Hash_Map<Name_Id, Name_Id> index_to_id = Hash_Map<Name_Id, Name_Id>(1024);
 
     void add(const Name_Id& id, const Type& type)
     {
@@ -107,8 +107,8 @@ struct Component_Container
         }
 
         int32 new_index = components.size();
-        id_to_index.add(id, new_index);
-        index_to_id.add(new_index, id);
+        id_to_index.push_back(id, new_index);
+        index_to_id.push_back(new_index, id);
         components.add(type);
     }
 
@@ -383,7 +383,7 @@ void Test_Game_Instance::_construct_transform_task_graph(float dt)
         parent_dirty = game_state.transform_components.components[*found_index].dirty;
         if (parent_dirty)
         {
-          dependencies.add({.a = i, .b = *found_index});
+          dependencies.push_back({.a = i, .b = *found_index});
         }
       }
     }
@@ -393,7 +393,7 @@ void Test_Game_Instance::_construct_transform_task_graph(float dt)
       continue;
     }
 
-    tasks.add(_transform_task_graph.create_task(std::bind(&Test_Game_Instance::_transform_task_worker, this, dt, i)));
+    tasks.push_back(_transform_task_graph.create_task(std::bind(&Test_Game_Instance::_transform_task_worker, this, dt, i)));
   }
 
   for (const Pair<int32>& dependency_pair : dependencies)
@@ -597,7 +597,7 @@ void Test_Game_Instance::_construct_spatial_grid(Spatial_Hash_Grid& in_grid)
   }
 }
 
-Hash_Map<Shared_Ptr<Mesh>> meshes;
+Hash_Map<Name_Id, Shared_Ptr<Mesh>> meshes;
 void Test_Game_Instance::render(const Shared_Ptr<Renderer>& renderer, VR_Eye::Type eye)
 {
     PROFILE_FUNCTION()
@@ -656,11 +656,11 @@ int main(int argc, char** argv)
   Dynamic_Array<std::string> args;
   for (int32 a = 1; a < argc; ++a)
   {
-      args.add(argv[a]);
+      args.push_back(argv[a]);
   }
 
-  args.add("cs_vr_support=0");
-  args.add("cs_num_threads=0");
+  args.push_back("cs_vr_support=0");
+  args.push_back("cs_num_threads=0");
 
   Engine engine;
   engine.initialize(args);

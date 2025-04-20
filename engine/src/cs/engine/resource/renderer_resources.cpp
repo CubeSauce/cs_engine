@@ -115,9 +115,9 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
         const uint32 num_vertices = (int32)(ai_mesh->mNumFaces * 3);
         for (uint32 f = 0; f < ai_mesh->mNumFaces; ++f)
         {
-            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[2]);
-            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[1]);
-            submesh_data.indices.add(ai_mesh->mFaces[f].mIndices[0]);
+            submesh_data.indices.push_back(ai_mesh->mFaces[f].mIndices[2]);
+            submesh_data.indices.push_back(ai_mesh->mFaces[f].mIndices[1]);
+            submesh_data.indices.push_back(ai_mesh->mFaces[f].mIndices[0]);
         }
         
         Vertex_Data vertex;
@@ -151,10 +151,10 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
             // Calculate mesh bounds for later
             submesh_data.bounds.expand(vertex.vertex_location);
             bounds.expand(vertex.vertex_location);
-            submesh_data.vertices.add(vertex);
+            submesh_data.vertices.push_back(vertex);
         }
 
-        submeshes.add(submesh_data);
+        submeshes.push_back(submesh_data);
     }
 
     return true;

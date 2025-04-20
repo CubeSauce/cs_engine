@@ -8,7 +8,7 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/engine/singleton.hpp"
 #include "cs/memory/shared_ptr.hpp"
-#include "cs/containers/hash_table.hpp"
+#include "cs/containers/hash_map.hpp"
 
 class Input_Source
 {
@@ -26,7 +26,7 @@ struct Input_Pair
 struct Input
 {
     Name_Id id;
-    Hash_Map<float> multipliers;
+    Hash_Map<Name_Id, float> multipliers;
     Event<float, float> on_updated;
 };
 
@@ -38,7 +38,7 @@ public:
     Event<float, float>& register_input(const Name_Id& id, const Dynamic_Array<Input_Pair>& inputs);
 
 private:
-    Hash_Map<Shared_Ptr<Input>> _inputs;
+    Hash_Map<Name_Id, Shared_Ptr<Input>> _inputs;
 };
 
 float axis_deadzone(float value, float threshold);

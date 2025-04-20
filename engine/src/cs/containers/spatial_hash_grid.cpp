@@ -35,8 +35,8 @@ void Spatial_Hash_Grid::add(const Name_Id& in_id, const AABB& in_bounds)
 
                 Cell& cell = _cells[hash];
                 cell.dirty = true;
-                cell.object_ids.add(in_id);
-                _id_to_hash[in_id].add(hash);
+                cell.object_ids.push_back(in_id);
+                _id_to_hash[in_id].push_back(hash);
             }   
         }   
     }
@@ -53,7 +53,7 @@ void Spatial_Hash_Grid::update(const Name_Id& in_id, const AABB& in_bounds)
         {
             Cell& cell = _cells.at(hash);
             cell.dirty = true;
-            cell.object_ids.remove_first(in_id);
+            cell.object_ids.erase_if([in_id](const Name_Id& value){ return value == in_id; });
         }
         _id_to_hash.erase(in_id);
     }
@@ -91,7 +91,7 @@ int32 Spatial_Hash_Grid::get_potential_collisions(const Name_Id& in_id, const AA
 
                     if (out_potential_colliders.find_first(id) == -1)
                     {
-                        out_potential_colliders.add(id);
+                        out_potential_colliders.push_back(id);
                     }
                     count++;
                 }
@@ -141,7 +141,7 @@ void Spatial_Hash_Grid::sweep_and_prune_cells(Dynamic_Array<Pair<Name_Id, Name_I
                     if (out_potential_collision_pairs.find_first(pair) == -1 &&
                     out_potential_collision_pairs.find_first(inverse_pair) == -1)
                     {
-                        out_potential_collision_pairs.add(pair);
+                        out_potential_collision_pairs.push_back(pair);
                     }
                 }
             }

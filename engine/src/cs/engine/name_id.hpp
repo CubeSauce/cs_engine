@@ -46,3 +46,15 @@ private:
     {
     }
 };
+
+namespace std 
+{
+    template<>
+    struct hash<Name_Id> 
+    {
+        std::size_t operator()(const Name_Id& id) const noexcept 
+        {
+            return id.id;
+        }
+    };
+}

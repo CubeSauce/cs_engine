@@ -11,8 +11,8 @@ Task::Task(const Task::Job &job)
 
 void Task::add_dependency(const Shared_Ptr<Task> &task)
 {
-    _dependencies.add(task);
-    task->_references.add(shared_from_this());
+    _dependencies.push_back(task);
+    task->_references.push_back(shared_from_this());
     _unfinished_dependencies++;
 }
 
@@ -65,7 +65,7 @@ void Task::_submit_to_thread_pool()
             continue;
         }
 
-        referencers_to_execute.add(shared_referencer);
+        referencers_to_execute.push_back(shared_referencer);
     } 
 
     Thread_Pool::get().submit(referencers_to_execute);
@@ -74,7 +74,7 @@ void Task::_submit_to_thread_pool()
 Shared_Ptr<Task> Task_Graph::create_task(std::function<void(void)> task_job)
 {
     Shared_Ptr<Task> new_task = Shared_Ptr<Task>::create(task_job);
-    _tasks.add(new_task);
+    _tasks.push_back(new_task);
     return new_task;
 }
 

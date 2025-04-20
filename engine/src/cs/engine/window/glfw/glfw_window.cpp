@@ -170,7 +170,7 @@ void joystick_callback(int32 jid, int32 event)
     if (event == GLFW_CONNECTED)
     {
         glfwSetJoystickUserPointer(jid, joystick_input_source.get());
-        connected_joysticks.add(jid);
+        connected_joysticks.push_back(jid);
     }
     else if (event == GLFW_DISCONNECTED)
     {
@@ -201,7 +201,7 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
     {
         if (glfwJoystickPresent(jid))
         {
-            connected_joysticks.add(jid);
+            connected_joysticks.push_back(jid);
             glfwSetJoystickUserPointer(jid, joystick_input_source.get());
         }
     }

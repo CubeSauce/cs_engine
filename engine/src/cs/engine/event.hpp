@@ -36,13 +36,13 @@ class Event
 public:
     void bind(std::function<void(Args...)> func)
     {
-        _events.add(func);
+        _events.push_back(func);
     }
     
     template<typename T, typename F>
     void bind(T *obj, F func)
     {
-        _events.add(std::bind(func, obj, make_int_sequence<sizeof...(Args)>{}));
+        _events.push_back(std::bind(func, obj, make_int_sequence<sizeof...(Args)>{}));
     }
 
     void broadcast(Args...args)

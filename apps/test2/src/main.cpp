@@ -3,7 +3,7 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/engine/task_system.hpp"
 #include "cs/memory/weak_ptr.hpp"
-#include "cs/containers/hash_table.hpp"
+#include "cs/containers/hash_map.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 #include "cs/engine/physics/collision_function.hpp"
 
@@ -22,7 +22,7 @@ void dynamic_array_test()
 
   for (int i = 0; i < 1024 * 4; ++i)
   {
-    arr.add({.i = i, .f = float(i)});
+    arr.push_back({.i = i, .f = float(i)});
   }
 
   arr.capacity();
@@ -30,20 +30,8 @@ void dynamic_array_test()
 
 void hash_map_test()
 {
-  Hash_Map<float> map;
+  Hash_Map<Name_Id, float> map;
 
-  map.add(Name_Id("one"), 1.0f);
-  map.add(Name_Id("two"), 1.0f);
-  map.add(Name_Id("two"), 2.0f);
-  map.add(Name_Id("three"), 3.0f);
-
-  float *one = map.find(Name_Id("one"));
-  float *two = map.find(Name_Id("two"));
-  float *three = map.find(Name_Id("three"));
-  float& four = map.find_or_add(Name_Id("four"));
-  map.add(Name_Id("four"), 4.0f);
-  float *four_p = map.find(Name_Id("four"));
-  float *five = map.find(Name_Id("five"));
 }
 
 void smart_ptr_test()
@@ -83,7 +71,7 @@ void task_worker(int r, int i)
   std::unique_lock lock(mutex);
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   int64 time_ms = std::chrono::duration_cast<std::chrono::microseconds>(now - start).count();
-  tda.add(std::format("[{} - {}][{}us]", r, i, time_ms));
+  tda.push_back(std::format("[{} - {}][{}us]", r, i, time_ms));
   start = std::chrono::steady_clock::now();
   lock.unlock();
   
@@ -138,7 +126,7 @@ void collision_test()
 
   Collider convex;
   convex.type = Collider::Convex_Hull;
-  convex.shape.convex_hull.count = ch_mesh->submeshes[0].vertices.size();
+  convex.shape.convex_hull.count = (uint32) ch_mesh->submeshes[0].vertices.size();
   int32 count = 0;
   for (const Vertex_Data& vertex : ch_mesh->submeshes[0].vertices)
   {

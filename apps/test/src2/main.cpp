@@ -3,9 +3,7 @@
 #include "cs/engine/game/game_instance.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 #include "cs/engine/physics/physics_system.hpp"
-
 #include "component.hpp"
-
 #include <shared_mutex>
 
 class Game : public Game_Instance
@@ -38,13 +36,13 @@ public:
             Transform_Component& camera_transform = _transform_components.add("player_camera");
             camera_transform.parent_id = "player";
             camera_transform.local_position = vec3(-10.0f, -10.0f, 2.0f);
-            camera_transform.local_orientation = quat::from_euler_angles(vec3(-0_deg, 0_deg, -45_deg));
+            camera_transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, -45_deg));
         }
 
         {
             Name_Id name("floor");
             Transform_Component& transform = _transform_components.add(name);
-            transform.local_orientation = quat::from_euler_angles(vec3(0_deg, 0_deg, 0_deg));
+            transform.local_orientation = quat::from_euler_angles(vec3(-0_deg, -0_deg, 0_deg));
 
             Render_Component& render = _render_components.add(name);
             render.mesh = floor;
@@ -140,13 +138,13 @@ public:
         {
             Name_Id name("box");
             Transform_Component& transform = _transform_components.add(name);
-            transform.local_position = vec3(2.5f, 0.0f, 10.0f);
+            transform.local_position = vec3(-2.5f, 0.0f, 5.0f);
 
             Render_Component& render = _render_components.add(name);
             render.mesh = unit_box;
 
             Physics_Body_Component& pb = _physics_body_components.add(name);
-            pb.type = Physics_Body::Static;
+            pb.type = Physics_Body::Dynamic;
             pb.component_id = name;
             pb.mass = 1.0f;  //Is this valid?
             pb.collider.type = Collider::Box;
@@ -169,7 +167,7 @@ public:
             pb.mass = 1.0f;  //Is this valid?
             pb.collider.type = Collider::Convex_Hull;
             pb.collider.bounds = unit_convex->bounds;
-            pb.collider.shape.convex_hull.count = unit_convex->submeshes[0].vertices.size();
+            pb.collider.shape.convex_hull.count = (uint32) unit_convex->submeshes[0].vertices.size();
             assert(pb.collider.shape.convex_hull.count < CONVEX_HULL_MAX_NUM_VERTICES);
 
             uint32 count = 0;
@@ -213,7 +211,7 @@ public:
 
         // Writing to transform, mutex needed
         Physics_System& physics_system = Physics_System::get();
-        for (int32 i = 0; i < _physics_body_components.components.size(); ++i)
+        for (int64 i = 0; i < _physics_body_components.components.size(); ++i)
         {
             Name_Id* p_entity_id = _physics_body_components.index_to_id.find(i);
             assert(p_entity_id);
@@ -277,7 +275,7 @@ public:
             camera->orientation = p_camera_transform->get_world_orientation();
         }
     
-        for (int32 i = 0; i < _render_components.components.size(); ++i)
+        for (int64 i = 0; i < _render_components.components.size(); ++i)
         {
             const Render_Component& render_component = _render_components.components[i];
             if (!render_component.visible)
@@ -315,8 +313,8 @@ private:
         PROFILE_FUNCTION()
 
         // For task graph
-        Dynamic_Array<Pair<int32, int32>> dependencies;
-        for (int32 i = 0; i < _transform_components.components.size(); ++i)
+        Dynamic_Array<Pair<int64, int64>> dependencies;
+        for (int64 i = 0; i < _transform_components.components.size(); ++i)
         {
             Transform_Component& component = _transform_components.components[i];
             bool parent_dirty = false;
@@ -329,10 +327,10 @@ private:
                 {
                     parent_dirty = true;
 
-                    const int32* p_parent_index = _transform_components.id_to_index.find(component.parent_id);
+                    const int64* p_parent_index = _transform_components.id_to_index.find(component.parent_id);
                     assert(p_parent_index);
 
-                    dependencies.add({i, *p_parent_index});
+                    dependencies.push_back({i, *p_parent_index});
                 }
             }
 
@@ -416,12 +414,12 @@ int main(int argc, char** argv)
     Dynamic_Array<std::string> args;
     for (int32 a = 1; a < argc; ++a)
     {
-        args.add(argv[a]);
+        args.push_back(argv[a]);
     }
 
-    args.add("cs_dt_mult=1.0");
-    args.add("cs_vr_support=0");
-    args.add("cs_num_threads=0");
+    args.push_back("cs_dt_mult=1.0");
+    args.push_back("cs_vr_support=0");
+    args.push_back("cs_num_threads=0");
 
     Engine engine;
     engine.initialize(args);
@@ -429,7 +427,7 @@ int main(int argc, char** argv)
     engine.run();
     engine.shutdown();
 
-    Profiler::get().write_to_chrometracing_json("profiling/test_0_thread.json");
+    Profiler::get().write_to_chrometracing_json("profiling/angle.json");
 
   return 0;
 }

@@ -86,7 +86,7 @@ void DirectX11_Mesh::upload_data()
         const Submesh_Data &submesh_data = mesh_resource->submeshes[s];
 
         D3D11_BUFFER_DESC buffer_desc = {};
-        buffer_desc.ByteWidth = submesh_data.vertices.size_in_bytes();
+        buffer_desc.ByteWidth = (uint32) submesh_data.vertices.size_in_bytes();
         buffer_desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
         buffer_desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
 
@@ -94,7 +94,7 @@ void DirectX11_Mesh::upload_data()
         resource_data.pSysMem = submesh_data.vertices.begin();
         assert(SUCCEEDED(device->CreateBuffer(&buffer_desc, &resource_data, &submesh.vertex_buffer)));
         
-        buffer_desc.ByteWidth = submesh_data.indices.size_in_bytes();
+        buffer_desc.ByteWidth = (uint32) submesh_data.indices.size_in_bytes();
         buffer_desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
         buffer_desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
 
@@ -346,9 +346,9 @@ Shared_Ptr<Mesh> DirectX11_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_R
 
         // TODO: map with materials and existing shaders so we don't duplicate
         dx_submesh.material = _create_material(submesh.material_resource);
-        dx_submesh.num_indices = submesh.indices.size();
+        dx_submesh.num_indices = (uint32) submesh.indices.size();
 
-        dx_mesh->submeshes.add(dx_submesh);
+        dx_mesh->submeshes.push_back(dx_submesh);
     }
 
     return dx_mesh;
@@ -604,12 +604,12 @@ void DirectX11_Renderer_Backend::_initialize_render_stuff()
     RECT win_rect;
     GetClientRect(_hwnd, &win_rect);
     _viewport = {0.0f, 0.0f, (FLOAT)(win_rect.right - win_rect.left), (FLOAT)(win_rect.bottom - win_rect.top), 0.0f, 1.0f};
-
     _device_context->Flush();
 
     _framebuffers[VR_Eye::None] = _create_framebuffer();
 
     VR_System& vr_system = VR_System::get();
+    //vr_system.get_viewport
     if (vr_system.is_valid())
     {
         _framebuffers[VR_Eye::Left] = _create_framebuffer();

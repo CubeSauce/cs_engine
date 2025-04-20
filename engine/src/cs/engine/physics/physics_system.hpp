@@ -146,7 +146,7 @@ public:
 
 private:
     Dynamic_Array<Physics_Body> _bodies;
-    std::unordered_map<uint32, int32> _id_to_index;
+    std::unordered_map<Name_Id, int64> _id_to_index;
 
     Spatial_Hash_Grid _hash_grid = Spatial_Hash_Grid(1.50f);
 
@@ -155,7 +155,7 @@ private:
     
     Dynamic_Array<Pair<Name_Id, Name_Id>> _broadphase_collision_pairs;
     // std::unordered_map<uint32, Dynamic_Array<Name_Id>> _broadphase_collisions;
-    std::unordered_map<uint32, Dynamic_Array<Collision_Result>> _narrowphase_collisions;
+    std::unordered_map<Name_Id, Dynamic_Array<Collision_Result>> _narrowphase_collisions;
 
     void _execute_broadphase(float dt);
     void _execute_narrowphase(float dt);

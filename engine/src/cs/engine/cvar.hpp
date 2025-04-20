@@ -8,7 +8,7 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/engine/singleton.hpp"
 #include "cs/memory/shared_ptr.hpp"
-#include "cs/containers/hash_table.hpp"
+#include "cs/containers/hash_map.hpp"
 
 #include <string>
 #include <sstream>
@@ -90,15 +90,16 @@ public:
     template <typename Type>
     Shared_Ptr<CVar_T<Type>> register_cvar(const Name_Id& name, const Type& defaultValue, const std::string& description)
     {
-        Shared_Ptr<CVar>& cvar = _cvars[name];
-        if (cvar)
+        Shared_Ptr<CVar>* p_cvar = _cvars.find(name);
+        if (p_cvar != nullptr)
         {
-            printf("CVar already exists with description : \"%s\"\n", cvar->description.c_str());
-            return cvar;
+            assert(*p_cvar);
+            printf("CVar already exists with description : \"%s\"\n", (*p_cvar)->description.c_str());
+            return *p_cvar;
         }
         
         Shared_Ptr<CVar_T<Type>> cvar_t = Shared_Ptr<CVar_T<Type>>::create(name, defaultValue, description);
-        cvar = cvar_t;
+        _cvars.insert(name, cvar_t);
         return cvar_t;
     }
 
@@ -109,39 +110,43 @@ public:
             return;
         }
 
-        Shared_Ptr<CVar>& cvar = _cvars[in_cvar->name];
-        if (cvar)
+        Shared_Ptr<CVar>* p_cvar = _cvars.find(in_cvar->name);
+        if (p_cvar != nullptr)
         {
-            printf("CVar already exists with name \"%s\"\n", cvar->name.c_str());
+            assert(*p_cvar);
+            printf("CVar already exists with name \"%s\"\n", (*p_cvar)->name.c_str());
             return;
         }
 
-        cvar = in_cvar;
+        _cvars.insert(in_cvar->name, in_cvar);
     }
 
     Shared_Ptr<CVar> get_cvar(const Name_Id& name)
     {
-        return _cvars[name.id];
+        Shared_Ptr<CVar>* p_cvar = _cvars.find(name);
+        return p_cvar ? *p_cvar : Shared_Ptr<CVar>();
     }
     
     template<typename Type>
     Shared_Ptr<CVar_T<Type>> get_cvar(const Name_Id& name)
     {
-        return _cvars[name.id];
+        Shared_Ptr<CVar>* p_cvar = _cvars.find(name);
+        return p_cvar ? *p_cvar : Shared_Ptr<CVar_T<Type>>();
     }
 
     void list_all_cvars()
     {
-        _cvars.for_each([](const Hash_Table<Shared_Ptr<CVar>>::Hash_Pair& pair){
-            if (!pair.data)
+        for (const Pair<Name_Id, Shared_Ptr<CVar>>& pair : _cvars)
+        {
+            if (!pair.b)
             {
                 return;
             }
 
-            printf("\'%s\' : \"%s\"\n", pair.data->name.c_str(), pair.data->description.c_str());
-        });
+            printf("\'%s\' : \"%s\"\n", pair.b->name.c_str(), pair.b->description.c_str());
+        }
     }
 
 private:
-    Hash_Table<Shared_Ptr<CVar>> _cvars;
+    Hash_Map<Name_Id, Shared_Ptr<CVar>> _cvars;
 };

@@ -7,7 +7,7 @@
 #include "cs/engine/name_id.hpp"
 #include "cs/engine/singleton.hpp"
 #include "cs/containers/dynamic_array.hpp"
-#include "cs/containers/hash_table.hpp"
+#include "cs/containers/hash_map.hpp"
 
 //TODO: make own stack
 #include <stack>

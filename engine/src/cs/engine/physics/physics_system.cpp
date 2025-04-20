@@ -182,13 +182,13 @@ Physics_Body& Physics_System::get_body(const Name_Id& in_id)
         return _bodies[_id_to_index[in_id]];
     }
 
-    int32 new_index = _bodies.size();
+    int64 new_index = _bodies.size();
     _id_to_index[in_id] = new_index;
     
     Physics_Body body;
     body.id = in_id;
 
-    _bodies.add(body);
+    _bodies.push_back(body);
     return _bodies[new_index];
 }
 
@@ -261,9 +261,9 @@ void Physics_System::_execute_narrowphase(float dt)
 
     for (const Pair<Name_Id, Name_Id>& collision_pair : _broadphase_collision_pairs)
     {
-        const int32 this_index = _id_to_index[collision_pair.a];
+        const int64 this_index = _id_to_index[collision_pair.a];
         Physics_Body& this_body = _bodies[this_index];
-        const int32 other_index = _id_to_index[collision_pair.b];
+        const int64 other_index = _id_to_index[collision_pair.b];
         Physics_Body& other_body = _bodies[other_index];
 
         if (!this_body.is_awake && !other_body.is_awake)
@@ -279,13 +279,13 @@ void Physics_System::_execute_narrowphase(float dt)
         }
 
         Collision_Result result;
-        result.a_index = this_index;
-        result.b_index = other_index;
+        result.a_index = (int32)this_index;
+        result.b_index = (int32)other_index;
         if (f(this_body.collider, this_body.transform.position, this_body.transform.orientation, 
             other_body.collider, other_body.transform.position, other_body.transform.orientation, 
             result))
         {
-            _narrowphase_collisions[collision_pair.a].add(result);
+            _narrowphase_collisions[collision_pair.a].push_back(result);
         }
     }
 }

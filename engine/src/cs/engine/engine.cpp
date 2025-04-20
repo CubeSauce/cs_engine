@@ -180,19 +180,19 @@ Dynamic_Array<std::string> split(const std::string& str, char delim)
     {
         if (str[i] == delim)
         {
-            tokens.add(str.substr(last_token, i));
+            tokens.push_back(str.substr(last_token, i));
             last_token = i + 1;
         }
     }
 
-    tokens.add(str.substr(last_token, str.size()));
+    tokens.push_back(str.substr(last_token, str.size()));
 
     return tokens;
 }
 
 void Engine::_parse_args(const Dynamic_Array<std::string>& args)
 {
-    for (std::string& arg : args)
+    for (const std::string& arg : args)
     {
         Dynamic_Array<std::string> tokens = split(arg, '=');
         if (tokens.size() == 2)

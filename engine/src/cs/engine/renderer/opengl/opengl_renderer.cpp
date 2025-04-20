@@ -320,7 +320,7 @@ Shared_Ptr<Mesh> OpenGL_Renderer_Backend::create_mesh(const Shared_Ptr<Mesh_Reso
         //index/elements buffer
         gl_submesh.num_indices = submesh.indices.size();
         gl_submesh.material = _create_material(submesh.material_resource);
-        gl_mesh->submeshes.add(gl_submesh);
+        gl_mesh->submeshes.push_back(gl_submesh);
     }
         
     return gl_mesh;

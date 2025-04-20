@@ -2,7 +2,6 @@
 // Author: matija.martinec@protonmail.com
 
 #include "cs/engine/name_id.hpp"
-#include "cs/containers/hash_table.hpp"
 
 #include <cstring>
 #include <cassert>

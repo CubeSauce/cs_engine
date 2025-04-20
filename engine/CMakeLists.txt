@@ -14,6 +14,7 @@ file(GLOB_RECURSE ${PROJECT_NAME}_sources
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_sources})
 
 find_package(OpenGL REQUIRED)
+add_subdirectory(third_party/cs_util)
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/assimp)
 add_subdirectory(third_party/glew/build/cmake)
@@ -43,6 +44,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
+        cs_util
     PRIVATE
         glfw
         glew
@@ -50,6 +52,19 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (WIN32)
+    add_subdirectory(third_party/openvr)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC CS_WITH_VR_SUPPORT)
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC
+            third_party/openvr/headers
+    )
+    
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC
+            "C:\\Users\\Matija\\Documents\\GitHub\\cs_engine\\build\\lib\\Debug\\openvr_api64d.lib"
+        PRIVATE
+    )
+
     target_link_libraries(${PROJECT_NAME} 
         PUBLIC 
             d3d11.lib D3DCompiler.lib dxgi.lib oleaut32.lib 

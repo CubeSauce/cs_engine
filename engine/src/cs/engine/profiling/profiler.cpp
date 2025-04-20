@@ -14,7 +14,7 @@ void Profiler::start(const Name_Id& name)
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        _entries.add({name, 'B', timestamp, std::this_thread::get_id()});
+        _entries.push_back({name, 'B', timestamp, std::this_thread::get_id()});
     }
 
     _get_tls_stack().push(name);
@@ -36,7 +36,7 @@ void Profiler::stop()
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        _entries.add({name, 'E', timestamp, std::this_thread::get_id()});
+        _entries.push_back({name, 'E', timestamp, std::this_thread::get_id()});
     }
 }
 
