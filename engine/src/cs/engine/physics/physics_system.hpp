@@ -7,7 +7,7 @@
 #include "cs/math/math.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/containers/spatial_hash_grid.hpp"
-#include "cs/engine/name_id.hpp"
+#include "cs/name_id.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 #include "cs/engine/physics/collision_function.hpp"
 

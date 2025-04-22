@@ -4,7 +4,7 @@
 #pragma once
 
 #include "cs/cs.hpp"
-#include "cs/engine/name_id.hpp"
+#include "cs/name_id.hpp"
 #include "cs/engine/singleton.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/containers/hash_map.hpp"

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "cs/engine/name_id.hpp"
+#include "cs/name_id.hpp"
 #include "cs/engine/singleton.hpp"
 
 class Resource

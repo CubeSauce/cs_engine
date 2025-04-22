@@ -7,7 +7,7 @@
 
 #include "cs/cs.hpp"
 #include "cs/math/math.hpp"
-#include "cs/engine/name_id.hpp"
+#include "cs/name_id.hpp"
 
 struct Collider;
 struct Collision_Result;
