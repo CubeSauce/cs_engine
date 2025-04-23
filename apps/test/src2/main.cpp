@@ -320,7 +320,7 @@ private:
             bool parent_dirty = false;
 
             const Transform_Component* parent_transform_component = nullptr;
-            if (component.parent_id != Name_Id::Empty)
+            if (component.parent_id != empty_name_id)
             {
                 parent_transform_component = _transform_components.get(component.parent_id);
                 if (parent_transform_component->dirty)
