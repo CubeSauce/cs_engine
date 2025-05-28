@@ -429,5 +429,5 @@ int main(int argc, char** argv)
 
     Profiler::get().write_to_chrometracing_json("profiling/angle.json");
 
-  return 0;
+    return 0;
 }
