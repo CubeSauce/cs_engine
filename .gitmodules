@@ -1,15 +1,3 @@
 [submodule "engine/third_party/cs_util"]
 	path = engine/third_party/cs_util
 	url = https://github.com/CubeSauce/cs_util
-[submodule "engine/third_party/glfw"]
-	path = engine/third_party/glfw
-	url = https://github.com/glfw/glfw.git
-[submodule "engine/third_party/assimp"]
-	path = engine/third_party/assimp
-	url = https://github.com/assimp/assimp
-[submodule "engine/third_party/openvr"]
-	path = engine/third_party/openvr
-	url = https://github.com/ValveSoftware/openvr
-[submodule "engine/third_party/stb"]
-	path = engine/third_party/stb
-	url = https://github.com/nothings/stb

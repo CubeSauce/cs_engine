@@ -15,12 +15,8 @@ add_library(${PROJECT_NAME} ${${PROJECT_NAME}_sources})
 
 find_package(OpenGL REQUIRED)
 add_subdirectory(third_party/cs_util)
-add_subdirectory(third_party/glfw)
-add_subdirectory(third_party/assimp)
-add_subdirectory(third_party/glew/build/cmake)
 
 if (cs_vr_support)
-    add_subdirectory(third_party/openvr)
     target_compile_definitions(${PROJECT_NAME} PUBLIC CS_WITH_VR_SUPPORT)
     target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -52,7 +48,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (WIN32)
-    add_subdirectory(third_party/openvr)
+    #add_subdirectory(third_party/openvr)
     target_compile_definitions(${PROJECT_NAME} PUBLIC CS_WITH_VR_SUPPORT)
     target_include_directories(${PROJECT_NAME}
         PUBLIC

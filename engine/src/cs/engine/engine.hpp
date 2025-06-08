@@ -46,18 +46,26 @@ private:
     Shared_Ptr<Profiler> _profiler;
     Shared_Ptr<CVar_Registry> _cvar_registry;
     Shared_Ptr<Thread_Pool> _thread_pool;
+    Shared_Ptr<Net_Instance> _net_instance;
+    Shared_Ptr<Physics_System> _physics_system;
+
     Shared_Ptr<Renderer> _renderer;
     Shared_Ptr<Window> _window;
     Shared_Ptr<Input_System> _input_system;
-    Shared_Ptr<Physics_System> _physics_system;
-
     Shared_Ptr<VR_System> _vr_system;
-    Shared_Ptr<Net_Instance> _net_instance;
+
+/*
+    Engine lifetime.
+    The Engine object is created on stack in main. It represent a single instance of an app.
+
+    Depending on the setup of the app, you can either create a headless application (that does a certain task, or runs
+    indefinitely in the background) or a renderable app with a window (with it's own setup).
+*/
 
     bool _should_close { false };
 
+    // Should be a part of the thread pool
     Task_Graph game_loop_task_graph;
-
 private:
     Shared_Ptr<CVar_T<uint32>> _cvar_num_threads;
     Shared_Ptr<CVar_T<uint8>> _cvar_net_role;
