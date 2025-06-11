@@ -2,7 +2,7 @@
 #include "cs/engine/cvar.hpp"
 #include "cs/engine/input.hpp"
 #include "cs/engine/thread_pool.hpp"
-#include "cs/engine/net/net_instance.hpp"
+#include "cs/engine/net/net_connection.hpp"
 #include "cs/engine/window/glfw/glfw_window.hpp"
 
 #include "cs/engine/renderer/directx/directx11_renderer.hpp"
@@ -26,23 +26,26 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _parse_args(args);
 
     _thread_pool = Shared_Ptr<Thread_Pool>::create(_cvar_num_threads->get());
-    
-    _input_system = Shared_Ptr<Input_System>::create();
-    _vr_system = Shared_Ptr<VR_System>::create();
-    if (_cvar_vr_support->get())
+
+    if (!_cvar_headless->get())
     {
-        _vr_system->initialize();
+        _input_system = Shared_Ptr<Input_System>::create();
+        _vr_system = Shared_Ptr<VR_System>::create();
+        if (_cvar_vr_support->get())
+        {
+            _vr_system->initialize();
+        }
+
+        _window = _create_window();
+
+        _renderer = Shared_Ptr<Renderer>::create();
+        _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _window);
     }
-
-    _window = _create_window();
-
-    _renderer = Shared_Ptr<Renderer>::create();
-    _create_renderer_backend((Renderer_API::Type)_cvar_renderer_api->get(), _window);
 
     _physics_system = Shared_Ptr<Physics_System>::create();
     _physics_system->initialize();
 
-    _net_instance = Shared_Ptr<Net_Instance>::create((Net_Role::Type)_cvar_net_role->get());
+    _net_connection = Shared_Ptr<Net_Connection>::create((Net_Role::Type)_cvar_net_role->get());
 
     _initialize_defaults();
 }
@@ -99,7 +102,7 @@ void Engine::run()
         {
             Scoped_Profiler frame_scope("accumulator_frame");
 
-            _net_instance->update(dt);
+            _net_connection->update(dt);
     
             if (vr_system.is_valid())
             {
@@ -208,24 +211,25 @@ void Engine::_parse_args(const Dynamic_Array<std::string>& args)
 void Engine::_initialize_cvars()
 {
     _cvar_registry = Shared_Ptr<CVar_Registry>::create();
-    
-    _cvar_num_threads = _cvar_registry->register_cvar<uint32>(
-        "cs_num_threads", 1, "Number of threads that the engine can use (capped by actual processor count)");
-    
-    _cvar_net_role = _cvar_registry->register_cvar<uint8>(
-        "cs_net_role", Net_Role::Offline, "Which net role will the instance be.");
-    _cvar_window_width = _cvar_registry->register_cvar<uint32>(
-        "cs_window_width", 1280, "Width of the instance window");
-    _cvar_window_height = _cvar_registry->register_cvar<uint32>(
-        "cs_window_height", 720, "Height of the instance window");
-    _cvar_window_title = _cvar_registry->register_cvar<std::string>(
-        "cs_window_title", "CS Engine app", "Title of the instance window");
-    _cvar_renderer_api = _cvar_registry->register_cvar<uint8>(
-        "cs_renderer_api", Renderer_API::DirectX11, "Which API are we using for rendering");
-    _cvar_vr_support = _cvar_registry->register_cvar<bool>(
-        "cs_vr_support", true, "Turn VR support on/off");
-    _cvar_dt_mult = _cvar_registry->register_cvar<float>(
-        "cs_dt_mult", 1.0f, "Delta time multiplier");
+
+    _cvar_headless = _cvar_registry->register_cvar<bool>("cs_headless", false,
+        "Whether the app instance is headless. (no window and rendering)");
+    _cvar_num_threads = _cvar_registry->register_cvar<uint32>("cs_num_threads", 1,
+        "Number of threads that the engine can use (capped by actual processor count)");
+    _cvar_net_role = _cvar_registry->register_cvar<uint8>("cs_net_role", Net_Role::Offline,
+        "Which net role will the instance be.");
+    _cvar_window_width = _cvar_registry->register_cvar<uint32>("cs_window_width", 1280,
+        "Width of the instance window");
+    _cvar_window_height = _cvar_registry->register_cvar<uint32>("cs_window_height", 720,
+        "Height of the instance window");
+    _cvar_window_title = _cvar_registry->register_cvar<std::string>("cs_window_title",
+        "CS Engine app", "Title of the instance window");
+    _cvar_renderer_api = _cvar_registry->register_cvar<uint8>("cs_renderer_api",
+        Renderer_API::DirectX11, "Which API are we using for rendering");
+    _cvar_vr_support = _cvar_registry->register_cvar<bool>("cs_vr_support", true,
+        "Turn VR support on/off");
+    _cvar_dt_mult = _cvar_registry->register_cvar<float>("cs_dt_mult", 1.0f,
+        "Delta time multiplier");
 }
 
 Shared_Ptr<Window> Engine::_create_window()

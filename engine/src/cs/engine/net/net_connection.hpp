@@ -35,7 +35,7 @@ namespace Net_Role
     };
 }
 
-class Net_Instance
+class Net_Connection
 {
 public:
     // Only used for Net_Role::Client
@@ -43,8 +43,8 @@ public:
     uint16 port = 50005;
 
 public:
-    Net_Instance() = default;
-    Net_Instance(Net_Role::Type in_net_role);
+    Net_Connection() = default;
+    Net_Connection(Net_Role::Type in_net_role);
 
     void update(float dt);
 

@@ -11,7 +11,7 @@
 #include "cs/engine/input.hpp"
 #include "cs/engine/task_system.hpp"
 #include "cs/engine/game/game_instance.hpp"
-#include "cs/engine/net/net_instance.hpp"
+#include "cs/engine/net/net_connection.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/renderer/renderer.hpp"
 
@@ -19,7 +19,7 @@
 
 class VR_System;
 class CVar_Registry;
-class Net_Instance;
+class Net_Connection;
 class Game_Instance;
 class Physics_System;
 class Thread_Pool;
@@ -46,9 +46,10 @@ private:
     Shared_Ptr<Profiler> _profiler;
     Shared_Ptr<CVar_Registry> _cvar_registry;
     Shared_Ptr<Thread_Pool> _thread_pool;
-    Shared_Ptr<Net_Instance> _net_instance;
+    Shared_Ptr<Net_Connection> _net_connection;
     Shared_Ptr<Physics_System> _physics_system;
 
+    // Headless doesn't need these
     Shared_Ptr<Renderer> _renderer;
     Shared_Ptr<Window> _window;
     Shared_Ptr<Input_System> _input_system;
@@ -66,6 +67,10 @@ private:
 
     // Should be a part of the thread pool
     Task_Graph game_loop_task_graph;
+
+private:
+    Shared_Ptr<CVar_T<bool>> _cvar_headless;
+
 private:
     Shared_Ptr<CVar_T<uint32>> _cvar_num_threads;
     Shared_Ptr<CVar_T<uint8>> _cvar_net_role;
