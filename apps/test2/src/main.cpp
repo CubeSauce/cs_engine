@@ -2,7 +2,7 @@
 #include "cs/engine/engine.hpp"
 #include "cs/name_id.hpp"
 #include "cs/engine/task_system.hpp"
-#include "cs/memory/weak_ptr.hpp"
+#include "../../../engine/third_party/cs_util/src/cs/memory/weak_ptr.hpp"
 #include "cs/containers/hash_map.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 #include "cs/engine/physics/collision_function.hpp"

@@ -6,7 +6,7 @@
 #include "cs/cs.hpp"
 #include "cs/math/math.hpp"
 #include "cs/engine/event.hpp"
-#include "cs/memory/weak_ptr.hpp"
+#include "../../../third_party/cs_util/src/cs/memory/weak_ptr.hpp"
 #include "cs/engine/singleton.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 #include "cs/containers/dynamic_array.hpp"

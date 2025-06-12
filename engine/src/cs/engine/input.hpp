@@ -7,7 +7,7 @@
 #include "cs/engine/event.hpp"
 #include "cs/name_id.hpp"
 #include "cs/engine/singleton.hpp"
-#include "cs/memory/shared_ptr.hpp"
+#include "../../../third_party/cs_util/src/cs/memory/shared_ptr.hpp"
 #include "cs/containers/hash_map.hpp"
 
 class Input_Source

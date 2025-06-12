@@ -7,7 +7,7 @@
 #include "cs/engine/cvar.hpp"
 #include "cs/engine/event.hpp"
 #include "cs/engine/window.hpp"
-#include "cs/memory/unique_ptr.hpp"
+#include "../../../third_party/cs_util/src/cs/memory/unique_ptr.hpp"
 #include "cs/engine/input.hpp"
 #include "cs/engine/task_system.hpp"
 #include "cs/engine/app/app.hpp"
