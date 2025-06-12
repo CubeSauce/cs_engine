@@ -5,7 +5,7 @@
 
 #include "cs/cs.hpp"
 #include "cs/engine/event.hpp"
-#include "../../../third_party/cs_util/src/cs/memory/weak_ptr.hpp"
+#include "cs/memory/weak_ptr.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/thread_pool.hpp"
 
