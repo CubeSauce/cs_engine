@@ -10,7 +10,7 @@
 #include "cs/memory/unique_ptr.hpp"
 #include "cs/engine/input.hpp"
 #include "cs/engine/task_system.hpp"
-#include "cs/engine/game/game_instance.hpp"
+#include "cs/engine/app/app.hpp"
 #include "cs/engine/net/net_connection.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/renderer/renderer.hpp"
@@ -20,14 +20,14 @@
 class VR_System;
 class CVar_Registry;
 class Net_Connection;
-class Game_Instance;
+class App;
 class Physics_System;
 class Thread_Pool;
 class Profiler;
 class Engine : public Singleton<Engine>
 {
 public:
-    Shared_Ptr<Game_Instance> game_instance;
+    Shared_Ptr<App> game_instance;
 
     Shared_Ptr<Shader_Resource> default_texture_shader_resource;
     Shared_Ptr<Shader_Resource> default_color_shader_resource;

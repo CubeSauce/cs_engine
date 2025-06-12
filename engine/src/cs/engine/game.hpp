@@ -11,7 +11,7 @@ class Game_State
     void deserialize(const Dynamic_Array<uint8>& in_data);
 };
 
-class Game_Instance
+class App
 {
     
 };

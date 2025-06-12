@@ -6,7 +6,7 @@
 #include "cs/containers/hash_map.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 #include "cs/engine/physics/collision_function.hpp"
-#include "cs/engine/game/entity.hpp"
+#include "cs/engine/app/entity.hpp"
 
 #include <chrono>
 #include <shared_mutex>

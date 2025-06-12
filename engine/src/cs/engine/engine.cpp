@@ -10,7 +10,7 @@
 
 #include "cs/engine/physics/physics_system.hpp"
 
-#include "cs/engine/game/game_instance.hpp"
+#include "cs/engine/app/app.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 
 template<> 

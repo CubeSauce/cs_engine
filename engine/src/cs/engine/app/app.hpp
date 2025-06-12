@@ -5,10 +5,10 @@
 #include "cs/engine/vr/vr_system.hpp"
 
 class Renderer;
-class Game_Instance
+class App
 {
 public:
-    virtual ~Game_Instance() {};
+    virtual ~App() {};
 
     virtual void init() = 0;
     virtual void pre_physics_update(float dt) = 0;

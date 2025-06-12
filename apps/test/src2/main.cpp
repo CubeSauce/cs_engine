@@ -1,12 +1,12 @@
 #include "cs/cs.hpp"
 #include "cs/engine/engine.hpp"
-#include "cs/engine/game/game_instance.hpp"
+#include "cs/engine/app/app.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 #include "cs/engine/physics/physics_system.hpp"
 #include "component.hpp"
 #include <shared_mutex>
 
-class Game : public Game_Instance
+class Game : public App
 {
     Shared_Ptr<Mesh_Resource> unit_sphere;
     Shared_Ptr<Mesh_Resource> unit_capsule;

@@ -1,6 +1,6 @@
 
 #include "cs/engine/net/net_connection.hpp"
-#include "cs/engine/game/game_instance.hpp"
+#include "cs/engine/app/app.hpp"
 
 Net_Connection::Net_Connection(Net_Role::Type in_net_role)
     : _net_role(in_net_role)

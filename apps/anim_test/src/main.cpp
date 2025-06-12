@@ -4,7 +4,7 @@
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/engine.hpp"
 
-class Anim_Test : public Game_Instance
+class Anim_Test : public App
 {
 	void init() override
 	{
