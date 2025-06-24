@@ -45,7 +45,7 @@ void Engine::initialize(const Dynamic_Array<std::string>& args)
     _physics_system = Shared_Ptr<Physics_System>::create();
     _physics_system->initialize();
 
-    _net_connection = Shared_Ptr<Net_Connection>::create((Net_Role::Type)_cvar_net_role->get());
+    _net_connection = Shared_Ptr<Net_Connection>::create((Net_Type::Type)_cvar_net_role->get());
 
     _initialize_defaults();
 }
@@ -75,7 +75,7 @@ void Engine::run()
         game_instance->init();
     }
 
-    const float _dt = 1/120.0f;
+    const float _dt = 1/60.0f;
 
     TimePoint previousTime = Clock::now();
     double accumulator = 0.0;
@@ -95,31 +95,31 @@ void Engine::run()
 
         // Accumulate time
         accumulator += deltaTime;
-        
-        float dt = _dt * _cvar_dt_mult->get();
+
+        // @SYSTEM: UPDATE(dt)
         // Fixed time-step physics update
         while (accumulator >= _dt) 
         {
-            Scoped_Profiler frame_scope("accumulator_frame");
+            Scoped_Profiler accumulator_scope("accumulator_frame");
 
-            _net_connection->update(dt);
+            _net_connection->update(_dt);
     
             if (vr_system.is_valid())
             {
                 vr_system.poll_events();
-                vr_system.update(dt);
+                vr_system.update(_dt);
             }
     
             if (game_instance)
             {
-                game_instance->pre_physics_update(dt);
+                game_instance->pre_physics_update(_dt);
             }
     
-            _physics_system->update(dt);
+            _physics_system->update(_dt);
     
             if (game_instance)
             {
-                game_instance->post_physics_update(dt);
+                game_instance->post_physics_update(_dt);
             }
 
             accumulator -= _dt;
@@ -128,7 +128,7 @@ void Engine::run()
         }
 
         //TODO forward to rendering
-        double alpha = accumulator / dt;
+        double alpha = accumulator / _dt;
         if (_renderer)
         {
             Scoped_Profiler frame_scope("render");
@@ -216,7 +216,7 @@ void Engine::_initialize_cvars()
         "Whether the app instance is headless. (no window and rendering)");
     _cvar_num_threads = _cvar_registry->register_cvar<uint32>("cs_num_threads", 1,
         "Number of threads that the engine can use (capped by actual processor count)");
-    _cvar_net_role = _cvar_registry->register_cvar<uint8>("cs_net_role", Net_Role::Offline,
+    _cvar_net_role = _cvar_registry->register_cvar<uint8>("cs_net_role", Net_Type::Offline,
         "Which net role will the instance be.");
     _cvar_window_width = _cvar_registry->register_cvar<uint32>("cs_window_width", 1280,
         "Width of the instance window");
@@ -227,9 +227,12 @@ void Engine::_initialize_cvars()
     _cvar_renderer_api = _cvar_registry->register_cvar<uint8>("cs_renderer_api",
         Renderer_API::DirectX11, "Which API are we using for rendering");
     _cvar_vr_support = _cvar_registry->register_cvar<bool>("cs_vr_support", true,
-        "Turn VR support on/off");
-    _cvar_dt_mult = _cvar_registry->register_cvar<float>("cs_dt_mult", 1.0f,
-        "Delta time multiplier");
+    "Turn VR support on/off");
+
+    _cvar_exit = _cvar_registry->register_cvar<bool>("cs_exit", false,
+    "Exit the application and shutdown the engine.");
+    _cvar_fixed_timestep = _cvar_registry->register_cvar<float>("cs_fdt", 1.0f / 60.0f,
+        "Fixed timestep");
 }
 
 Shared_Ptr<Window> Engine::_create_window()

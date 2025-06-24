@@ -28,7 +28,6 @@ class Engine : public Singleton<Engine>
 {
 public:
     Shared_Ptr<App> game_instance;
-
     Shared_Ptr<Shader_Resource> default_texture_shader_resource;
     Shared_Ptr<Shader_Resource> default_color_shader_resource;
 
@@ -55,14 +54,6 @@ private:
     Shared_Ptr<Input_System> _input_system;
     Shared_Ptr<VR_System> _vr_system;
 
-/*
-    Engine lifetime.
-    The Engine object is created on stack in main. It represent a single instance of an app.
-
-    Depending on the setup of the app, you can either create a headless application (that does a certain task, or runs
-    indefinitely in the background) or a renderable app with a window (with it's own setup).
-*/
-
     bool _should_close { false };
 
     // Should be a part of the thread pool
@@ -79,7 +70,8 @@ private:
     Shared_Ptr<CVar_T<std::string>> _cvar_window_title;
     Shared_Ptr<CVar_T<uint8>> _cvar_renderer_api;
     Shared_Ptr<CVar_T<bool>> _cvar_vr_support;
-    Shared_Ptr<CVar_T<float>> _cvar_dt_mult;
+    Shared_Ptr<CVar_T<bool>> _cvar_exit;
+    Shared_Ptr<CVar_T<float>> _cvar_fixed_timestep;
 
 private:
     void _parse_args(const Dynamic_Array<std::string>& args);
@@ -89,8 +81,4 @@ private:
     Shared_Ptr<Renderer_Backend> _create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window);
 
     void _initialize_defaults();
-
-    void _task_physics();
-    void _task_animation();
-    void _task_render();
 };

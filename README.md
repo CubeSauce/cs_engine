@@ -4,7 +4,8 @@ Every iteration of every engine/game I tried to do from scratch is a part of thi
 
 Current version supports DirectX and Windows only, Vulkan and OpenGL with Win/Linux/MacOs coming soon
 
-Build using CMake, requires manual GLEW snapshot (with generated sources). Requires glslangValidator & Spirv-Cross installed for shader compilation.
+## Building
+Requires VCPKG (for OpenSSL and Protobuf libraries) as well as CMake 4.XX+. CMake will download requried third-part libraries via 
 
 ## TODO:
 ### Engine

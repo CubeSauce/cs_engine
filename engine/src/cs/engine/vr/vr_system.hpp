@@ -70,7 +70,7 @@ public:
     bool is_valid() { return _vr_system != nullptr; }
 #else
     bool is_valid() { return false; }
-#endif //CS_WITH_VR_SUPPORT 
+#endif //CS_WITH_VR_SUPPORT
 
     Shared_Ptr<Camera> get_camera(VR_Eye::Type eye) const;
 

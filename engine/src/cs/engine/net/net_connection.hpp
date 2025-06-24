@@ -24,7 +24,7 @@ struct Net_Packet
     Dynamic_Array<uint8> data;
 };
 
-namespace Net_Role
+namespace Net_Type
 {
     enum Type : uint8
     {
@@ -44,15 +44,15 @@ public:
 
 public:
     Net_Connection() = default;
-    Net_Connection(Net_Role::Type in_net_role);
+    Net_Connection(Net_Type::Type in_net_role);
 
     void update(float dt);
 
-    Net_Role::Type get_role() const { return _net_role; }
-    bool is_local() const { return _net_role != Net_Role::Server; }
+    Net_Type::Type get_role() const { return _net_role; }
+    bool is_local() const { return _net_role != Net_Type::Server; }
 
 private:
-    Net_Role::Type _net_role { Net_Role::Offline };
+    Net_Type::Type _net_role { Net_Type::Offline };
     Shared_Ptr<Socket> _socket;
 
 private:

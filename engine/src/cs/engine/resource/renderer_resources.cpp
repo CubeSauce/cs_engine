@@ -7,7 +7,7 @@
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
-#include "stb/stb_image.h"
+#include "stb_image.h"
 
 #include <cstring>
 #include <filesystem>

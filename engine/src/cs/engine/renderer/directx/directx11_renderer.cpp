@@ -6,11 +6,7 @@
 #include "cs/engine/window.hpp"
 #include "cs/engine/profiling/profiler.hpp"
 
-#include <GL/glew.h>
-
 #include <memory>
-
-#include "stb/stb_image.h"
 
 #ifdef CS_PLATFORM_WINDOWS
 #include <d3d11.h>       // D3D interface
