@@ -100,7 +100,7 @@ public:
         _resize(capacity);
     }
 
-    void insert(const Key& key, const Value& value)
+    Value* insert(const Key& key, const Value& value)
     {
         if ((_size + 1.0) / _capacity > _max_load_factor) 
         {
@@ -111,11 +111,13 @@ public:
         if (_entries[idx].occupied && !_entries[idx].deleted)
         {
             _entries[idx].pair.b = value;
-            return;// false;
+            return nullptr;// false;
         }
 
         _entries[idx].set(key, value);
         ++_size;
+
+        return &_entries[idx].pair.b;
     }
 
     Value* find(const Key& key)
@@ -126,6 +128,38 @@ public:
             return &_entries[idx].pair.b;
         }
         return nullptr;
+    }
+
+    const Value* find(const Key& key) const
+    {
+        int64 idx = _probe_search(key);
+        if (idx >= 0 && _entries[idx].is_valid())
+        {
+            return &_entries[idx].pair.b;
+        }
+        return nullptr;
+    }
+
+    Value& find_or_add(const Key& key)
+    {
+        Value* found = find(key);
+        if (found)
+        {
+            return *found;
+        }
+
+        return *insert(key, Value{});
+    }
+
+    const Value& find_or_add(const Key& key) const
+    {
+        Value* found = find(key);
+        if (found)
+        {
+            return *found;
+        }
+
+        return *insert(key, Value{});
     }
 
     bool erase(const Key& key)

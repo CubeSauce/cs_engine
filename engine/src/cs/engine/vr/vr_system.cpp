@@ -44,7 +44,7 @@ void VR_System::initialize()
     assert(vr::VRCompositor());
 #endif //CS_WITH_VR_SUPPORT
 
-    for (int i = 0; i < 3; ++i)
+    for (int32 i = 0; i < 3; ++i)
     {
         _camera[i] = Shared_Ptr<VR_Camera>::create();
     }
