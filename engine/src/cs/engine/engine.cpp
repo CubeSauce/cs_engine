@@ -10,7 +10,6 @@
 
 #include "cs/engine/physics/physics_system.hpp"
 
-#include "cs/engine/app/app.hpp"
 #include "cs/engine/vr/vr_system.hpp"
 
 template<> 
@@ -70,11 +69,6 @@ void Engine::run()
         _should_close = true;
     });
 
-    if (game_instance)
-    {
-        game_instance->init();
-    }
-
     const float _dt = 1/60.0f;
 
     TimePoint previousTime = Clock::now();
@@ -104,27 +98,17 @@ void Engine::run()
 
             _net_connection->update(_dt);
     
+            //TODO: Update
+
             if (vr_system.is_valid())
             {
                 vr_system.poll_events();
                 vr_system.update(_dt);
             }
-    
-            if (game_instance)
-            {
-                game_instance->pre_physics_update(_dt);
-            }
-    
+
             _physics_system->update(_dt);
-    
-            if (game_instance)
-            {
-                game_instance->post_physics_update(_dt);
-            }
 
             accumulator -= _dt;
-
-            //printf("accumulator: %f\n", accumulator);
         }
 
         //TODO forward to rendering
@@ -137,30 +121,17 @@ void Engine::run()
             
             // Render normal view
             _renderer->backend->begin_frame();
-            if (game_instance)
-            {
-                game_instance->render(_renderer);
-            }
+            //TODO: RENDER
             _renderer->backend->end_frame();
 
             if (vr_system.is_valid())
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
-            
-                if (game_instance)
-                {
-                    game_instance->render(_renderer, VR_Eye::Left);
-                }
-    
+                //TODO: RENDER
                 _renderer->backend->end_frame(VR_Eye::Left);
                 
                 _renderer->backend->begin_frame(VR_Eye::Right);
-            
-                if (game_instance)
-                {
-                    game_instance->render(_renderer, VR_Eye::Right);
-                }
-    
+                //TODO: RENDER
                 _renderer->backend->end_frame(VR_Eye::Right);
             }
             
@@ -168,10 +139,7 @@ void Engine::run()
         }
     }
 
-    if (game_instance)
-    {
-        game_instance->shutdown();
-    }
+    //TODO: SHUTDOWN
 }
 
 Dynamic_Array<std::string> split(const std::string& str, char delim)

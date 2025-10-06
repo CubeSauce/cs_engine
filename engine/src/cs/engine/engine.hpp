@@ -10,7 +10,6 @@
 #include "cs/memory/unique_ptr.hpp"
 #include "cs/engine/input.hpp"
 #include "cs/engine/task_system.hpp"
-#include "cs/engine/app/app.hpp"
 #include "cs/engine/net/net_connection.hpp"
 #include "cs/containers/dynamic_array.hpp"
 #include "cs/engine/renderer/renderer.hpp"
