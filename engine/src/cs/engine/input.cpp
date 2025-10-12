@@ -3,12 +3,15 @@
 #include <absl/strings/internal/str_format/extension.h>
 
 #include "cs/math/math.hpp"
+#include "profiling/profiler.hpp"
 
 template<> 
 Input_System* Singleton<Input_System>::_singleton { nullptr };
 
 void Input_System::update()
 {
+    PROFILE_FUNCTION()
+
     for (const Name_Id& event_id : _changed_events)
     {
         Event_State& event_state = _event_map.find_or_add(event_id);
@@ -27,8 +30,12 @@ void Input_System::update()
 
 void Input_System::register_input_source(Event<Name_Id, float>& on_input_generated)
 {
+    PROFILE_FUNCTION()
+
     on_input_generated.bind([this](const Name_Id& input_id, float value)
     {
+        PROFILE_FUNCTION()
+
         _input_value_map.find_or_add(input_id) = value;
 
         Dynamic_Array<Name_Id>* p_event_ids = _input_to_events_map.find(input_id);
@@ -46,6 +53,8 @@ void Input_System::register_input_source(Event<Name_Id, float>& on_input_generat
 
 Event<float>& Input_System::register_event(const Name_Id &event_id, const Dynamic_Array<Pair<Name_Id, float>>& inputs)
 {
+    PROFILE_FUNCTION()
+
     Event_State& event_state = _event_map.find_or_add(event_id);
 
     for (const Pair<Name_Id, float>& pair : inputs)
@@ -69,6 +78,8 @@ Event<float>& Input_System::register_event(const Name_Id &event_id, const Dynami
 
 void Input_System::deregister_event(const Name_Id &event_id)
 {
+    PROFILE_FUNCTION()
+
     Event_State* event_state = _event_map.find(event_id);
     if (event_state == nullptr)
     {

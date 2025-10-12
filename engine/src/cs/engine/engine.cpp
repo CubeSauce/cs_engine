@@ -207,6 +207,8 @@ void Engine::_initialize_cvars()
 
 void Engine::_poll_inputs()
 {
+    PROFILE_FUNCTION()
+    
     if (_vr_system.is_valid())
     {
         _vr_system->poll_events();
