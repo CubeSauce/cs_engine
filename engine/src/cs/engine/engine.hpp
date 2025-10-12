@@ -23,6 +23,19 @@ class App;
 class Physics_System;
 class Thread_Pool;
 class Profiler;
+
+struct Entry_Point
+{
+    virtual ~Entry_Point() = default;
+
+    virtual void initialize() {};
+    virtual void update(float dt) {};
+    virtual void update_static(float dt) {};
+    virtual void render(VR_Eye::Type eye) {};
+    virtual void shutdown() {};
+    [[nodiscard]] virtual bool should_shutdown() const { return true; }
+};
+
 class Engine : public Singleton<Engine>
 {
 public:
@@ -38,7 +51,7 @@ public:
     void initialize(const Dynamic_Array<std::string>& args);
     void shutdown();
 
-    void run();
+    void run(Entry_Point& entry_point);
 
 private:
     Shared_Ptr<Profiler> _profiler;
@@ -75,6 +88,8 @@ private:
 private:
     void _parse_args(const Dynamic_Array<std::string>& args);
     void _initialize_cvars();
+
+    void _poll_inputs();
 
     Shared_Ptr<Window> _create_window();
     Shared_Ptr<Renderer_Backend> _create_renderer_backend(Renderer_API::Type api, const Shared_Ptr<Window>& window);

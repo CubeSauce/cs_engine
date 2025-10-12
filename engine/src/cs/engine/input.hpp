@@ -10,35 +10,40 @@
 #include "cs/memory/shared_ptr.hpp"
 #include "cs/containers/hash_map.hpp"
 
-class Input_Source
+namespace Input_Modifier
 {
-public:
-    Event<Name_Id, bool> on_digital_input_generated;
-    Event<Name_Id, float> on_analog_input_generated;
-};
-
-struct Input_Pair
+enum Type : uint8_t
 {
-    Name_Id id;
-    float multiplier;
+    Shift       = 1 << 0,
+    Control     = 1 << 1,
+    Alt         = 1 << 2,
+    Super       = 1 << 3,
+    Caps_Lock   = 1 << 4,
+    Num_Lock    = 1 << 5
 };
-
-struct Input
-{
-    Name_Id id;
-    Hash_Map<Name_Id, float> multipliers;
-    Event<float, float> on_updated;
-};
+}
 
 class Input_System : public Singleton<Input_System>
 {
 public:
-    void register_input_source(const Shared_Ptr<Input_Source>& in_input_source);
-    Event<bool>& register_digital_input(const Name_Id& id, const Dynamic_Array<Input_Pair>& inputs);
-    Event<float, float>& register_input(const Name_Id& id, const Dynamic_Array<Input_Pair>& inputs);
+    void update();
+
+    void register_input_source(Event<Name_Id, float>& on_input_generated);
+    Event<float>& register_event(const Name_Id &event_id,
+        const Dynamic_Array<Pair<Name_Id, float>>& inputs);
+    void deregister_event(const Name_Id &event_id);
 
 private:
-    Hash_Map<Name_Id, Shared_Ptr<Input>> _inputs;
+    struct Event_State
+    {
+        Event<float> event;
+        Dynamic_Array<Pair<Name_Id, float>> _input_to_multiplier_map;
+    };
+
+    Hash_Map<Name_Id, float> _input_value_map;
+    Hash_Map<Name_Id, Dynamic_Array<Name_Id>> _input_to_events_map;
+    Hash_Map<Name_Id, Event_State> _event_map;
+    Dynamic_Array<Name_Id> _changed_events;
 };
 
 float axis_deadzone(float value, float threshold);

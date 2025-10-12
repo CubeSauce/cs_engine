@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cs/name_id.hpp"
 #include "cs/engine/window.hpp"
 #include "cs/memory/shared_ptr.hpp"
 
@@ -11,7 +12,7 @@ struct GLFWgamepadstate;
 class GLFW_Window : public Window 
 {
 public:
-    Shared_Ptr<Input_Source> input_source;
+    Event<Name_Id, float> input_source;
 
 public:
     virtual ~GLFW_Window();

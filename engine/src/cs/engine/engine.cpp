@@ -60,16 +60,17 @@ using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<Clock>;
 using Duration = std::chrono::duration<float>;
 
-void Engine::run()
+void Engine::run(Entry_Point& entry_point)
 {
     PROFILE_FUNCTION()
-    VR_System& vr_system = VR_System::get();
 
     _renderer->window->on_window_should_close.bind([&](){
         _should_close = true;
     });
 
-    const float _dt = 1/60.0f;
+    entry_point.initialize();
+
+    const float dt_static = 1/60.0f;
 
     TimePoint previousTime = Clock::now();
     double accumulator = 0.0;
@@ -84,62 +85,63 @@ void Engine::run()
         previousTime = currentTime;
 
         // Clamp `deltaTime` to avoid spiral of death if the game lags
-        double deltaTime = frameTime.count();
-        if (deltaTime > 0.25) deltaTime = 0.25;
+        double dt = frameTime.count();
+        if (dt > 0.25) dt = 0.25;
+
+        _poll_inputs();
+
+        entry_point.update(dt);
 
         // Accumulate time
-        accumulator += deltaTime;
+        accumulator += dt;
 
         // @SYSTEM: UPDATE(dt)
         // Fixed time-step physics update
-        while (accumulator >= _dt) 
+        while (accumulator >= dt_static)
         {
             Scoped_Profiler accumulator_scope("accumulator_frame");
 
-            _net_connection->update(_dt);
-    
-            //TODO: Update
+            _net_connection->update(dt_static);
 
-            if (vr_system.is_valid())
+            if (_vr_system.is_valid())
             {
-                vr_system.poll_events();
-                vr_system.update(_dt);
+                _vr_system->update(dt_static);
             }
 
-            _physics_system->update(_dt);
+            _physics_system->update(dt_static);
 
-            accumulator -= _dt;
+            accumulator -= dt_static;
         }
 
         //TODO forward to rendering
-        double alpha = accumulator / _dt;
+        double alpha = accumulator / dt_static;
         if (_renderer)
         {
             Scoped_Profiler frame_scope("render");
 
-            _renderer->window->poll_events();
-            
             // Render normal view
             _renderer->backend->begin_frame();
-            //TODO: RENDER
+            entry_point.render(VR_Eye::None);
             _renderer->backend->end_frame();
 
-            if (vr_system.is_valid())
+            if (_vr_system.is_valid())
             {
                 _renderer->backend->begin_frame(VR_Eye::Left);
-                //TODO: RENDER
+                entry_point.render(VR_Eye::Left);
                 _renderer->backend->end_frame(VR_Eye::Left);
                 
                 _renderer->backend->begin_frame(VR_Eye::Right);
-                //TODO: RENDER
+                entry_point.render(VR_Eye::Right);
                 _renderer->backend->end_frame(VR_Eye::Right);
             }
             
             _renderer->render_frame();
         }
+
+        _should_close = _should_close || entry_point.should_shutdown();
     }
 
-    //TODO: SHUTDOWN
+    entry_point.shutdown();
 }
 
 Dynamic_Array<std::string> split(const std::string& str, char delim)
@@ -201,6 +203,21 @@ void Engine::_initialize_cvars()
     "Exit the application and shutdown the engine.");
     _cvar_fixed_timestep = _cvar_registry->register_cvar<float>("cs_fdt", 1.0f / 60.0f,
         "Fixed timestep");
+}
+
+void Engine::_poll_inputs()
+{
+    if (_vr_system.is_valid())
+    {
+        _vr_system->poll_events();
+    }
+
+    if (_renderer)
+    {
+        _renderer->window->poll_events();
+    }
+
+    Input_System::get().update();
 }
 
 Shared_Ptr<Window> Engine::_create_window()

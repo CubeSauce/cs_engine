@@ -65,6 +65,76 @@ Name_Id glfw_key_name_to_name_id(int32 key)
     case GLFW_KEY_BACKSLASH: return Name_Id("KEY_BACKSLASH");
     case GLFW_KEY_RIGHT_BRACKET: return Name_Id("KEY_RIGHT_BRACKET");
     case GLFW_KEY_GRAVE_ACCENT: return Name_Id("KEY_GRAVE_ACCENT");
+    case GLFW_KEY_ESCAPE: return Name_Id("KEY_ESCAPE");
+    case GLFW_KEY_ENTER: return Name_Id("KEY_ENTER");
+    case GLFW_KEY_TAB: return Name_Id("KEY_TAB");
+    case GLFW_KEY_BACKSPACE: return Name_Id("KEY_BACKSPACE");
+    case GLFW_KEY_INSERT: return Name_Id("KEY_INSERT");
+    case GLFW_KEY_DELETE: return Name_Id("KEY_DELETE");
+    case GLFW_KEY_RIGHT: return Name_Id("KEY_RIGHT");
+    case GLFW_KEY_LEFT: return Name_Id("KEY_LEFT");
+    case GLFW_KEY_DOWN: return Name_Id("KEY_DOWN");
+    case GLFW_KEY_UP: return Name_Id("KEY_UP");
+    case GLFW_KEY_PAGE_UP: return Name_Id("KEY_PAGE_UP");
+    case GLFW_KEY_PAGE_DOWN: return Name_Id("KEY_PAGE_DOWN");
+    case GLFW_KEY_HOME: return Name_Id("KEY_HOME");
+    case GLFW_KEY_END: return Name_Id("KEY_END");
+    case GLFW_KEY_CAPS_LOCK: return Name_Id("KEY_CAPS_LOCK");
+    case GLFW_KEY_SCROLL_LOCK: return Name_Id("KEY_SCROLL_LOCK");
+    case GLFW_KEY_NUM_LOCK: return Name_Id("KEY_NUM_LOCK");
+    case GLFW_KEY_PRINT_SCREEN: return Name_Id("KEY_PRINT_SCREEN");
+    case GLFW_KEY_PAUSE: return Name_Id("KEY_PAUSE");
+    case GLFW_KEY_F1: return Name_Id("KEY_F1");
+    case GLFW_KEY_F2: return Name_Id("KEY_F2");
+    case GLFW_KEY_F3: return Name_Id("KEY_F3");
+    case GLFW_KEY_F4: return Name_Id("KEY_F4");
+    case GLFW_KEY_F5: return Name_Id("KEY_F5");
+    case GLFW_KEY_F6: return Name_Id("KEY_F6");
+    case GLFW_KEY_F7: return Name_Id("KEY_F7");
+    case GLFW_KEY_F8: return Name_Id("KEY_F8");
+    case GLFW_KEY_F9: return Name_Id("KEY_F9");
+    case GLFW_KEY_F10: return Name_Id("KEY_F10");
+    case GLFW_KEY_F11: return Name_Id("KEY_F11");
+    case GLFW_KEY_F12: return Name_Id("KEY_F12");
+    case GLFW_KEY_F13: return Name_Id("KEY_F13");
+    case GLFW_KEY_F14: return Name_Id("KEY_F14");
+    case GLFW_KEY_F15: return Name_Id("KEY_F15");
+    case GLFW_KEY_F16: return Name_Id("KEY_F16");
+    case GLFW_KEY_F17: return Name_Id("KEY_F17");
+    case GLFW_KEY_F18: return Name_Id("KEY_F18");
+    case GLFW_KEY_F19: return Name_Id("KEY_F19");
+    case GLFW_KEY_F20: return Name_Id("KEY_F20");
+    case GLFW_KEY_F21: return Name_Id("KEY_F21");
+    case GLFW_KEY_F22: return Name_Id("KEY_F22");
+    case GLFW_KEY_F23: return Name_Id("KEY_F23");
+    case GLFW_KEY_F24: return Name_Id("KEY_F24");
+    case GLFW_KEY_F25: return Name_Id("KEY_F25");
+    case GLFW_KEY_KP_0: return Name_Id("KEY_KP_0");
+    case GLFW_KEY_KP_1: return Name_Id("KEY_KP_1");
+    case GLFW_KEY_KP_2: return Name_Id("KEY_KP_2");
+    case GLFW_KEY_KP_3: return Name_Id("KEY_KP_3");
+    case GLFW_KEY_KP_4: return Name_Id("KEY_KP_4");
+    case GLFW_KEY_KP_5: return Name_Id("KEY_KP_5");
+    case GLFW_KEY_KP_6: return Name_Id("KEY_KP_6");
+    case GLFW_KEY_KP_7: return Name_Id("KEY_KP_7");
+    case GLFW_KEY_KP_8: return Name_Id("KEY_KP_8");
+    case GLFW_KEY_KP_9: return Name_Id("KEY_KP_9");
+    case GLFW_KEY_KP_DECIMAL: return Name_Id("KEY_KP_DECIMAL");
+    case GLFW_KEY_KP_DIVIDE: return Name_Id("KEY_KP_DIVIDE");
+    case GLFW_KEY_KP_MULTIPLY: return Name_Id("KEY_KP_MULTIPLY");
+    case GLFW_KEY_KP_SUBTRACT: return Name_Id("KEY_KP_SUBTRACT");
+    case GLFW_KEY_KP_ADD: return Name_Id("KEY_KP_ADD");
+    case GLFW_KEY_KP_ENTER: return Name_Id("KEY_KP_ENTER");
+    case GLFW_KEY_KP_EQUAL: return Name_Id("KEY_KP_EQUAL");
+    case GLFW_KEY_LEFT_SHIFT: return Name_Id("KEY_LEFT_SHIFT");
+    case GLFW_KEY_LEFT_CONTROL: return Name_Id("KEY_LEFT_CONTROL");
+    case GLFW_KEY_LEFT_ALT: return Name_Id("KEY_LEFT_ALT");
+    case GLFW_KEY_LEFT_SUPER: return Name_Id("KEY_LEFT_SUPER");
+    case GLFW_KEY_RIGHT_SHIFT: return Name_Id("KEY_RIGHT_SHIFT");
+    case GLFW_KEY_RIGHT_CONTROL: return Name_Id("KEY_RIGHT_CONTROL");
+    case GLFW_KEY_RIGHT_ALT: return Name_Id("KEY_RIGHT_ALT");
+    case GLFW_KEY_RIGHT_SUPER: return Name_Id("KEY_RIGHT_SUPER");
+    case GLFW_KEY_MENU: return Name_Id("KEY_MENU");
     default: return Name_Id("KEY_NONE");
     }
 }
@@ -149,7 +219,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 
     GLFW_Window* glfw_window = static_cast<GLFW_Window*>(glfwGetWindowUserPointer(window));
-    glfw_window->input_source->on_digital_input_generated.broadcast(glfw_key_name_to_name_id(key), action);
+    glfw_window->input_source.broadcast(glfw_key_name_to_name_id(key),
+        action == GLFW_PRESS ? 1.0f : 0.0f);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -160,16 +231,17 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     }
     
     GLFW_Window* glfw_window = static_cast<GLFW_Window*>(glfwGetWindowUserPointer(window));
-    glfw_window->input_source->on_digital_input_generated.broadcast(glfw_button_name_to_name_id(button), action);
+    glfw_window->input_source.broadcast(glfw_button_name_to_name_id(button),
+        action == GLFW_PRESS ? 1.0f : 0.0f);
 }
 
-Shared_Ptr<Input_Source> joystick_input_source;
+Event<Name_Id, float> joystick_input_source;
 Dynamic_Array<int32> connected_joysticks;
 void joystick_callback(int32 jid, int32 event)
 {
     if (event == GLFW_CONNECTED)
     {
-        glfwSetJoystickUserPointer(jid, joystick_input_source.get());
+        //glfwSetJoystickUserPointer(jid, joystick_input_source);
         connected_joysticks.push_back(jid);
     }
     else if (event == GLFW_DISCONNECTED)
@@ -202,7 +274,7 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
         if (glfwJoystickPresent(jid))
         {
             connected_joysticks.push_back(jid);
-            glfwSetJoystickUserPointer(jid, joystick_input_source.get());
+            //glfwSetJoystickUserPointer(jid, joystick_input_source.get());
         }
     }
 
@@ -213,10 +285,7 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
     glfwSetJoystickCallback(joystick_callback);
 
     glfwMakeContextCurrent(_window);
-    input_source = Shared_Ptr<Input_Source>::create();
     Input_System::get().register_input_source(input_source);
-    
-    joystick_input_source = Shared_Ptr<Input_Source>::create();
     Input_System::get().register_input_source(joystick_input_source);
 
     return true;
@@ -255,11 +324,6 @@ void GLFW_Window::_poll_analog_inputs()
 {
     PROFILE_FUNCTION()
 
-    if (!joystick_input_source)
-    {
-        return;
-    }
-
     for (int32 jid : connected_joysticks)
     {
         if (glfwJoystickIsGamepad(jid))
@@ -273,7 +337,8 @@ void GLFW_Window::_poll_analog_inputs()
 
                 if (state != previous_state)
                 {
-                    joystick_input_source->on_digital_input_generated.broadcast(glfw_gamepad_button_to_name_id(button), state);
+                    joystick_input_source.broadcast(glfw_gamepad_button_to_name_id(button),
+                        state == GLFW_PRESS ? 1.0f : 0.0f);
                 }
             }
 
@@ -282,7 +347,7 @@ void GLFW_Window::_poll_analog_inputs()
                 const float state = axis_deadzone(_gamepad_state[jid].axes[axis], deadzone);
                 const float previous_state = axis_deadzone(_previous_gamepad_state[jid].axes[axis], deadzone);
 
-                joystick_input_source->on_analog_input_generated.broadcast(glfw_gamepad_axis_to_name_id(axis), state);
+                joystick_input_source.broadcast(glfw_gamepad_axis_to_name_id(axis), state);
             }
 
             _previous_gamepad_state[jid] = _gamepad_state[jid];

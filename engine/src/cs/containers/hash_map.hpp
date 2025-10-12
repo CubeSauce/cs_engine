@@ -37,9 +37,9 @@ class Hash_Map_Iterator
 public:
     using Entry = Hash_Map_Entry<Key, Value>;
     using Type = Pair<Key, Value>;
-    
-    Hash_Map_Iterator(Entry* entry, int64 index, int64 capacity)
-        :_entries(entry), _index(index), _capacity(capacity)
+
+    Hash_Map_Iterator(Entry* entries, int64 index, int64 capacity)
+        :_entries(entries), _index(index), _capacity(capacity)
     {
         _skip_invalid_entry();
     }
@@ -70,7 +70,7 @@ private:
 
     void _skip_invalid_entry()
     {
-        while (_index < _capacity && _entries[_index].is_valid())
+        while (_index < _capacity && !_entries[_index].is_valid())
         {
             ++_index;
         }
@@ -100,6 +100,18 @@ public:
         _resize(capacity);
     }
 
+    void clear()
+    {
+        for (int32 i = 0; i < _capacity; ++i)
+        {
+            if (_entries[i].is_valid())
+            {
+                _entries[i].clear();
+            }
+        }
+        _size = 0;
+    }
+
     Value* insert(const Key& key, const Value& value)
     {
         if ((_size + 1.0) / _capacity > _max_load_factor) 
@@ -108,10 +120,11 @@ public:
         }
 
         int64 idx = _probe_insert(key);
+        // replace the value
         if (_entries[idx].occupied && !_entries[idx].deleted)
         {
             _entries[idx].pair.b = value;
-            return nullptr;// false;
+            return nullptr;
         }
 
         _entries[idx].set(key, value);
