@@ -23,15 +23,21 @@ enum Type : uint8_t
 };
 }
 
+struct Input_Event_Setup
+{
+    Name_Id event_id;
+    Dynamic_Array<Pair<Name_Id, float>> input_actions;
+};
+
 class Input_System : public Singleton<Input_System>
 {
 public:
-    void update();
-
     void register_input_source(Event<Name_Id, float>& on_input_generated);
-    Event<float>& register_event(const Name_Id &event_id,
-        const Dynamic_Array<Pair<Name_Id, float>>& inputs);
+
+    Event<float>& register_event(const Input_Event_Setup& setup);
     void deregister_event(const Name_Id &event_id);
+
+    void update();
 
 private:
     struct Event_State

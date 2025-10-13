@@ -1,34 +1,38 @@
 // CS Engine
 // Author: matija.martinec@protonmail.com
-
+// <script src="https://gist.github.com/engelmarkus/fc1678adbed1b630584c90219f77eb48.js"></script>
 #pragma once
 
 #include "cs/cs.hpp"
 #include "cs/containers/dynamic_array.hpp"
 
 #include <functional>
-
-// Template magic for placeholders from: 
-//  https://stackoverflow.com/questions/21192659/variadic-templates-and-stdbind
-template<int...> struct int_sequence {};
-template<int N, int... Is> struct make_int_sequence
-    : make_int_sequence<N-1, N-1, Is...> {};
-template<int... Is> struct make_int_sequence<0, Is...>
-    : int_sequence<Is...> {};
-template<int> // begin with 0 here!
-struct placeholder_template
-{};
-
-#include <functional>
 #include <type_traits>
+#include <utility>
+#include <iostream>
 
-namespace std
-{
-    template<int N>
-    struct is_placeholder<placeholder_template<N> >
-        : integral_constant<int, N+1> // the one is important
-    {};
+template <int>
+struct variadic_placeholder {};
+
+namespace std {
+    template <int N>
+    struct is_placeholder<variadic_placeholder<N>>
+        : integral_constant<int, N + 1>
+    {
+    };
 }
+
+
+template <typename Ret, typename Class, typename... Args, size_t... Is, typename... Args2>
+auto bind(std::index_sequence<Is...>, Ret (Class::*fptr)(Args...), Args2&&... args) {
+    return std::bind(fptr, std::forward<Args2>(args)..., variadic_placeholder<Is>{}...);
+}
+
+template <typename Ret, typename Class, typename... Args, typename... Args2>
+auto bind(Ret (Class::*fptr)(Args...), Args2&&... args) {
+    return bind(std::make_index_sequence<sizeof...(Args) - sizeof...(Args2) + 1>{}, fptr, std::forward<Args2>(args)...);
+}
+
 
 template<class...Args>
 class Event
@@ -42,7 +46,7 @@ public:
     template<typename T, typename F>
     void bind(T *obj, F func)
     {
-        _events.push_back(std::bind(func, obj, make_int_sequence<sizeof...(Args)>{}));
+        _events.push_back(::bind(func, obj));
     }
 
     void broadcast(Args...args)
