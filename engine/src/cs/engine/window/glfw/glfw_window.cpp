@@ -263,6 +263,13 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
     _window = glfwCreateWindow(width, height, title, nullptr, nullptr);
     assert(_window);
 
+    _width = width;
+    _height = height;
+    on_window_resize.bind([this](uint32 width, uint32 height) {
+        _width = width;
+        _height = height;
+    });
+
     glfwSetWindowUserPointer(_window, this);
     _gamepad_state = new GLFWgamepadstate[GLFW_JOYSTICK_LAST];
     memset(_gamepad_state, 0, sizeof(GLFWgamepadstate) * GLFW_JOYSTICK_LAST);
@@ -316,6 +323,12 @@ void* GLFW_Window::native_handle() const
     #elif defined(CS_PLATFORM_APPLE)
         return static_cast<void*>(glfwGetCocoaWindow(_window));
     #endif //CS_PLATFORM_WINDOWS
+}
+
+void GLFW_Window::get_window_size(uint32 &width, uint32 &height) const
+{
+    width = _width;
+    height = _height;
 }
 
 constexpr float deadzone = 0.05f;

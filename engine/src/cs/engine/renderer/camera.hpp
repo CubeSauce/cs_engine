@@ -48,9 +48,9 @@ public:
 class Perspective_Camera : public Camera
 {
 public:
-	float FOV { 0.0f };
-	float near_d { 0.0f };
-	float far_d { 0.0f };
+	float FOV { 45_deg };
+	float near_d { 0.1f };
+	float far_d { 1000.0f };
 
 public:
 	virtual void calculate_projection() override;

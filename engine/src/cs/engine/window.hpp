@@ -29,4 +29,6 @@ public:
     virtual bool should_close() const = 0;
     virtual void swap_buffers() = 0;
     virtual void* native_handle() const = 0;
+
+    virtual void get_window_size(uint32& width, uint32& height) const = 0;
 };
