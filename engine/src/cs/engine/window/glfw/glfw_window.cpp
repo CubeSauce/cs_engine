@@ -235,6 +235,30 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         action == GLFW_PRESS ? 1.0f : 0.0f);
 }
 
+constexpr Name_Id mouse_pos_x_name("MOUSE_POS_X");
+constexpr Name_Id mouse_pos_y_name("MOUSE_POS_Y");
+
+void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    GLFW_Window* glfw_window = static_cast<GLFW_Window*>(glfwGetWindowUserPointer(window));
+
+    uint32 width, height;
+    glfw_window->get_window_size(width, height);
+
+    glfw_window->input_source.broadcast(mouse_pos_x_name, static_cast<float>(xpos) / static_cast<float>(width));
+    glfw_window->input_source.broadcast(mouse_pos_y_name, static_cast<float>(ypos) / static_cast<float>(height));
+}
+
+constexpr Name_Id mouse_scroll_x_name("MOUSE_SCROLL_X");
+constexpr Name_Id mouse_scroll_y_name("MOUSE_SCROLL_Y");
+void scroll_callback(GLFWwindow* window, double scroll_x, double scroll_y)
+{
+    GLFW_Window* glfw_window = static_cast<GLFW_Window*>(glfwGetWindowUserPointer(window));
+
+    glfw_window->input_source.broadcast(mouse_scroll_x_name, static_cast<float>(scroll_x));
+    glfw_window->input_source.broadcast(mouse_scroll_y_name, static_cast<float>(scroll_y));
+}
+
 Event<Name_Id, float> joystick_input_source;
 Dynamic_Array<int32> connected_joysticks;
 void joystick_callback(int32 jid, int32 event)
@@ -288,8 +312,12 @@ bool GLFW_Window::initialize(int32 width, int32 height, const char* title)
     glfwSetFramebufferSizeCallback(_window, framebuffer_size_callback);
     glfwSetWindowCloseCallback(_window, window_close_callback);
     glfwSetMouseButtonCallback(_window, mouse_button_callback);
+    glfwSetCursorPosCallback(_window, cursor_pos_callback);
+    glfwSetScrollCallback(_window, scroll_callback);
     glfwSetKeyCallback(_window, key_callback);
     glfwSetJoystickCallback(joystick_callback);
+
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwMakeContextCurrent(_window);
     Input_System::get().register_input_source(input_source);

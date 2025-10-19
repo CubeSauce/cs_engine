@@ -30,18 +30,29 @@ struct Render_Component : Component
 struct Player_Entity
 {
 	Component_Handle<Transform_Component> h_transform;
+
+	float movement_speed{10.0};
+	vec3 input_vector{0.0f};
+	float look_speed{15_deg};
+	vec3 input_mouse{0.0f}, input_mouse_previous{0.0f};
 };
 
 struct Test_Entity
 {
 	Component_Handle<Transform_Component> h_transform;
 	Component_Handle<Render_Component> h_render;
+
+	vec3 rotate_axis{vec3::forward_vector};
+	float rotate_speed{0.0f};
+	float rotate_angle{0.0f};
 };
 
 struct My_Game
 {
 	bool initialized {false};
+	bool started { false };
 
+	// TODO: Camera manager? (to handle editor/game/cinematic transitions with simple calls?)
 	Shared_Ptr<Perspective_Camera> scene_camera;
 
 	Dynamic_Component_Storage<
@@ -52,26 +63,23 @@ struct My_Game
 	Player_Entity player;
 	Dynamic_Array<Test_Entity> tests;
 
+	// TODO: Resource manager of sorts
+	Shared_Ptr<Mesh_Resource> unit_capsule;
 	Shared_Ptr<Mesh_Resource> unit_sphere;
 	Shared_Ptr<Mesh_Resource> unit_box;
 
-	float t = 0.0f;
 	void initialize()
 	{
 		components.initialize();
 
 		Renderer& renderer = Renderer::get();
 		renderer.window->on_window_resize.bind([this](uint32 width, uint32 height) {
-			initialize_camera(width, height);
+			_initialize_camera(width, height);
 		});
 
 		uint32 width, height;
 		renderer.window->get_window_size(width, height);
-		initialize_camera(width, height);
-
-		renderer.set_active_camera(scene_camera);
-
-		player = make_player();
+		_initialize_camera(width, height);
 
 		if (!unit_sphere.is_valid())
 		{
@@ -85,33 +93,54 @@ struct My_Game
 			unit_box->initialize_from_file("assets/meshes/test/unit_box.obj");
 		}
 
-		tests.clear();
-		tests.push_back(make_test(unit_sphere, vec3(-3.0f, 3.0f, -1.0f)));
-		tests.push_back(make_test(unit_box, vec3(3.0f, 3.0f, 1.0f)));
+		if (!unit_capsule.is_valid())
+		{
+			unit_capsule = Shared_Ptr<Mesh_Resource>::create();
+			unit_capsule->initialize_from_file("assets/meshes/test/unit_capsule.obj");
+		}
 
-		t = 0.0f;
+		tests.clear();
+		tests.push_back(_make_test(unit_sphere, vec3(-3.0f, 3.0f, -1.0f),
+		vec3(0.0f, 0.0f, 1.0f), 180_deg));
+		tests.push_back(_make_test(unit_box, vec3(3.0f, 0.0f, 1.0f),
+		vec3(1.0f, 1.0f, 0.0f), 90_deg));
+		tests.push_back(_make_test(unit_capsule, vec3(0.0f, -3.0f, 3.0f),
+			vec3(0.0f, 1.0f, 0.0f), 120_deg));
 
 		initialized = true;
 	}
 
+	void start()
+	{
+		player = _make_player();
+		started = true;
+	}
+
 	void update(float dt)
 	{
-		t += dt;
-
 		if (scene_camera.is_valid())
 		{
 			scene_camera->position = components.get(player.h_transform).local_position;
+			scene_camera->orientation = components.get(player.h_transform).local_orientation;
 		}
+
+		_pre_update_player(dt);
 
 		for (Test_Entity& test : tests)
 		{
+			test.rotate_angle += dt * test.rotate_speed;
+
 			Transform_Component& transform_component = components.get<Transform_Component>(test.h_transform);
-			transform_component.local_orientation = quat::from_euler_angles(vec3(0.0f ,0.0f, t));
+			transform_component.local_orientation =
+				quat::from_euler_angles(test.rotate_axis * test.rotate_angle);
+
 			transform_component.calculate_local_matrix();
 
 			Render_Component& render_component = components.get<Render_Component>(test.h_render);
 			render_component.model_matrix = transform_component.local_matrix;
 		}
+
+		_post_update_player(dt);
 	}
 
 	void render()
@@ -126,37 +155,44 @@ struct My_Game
 
 	void shutdown()
 	{
+		_shutdown_player();
 		initialized = false;
+		started = false;
 	}
 
-	void initialize_camera(uint32 width, uint32 height)
+	void _initialize_camera(uint32 width, uint32 height)
 	{
 		if (!scene_camera.is_valid())
 		{
 			scene_camera = Shared_Ptr<Perspective_Camera>::create();
 		}
 
-		scene_camera->aspect_ratio = width / static_cast<float>(height);
+		scene_camera->aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 		scene_camera->position = vec3::zero_vector;
 		scene_camera->orientation = quat::from_direction(vec3::forward_vector);
 	}
 
-	Player_Entity make_player()
+	Player_Entity _make_player()
 	{
 		Player_Entity player;
 		Transform_Component& transform_component = components.add<Transform_Component>(player.h_transform);
 		transform_component.local_position = vec3(0.0f, -15.0f, 0.0f);
+
+		_initialize_player();
+
 		return player;
 	}
 
-	Test_Entity make_test(const Shared_Ptr<Mesh_Resource> &test_mesh, const vec3& position)
+	Test_Entity _make_test(const Shared_Ptr<Mesh_Resource> &test_mesh, const vec3& position, const vec3& rotate_axis, float rotate_speed)
 	{
 		Test_Entity test;
 
 		Transform_Component& transform_component = components.add<Transform_Component>(test.h_transform);
 		transform_component.local_position = position;
+		transform_component.calculate_local_matrix();
 
 		Render_Component& render_component = components.add<Render_Component>(test.h_render);
+		render_component.model_matrix = transform_component.local_matrix;
 
 		Renderer& renderer = Renderer::get();
 
@@ -165,24 +201,107 @@ struct My_Game
 		render_component.mesh = renderer.backend->create_mesh(test_mesh);
 		render_component.mesh->upload_data();
 
+		test.rotate_axis = rotate_axis;
+		test.rotate_speed = rotate_speed;
+
 		return test;
+	}
+
+	void _initialize_player()
+	{
+		Input_System::get().register_event({"player_forward",
+			{
+				{"KEY_W", 1.0f},
+				{"KEY_S", -1.0f},
+				{"KEY_UP", 1.0f},
+				{"KEY_DOWN", -1.0f}
+			}}).bind(this, &My_Game::_player_input_forward);
+
+		Input_System::get().register_event({"player_right",
+			{
+				{"KEY_A", -1.0f},
+				{"KEY_D", 1.0f},
+				{"KEY_LEFT", -1.0f},
+				{"KEY_RIGHT", 1.0f}
+			}}).bind(this, &My_Game::_player_input_right);
+
+		Input_System::get().register_event({"player_look_up",
+			{{"MOUSE_POS_Y", -1.0f}
+			}}).bind(this, &My_Game::_player_input_mouse_up);
+
+		Input_System::get().register_event({"player_look_right",
+			{{"MOUSE_POS_X", -1.0f}
+			}}).bind(this, &My_Game::_player_input_mouse_right);
+	}
+
+	void _shutdown_player()
+	{
+		Input_System::get().deregister_event("player_forward");
+		Input_System::get().deregister_event("player_right");
+		Input_System::get().deregister_event("player_look_up");
+		Input_System::get().deregister_event("player_look_right");
+	}
+
+	void _pre_update_player(float dt)
+	{
+		Transform_Component& transform_component = components.get(player.h_transform);
+
+		const vec3 mouse_delta = player.input_mouse - player.input_mouse_previous;
+		player.input_mouse_previous = player.input_mouse;
+		const vec3 mouse_movement = mouse_delta * (player.look_speed);
+		const quat look_delta = quat::from_euler_angles(vec3(mouse_movement.y, 0.0f, mouse_movement.x));
+		transform_component.local_orientation = transform_component.local_orientation.mul(look_delta);
+
+		const vec3 player_forward_move = transform_component.local_orientation.mul(player.input_vector.normalized());
+		transform_component.local_position += player_forward_move.normalized() * (player.movement_speed * dt);
+	}
+
+	void _post_update_player(float dt)
+	{
+
+	}
+
+	void _player_input_forward(float value)
+	{
+		player.input_vector.y = value;
+	}
+
+	void _player_input_right(float value)
+	{
+		player.input_vector.x = value;
+	}
+
+	void _player_input_mouse_up(float value)
+	{
+		player.input_mouse.y = value;
+	}
+
+	void _player_input_mouse_right(float value)
+	{
+		player.input_mouse.x = value;
 	}
 };
 
 struct Editor_Entry_Point : Entry_Point
 {
 	bool wants_to_exit{false};
+	float editor_movement_speed{10.0f};
+	vec3 editor_movement_input{vec3::zero_vector};
+	float editor_rotation_speed{25_deg};
+	vec3 editor_rotation_input{vec3::zero_vector}, editor_rotation_input_previous{vec3::zero_vector};
 	Shared_Ptr<Camera> editor_camera;
 
-	My_Game game;
+	My_Game game, active_game;
 
 public:
 	void initialize() override
 	{
 		printf("Editor initializing... ");
 
-		register_inputs();
-		initialize_editor_camera();
+		_initialize_editor_camera();
+		_register_inputs();
+
+		game.initialize();
 
 		printf("DONE\n");
 		flushall();
@@ -190,9 +309,20 @@ public:
 
 	void update(float dt) override
 	{
-		if (game.initialized)
+		if (active_game.started)
 		{
-			game.update(dt);
+			active_game.update(dt);
+		}
+		else
+		{
+			const vec3 mouse_delta = editor_rotation_input - editor_rotation_input_previous;
+			editor_rotation_input_previous = editor_rotation_input;
+			const vec3 mouse_movement = mouse_delta * (editor_rotation_speed);
+			const quat look_delta = quat::from_euler_angles(vec3(mouse_movement.y, 0.0f, mouse_movement.x));
+			editor_camera->orientation = editor_camera->orientation.mul(look_delta);
+
+			const vec3 player_forward_move = editor_camera->orientation.mul(editor_movement_input.normalized());
+			editor_camera->position += player_forward_move.normalized() * (editor_movement_speed * dt);
 		}
 	}
 
@@ -201,7 +331,14 @@ public:
 		Renderer& renderer = Renderer::get();
 		Shared_Ptr<Renderer_Backend> renderer_backend = Renderer::get().backend;
 
-		game.render();
+		if (active_game.started)
+		{
+			active_game.render();
+		}
+		else
+		{
+			game.render();
+		}
 	}
 
 	void shutdown() override
@@ -215,58 +352,165 @@ public:
 		return wants_to_exit;
 	}
 
-	void initialize_editor_camera()
+	void _initialize_editor_camera()
 	{
 		Renderer& renderer = Renderer::get();
 		renderer.window->on_window_resize.bind([this](uint32 width, uint32 height) {
-			initialize_camera(width, height);
+			_initialize_camera(width, height);
 		});
 
 		uint32 width, height;
 		renderer.window->get_window_size(width, height);
-		initialize_camera(width, height);
+		_initialize_camera(width, height);
+
+		renderer.set_active_camera(editor_camera);
 	}
 
-	void initialize_camera(uint32 width, uint32 height)
+	void _initialize_camera(uint32 width, uint32 height)
 	{
 		if (!editor_camera.is_valid())
 		{
 			editor_camera = Shared_Ptr<Perspective_Camera>::create();
 		}
 
-		editor_camera->aspect_ratio = width / static_cast<float>(height);
-		editor_camera->position = vec3(-10.0f, -10.0, 10.0f);
-		editor_camera->orientation = quat::from_direction(-editor_camera->position);
+		editor_camera->aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
+		editor_camera->position = vec3(0.0f, -10.0, 0.0f);
+		editor_camera->orientation = quat::from_direction(vec3::forward_vector);
 	}
 
 private:
-	void register_inputs()
+	void _register_inputs()
 	{
-		Input_System::get().register_event({"game_start",
-			{{"KEY_P", 1.0f}, {"KEY_F5", 1.0f}}}).bind(
-			[this](float value) {
-				if (value > 0.5f) return;
+		Input_System::get().register_event({"game_start",{
+			{"KEY_P", 1.0f}, {"KEY_F5", 1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_game_start);
 
-				if (!game.initialized)
-				{
-					game.initialize();
-				}
-			});
+		Input_System::get().register_event({"game_stop", {
+			{"KEY_ESCAPE", 1.0f}
+		}}).bind(this, &Editor_Entry_Point::_editor_input_game_stop);
 
-		Input_System::get().register_event({"game_stop", {{"KEY_ESCAPE", 1.0f}}}).bind(
-			[this](float value) {
-			if (value > 0.5f) return;
+		_register_camera_inputs();
+	}
 
-			if (game.initialized)
+	void _register_camera_inputs()
+	{
+		Input_System::get().register_event({"editor_camera_speed",
 			{
-				game.shutdown();
+				{"MOUSE_SCROLL_Y", 1.0f},
+			}}).bind(this, &Editor_Entry_Point::_editor_input_camera_speed);
 
-				Renderer& renderer = Renderer::get();
-				renderer.set_active_camera(editor_camera);
-			}
-			else
-				wants_to_exit = true;
-		});
+		Input_System::get().register_event({"editor_forward",
+			{
+				{"KEY_W", 1.0f},
+				{"KEY_S", -1.0f},
+				{"KEY_UP", 1.0f},
+				{"KEY_DOWN", -1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_forward);
+
+		Input_System::get().register_event({"editor_right",
+			{
+				{"KEY_A", -1.0f},
+				{"KEY_D", 1.0f},
+				{"KEY_LEFT", -1.0f},
+				{"KEY_RIGHT", 1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_right);
+
+		Input_System::get().register_event({"editor_up",
+			{
+				{"KEY_Q", -1.0f},
+				{"KEY_E", 1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_up);
+
+		Input_System::get().register_event({"editor_look_up",
+			{{"MOUSE_POS_Y", -1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_mouse_up);
+
+		Input_System::get().register_event({"editor_look_right",
+			{{"MOUSE_POS_X", -1.0f}
+			}}).bind(this, &Editor_Entry_Point::_editor_input_mouse_right);
+	}
+
+	void _deregister_camera_inputs()
+	{
+		Input_System::get().deregister_event("editor_camera_speed");
+		Input_System::get().deregister_event("editor_forward");
+		Input_System::get().deregister_event("editor_right");
+		Input_System::get().deregister_event("editor_look_up");
+		Input_System::get().deregister_event("editor_look_right");
+	}
+
+	void _editor_input_game_start(float value)
+	{
+		if (value > 0.5f)
+		{
+			return;
+		}
+
+		if (!active_game.started)
+		{
+			_deregister_camera_inputs();
+
+			active_game = game;
+			active_game.initialize();
+			active_game.start();
+
+			Renderer& renderer = Renderer::get();
+			renderer.set_active_camera(active_game.scene_camera);
+		}
+	}
+
+	void _editor_input_game_stop(float value)
+	{
+		if (value > 0.5f)
+		{
+			return;
+		}
+
+		if (active_game.started)
+		{
+			active_game.shutdown();
+
+			Renderer& renderer = Renderer::get();
+			renderer.set_active_camera(editor_camera);
+
+			_register_camera_inputs();
+		}
+		else
+		{
+			wants_to_exit = true;
+		}
+	}
+
+	void _editor_input_camera_speed(float value)
+	{
+		if (value > 0.0f) value = 1.25f;
+		else value = 0.75f;
+		editor_movement_speed *= value;
+	}
+
+	void _editor_input_forward(float value)
+	{
+		editor_movement_input.y = value;
+	}
+
+	void _editor_input_right(float value)
+	{
+		editor_movement_input.x = value;
+	}
+
+	void _editor_input_up(float value)
+	{
+		editor_movement_input.z = value;
+	}
+
+	void _editor_input_mouse_up(float value)
+	{
+		editor_rotation_input.y = value;
+	}
+
+	void _editor_input_mouse_right(float value)
+	{
+		editor_rotation_input.x = value;
 	}
 };
 

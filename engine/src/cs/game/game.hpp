@@ -11,9 +11,7 @@
 struct Component
 {
 	virtual ~Component() = default;
-
-	static constexpr Name_Id id = Name_Id("Component");
-	virtual constexpr Name_Id get_id() const { return id; }
+	virtual constexpr Name_Id get_id() const = 0;
 };
 
 template<int64 N, typename Type>
@@ -26,6 +24,8 @@ template<typename Type>
 struct Component_Handle
 {
 	int64 index{-1};
+
+	bool is_valid() const { return index != -1; }
 };
 
 template<int64 N, Derived<Component>...ComponentTypes>

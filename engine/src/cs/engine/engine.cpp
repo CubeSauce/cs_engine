@@ -261,7 +261,7 @@ Shared_Ptr<Renderer_Backend> Engine::_create_renderer_backend(Renderer_API::Type
     default_camera->far_d = 1000.0f;
     default_camera->position = {0.0f, -5.0f, 2.0f};
     default_camera->orientation = quat::from_direction(vec3::forward_vector);
-    
+
     _renderer->set_active_camera(default_camera);
 
     return backend;

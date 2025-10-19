@@ -237,14 +237,23 @@ float fvec3::length() const
 
 fvec3& fvec3::normalize()
 {
-    float len = length();
+    const float len = length();
+    if (is_nearly_equal(len, 0))
+    {
+        return vec3::zero_vector;
+    }
     *this /= len;
     return *this;
 }
 
 fvec3 fvec3::normalized() const
 {
-    float len = length();
+    const float len = length();
+    if (is_nearly_equal(len, 0))
+    {
+        return vec3::zero_vector;
+    }
+
     return *this / len;
 }
 
