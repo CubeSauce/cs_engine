@@ -30,11 +30,13 @@ struct Render_Component : Component
 struct Player_Entity
 {
 	Component_Handle<Transform_Component> h_transform;
+	Shared_Ptr<Perspective_Camera> fpv_camera;
 
 	float movement_speed{10.0};
-	vec3 input_vector{0.0f};
+	vec3 movement_input{0.0f};
 	float look_speed{15_deg};
-	vec3 input_mouse{0.0f}, input_mouse_previous{0.0f};
+	vec3 input_mouse{vec3::zero_vector}, input_mouse_previous{vec3::zero_vector}, look_angles{vec3::zero_vector};
+
 };
 
 struct Test_Entity
@@ -51,9 +53,6 @@ struct My_Game
 {
 	bool initialized {false};
 	bool started { false };
-
-	// TODO: Camera manager? (to handle editor/game/cinematic transitions with simple calls?)
-	Shared_Ptr<Perspective_Camera> scene_camera;
 
 	Dynamic_Component_Storage<
 		Transform_Component,
@@ -112,18 +111,12 @@ struct My_Game
 
 	void start()
 	{
-		player = _make_player();
+		_initialize_player();
 		started = true;
 	}
 
 	void update(float dt)
 	{
-		if (scene_camera.is_valid())
-		{
-			scene_camera->position = components.get(player.h_transform).local_position;
-			scene_camera->orientation = components.get(player.h_transform).local_orientation;
-		}
-
 		_pre_update_player(dt);
 
 		for (Test_Entity& test : tests)
@@ -162,25 +155,28 @@ struct My_Game
 
 	void _initialize_camera(uint32 width, uint32 height)
 	{
-		if (!scene_camera.is_valid())
+		if (!player.fpv_camera.is_valid())
 		{
-			scene_camera = Shared_Ptr<Perspective_Camera>::create();
+			player.fpv_camera = Shared_Ptr<Perspective_Camera>::create();
 		}
 
-		scene_camera->aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
-		scene_camera->position = vec3::zero_vector;
-		scene_camera->orientation = quat::from_direction(vec3::forward_vector);
+		player.fpv_camera->aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
+		player.fpv_camera->position = vec3::zero_vector;
+		player.fpv_camera->orientation = quat::from_direction(vec3::forward_vector);
 	}
 
-	Player_Entity _make_player()
+	void _initialize_player()
 	{
-		Player_Entity player;
 		Transform_Component& transform_component = components.add<Transform_Component>(player.h_transform);
 		transform_component.local_position = vec3(0.0f, -15.0f, 0.0f);
 
-		_initialize_player();
+		_initialize_player_input();
 
-		return player;
+		Renderer& renderer = Renderer::get();
+		uint32 width, height;
+		renderer.window->get_window_size(width, height);
+		_initialize_camera(width, height);
+		renderer.set_active_camera(player.fpv_camera);
 	}
 
 	Test_Entity _make_test(const Shared_Ptr<Mesh_Resource> &test_mesh, const vec3& position, const vec3& rotate_axis, float rotate_speed)
@@ -207,7 +203,7 @@ struct My_Game
 		return test;
 	}
 
-	void _initialize_player()
+	void _initialize_player_input()
 	{
 		Input_System::get().register_event({"player_forward",
 			{
@@ -244,16 +240,23 @@ struct My_Game
 
 	void _pre_update_player(float dt)
 	{
-		Transform_Component& transform_component = components.get(player.h_transform);
+		Transform_Component& transform_component = components.get<Transform_Component>(player.h_transform);
 
 		const vec3 mouse_delta = player.input_mouse - player.input_mouse_previous;
 		player.input_mouse_previous = player.input_mouse;
-		const vec3 mouse_movement = mouse_delta * (player.look_speed);
-		const quat look_delta = quat::from_euler_angles(vec3(mouse_movement.y, 0.0f, mouse_movement.x));
-		transform_component.local_orientation = transform_component.local_orientation.mul(look_delta);
+		player.look_angles.x += mouse_delta.y * player.look_speed;
+		player.look_angles.x = clamp(player.look_angles.x, -85_deg, 85_deg);
+		player.look_angles.z += mouse_delta.x * player.look_speed;
+		const quat look_rotation = quat::from_euler_angles(player.look_angles);
 
-		const vec3 player_forward_move = transform_component.local_orientation.mul(player.input_vector.normalized());
+		vec3 editor_xy_movement_input = player.movement_input;
+		editor_xy_movement_input.z = 0.0f;
+
+		const vec3 player_forward_move = look_rotation.mul(editor_xy_movement_input.normalized());
 		transform_component.local_position += player_forward_move.normalized() * (player.movement_speed * dt);
+
+		player.fpv_camera->orientation = look_rotation;
+		player.fpv_camera->position = transform_component.local_position;
 	}
 
 	void _post_update_player(float dt)
@@ -263,12 +266,12 @@ struct My_Game
 
 	void _player_input_forward(float value)
 	{
-		player.input_vector.y = value;
+		player.movement_input.y = value;
 	}
 
 	void _player_input_right(float value)
 	{
-		player.input_vector.x = value;
+		player.movement_input.x = value;
 	}
 
 	void _player_input_mouse_up(float value)
@@ -288,6 +291,7 @@ struct Editor_Entry_Point : Entry_Point
 	float editor_movement_speed{10.0f};
 	vec3 editor_movement_input{vec3::zero_vector};
 	float editor_rotation_speed{25_deg};
+	vec3 editor_rotation_angles{vec3::zero_vector};
 	vec3 editor_rotation_input{vec3::zero_vector}, editor_rotation_input_previous{vec3::zero_vector};
 	Shared_Ptr<Camera> editor_camera;
 
@@ -317,12 +321,17 @@ public:
 		{
 			const vec3 mouse_delta = editor_rotation_input - editor_rotation_input_previous;
 			editor_rotation_input_previous = editor_rotation_input;
-			const vec3 mouse_movement = mouse_delta * (editor_rotation_speed);
-			const quat look_delta = quat::from_euler_angles(vec3(mouse_movement.y, 0.0f, mouse_movement.x));
-			editor_camera->orientation = editor_camera->orientation.mul(look_delta);
+			editor_rotation_angles.x += mouse_delta.y * editor_rotation_speed;
+			editor_rotation_angles.x = clamp(editor_rotation_angles.x, -85_deg, 85_deg);
+			editor_rotation_angles.z += mouse_delta.x * editor_rotation_speed;
+			editor_camera->orientation = quat::from_euler_angles(editor_rotation_angles);
 
-			const vec3 player_forward_move = editor_camera->orientation.mul(editor_movement_input.normalized());
+			vec3 editor_xy_movement_input = editor_movement_input;
+			editor_xy_movement_input.z = 0.0f;
+			const vec3 player_forward_move = editor_camera->orientation.mul(editor_xy_movement_input.normalized());
 			editor_camera->position += player_forward_move.normalized() * (editor_movement_speed * dt);
+			// We want Q/E input to be vertical regardless of camera orientation
+			editor_camera->position.z += editor_movement_input.z * editor_movement_speed * dt;
 		}
 	}
 
@@ -453,9 +462,6 @@ private:
 			active_game = game;
 			active_game.initialize();
 			active_game.start();
-
-			Renderer& renderer = Renderer::get();
-			renderer.set_active_camera(active_game.scene_camera);
 		}
 	}
 
