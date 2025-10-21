@@ -44,6 +44,7 @@ public:
     virtual void render_frame() = 0;
     virtual void shutdown() = 0;
     virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye = VR_Eye::None) = 0;
+    virtual void draw_mesh_instanced(const Shared_Ptr<Mesh>& mesh, const Dynamic_Array<Instance_Data>& instance_datas, VR_Eye::Type eye = VR_Eye::None) = 0;
 
     virtual Shared_Ptr<Shader> create_shader(const Shared_Ptr<Shader_Resource>& shader_resource) = 0;
     virtual Shared_Ptr<Mesh> create_mesh(const Shared_Ptr<Mesh_Resource>& mesh) = 0;

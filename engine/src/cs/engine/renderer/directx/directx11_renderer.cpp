@@ -99,6 +99,28 @@ void DirectX11_Mesh::upload_data()
     }
 }
 
+void DirectX11_Mesh::upload_data(const Dynamic_Array<Instance_Data> &instances)
+{
+    upload_data();
+
+    num_instances = instances.size();
+
+    D3D11_BUFFER_DESC instance_buffer_desc = {};
+    instance_buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
+    instance_buffer_desc.ByteWidth = instances.size_in_bytes(); // Set up with the capacity to account for growth
+    instance_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    instance_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    instance_buffer_desc.MiscFlags = 0;
+    instance_buffer_desc.StructureByteStride = 0;
+
+    D3D11_SUBRESOURCE_DATA instance_data;
+    instance_data.pSysMem = instances.begin();
+    instance_data.SysMemPitch = 0;
+    instance_data.SysMemSlicePitch = 0;
+
+    assert(SUCCEEDED(device->CreateBuffer(&instance_buffer_desc, &instance_data, instance_buffer.GetAddressOf())));
+}
+
 DirectX11_Renderer_Backend::~DirectX11_Renderer_Backend()
 {
 }
@@ -203,12 +225,13 @@ void DirectX11_Renderer_Backend::shutdown()
         _device_context->Release();
 }
 
-UINT vertex_stride = sizeof(Vertex_Data);
-UINT vertex_offset = 0;
 void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const mat4 &world_transform, VR_Eye::Type eye)
 {
     PROFILE_FUNCTION()
-    
+
+    static UINT vertex_stride = sizeof(Vertex_Data);
+    static UINT vertex_offset = 0;
+
     Shared_Ptr<DirectX11_Mesh> dx_mesh = mesh;
     if (!dx_mesh)
     {
@@ -244,6 +267,11 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
 
     for (const DirectX11_Submesh &submesh : dx_mesh->submeshes)
     {
+        if (!submesh.vertex_buffer)
+        {
+            dx_mesh->upload_data();
+        }
+
         // TODO: Change only when needed
         _uniform_buffer->set_data(&data, sizeof(data), 0);
         _uniform_buffer->bind();
@@ -259,6 +287,80 @@ void DirectX11_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh> &mesh, const m
 
         submesh.material.shader->bind();
         _device_context->DrawIndexed(submesh.num_indices, 0, 0);
+        submesh.material.shader->unbind();
+    }
+}
+
+void DirectX11_Renderer_Backend::draw_mesh_instanced(const Shared_Ptr<Mesh> &mesh,
+    const Dynamic_Array<Instance_Data> &instance_datas, VR_Eye::Type eye)
+{
+    PROFILE_FUNCTION()
+
+    Shared_Ptr<DirectX11_Mesh> dx_mesh = mesh;
+    if (!dx_mesh)
+    {
+        return;
+    }
+
+    data = {};
+
+    VR_System& vr_system = VR_System::get();
+    if (vr_system.is_valid())
+    {
+        Shared_Ptr<Camera> camera = vr_system.get_camera(eye);
+
+        data.view = camera->get_view();
+        data.projection = camera->get_projection();
+    }
+    else if (_camera)
+    {
+        _camera->aspect_ratio = _viewport.Width / _viewport.Height;
+        _camera->calculate_projection();
+        _camera->calculate_view();
+
+        data.view = _camera->get_view();
+        data.projection = _camera->get_projection();
+    }
+
+    data.world_inv_tran = data.world.inverse();
+    data.world.transpose();
+    data.view.transpose();
+    data.projection.transpose();
+
+    if (!dx_mesh->instance_buffer || dx_mesh->num_instances != instance_datas.size())
+    {
+        dx_mesh->upload_data(instance_datas);
+    }
+    else
+    {
+        D3D11_MAPPED_SUBRESOURCE resource = {};
+        _device_context->Map(dx_mesh->instance_buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        memcpy(resource.pData, instance_datas.begin(), instance_datas.size_in_bytes());
+        _device_context->Unmap(dx_mesh->instance_buffer.Get(), 0);
+    }
+
+    for (const DirectX11_Submesh &submesh : dx_mesh->submeshes)
+    {
+        static UINT vertex_stride[] = {sizeof(Vertex_Data), sizeof(Instance_Data)};
+        static UINT vertex_offset[] = {0, 0};
+        ID3D11Buffer* buffer_pointers[] = { submesh.vertex_buffer.Get(), dx_mesh->instance_buffer.Get()};
+
+        // TODO: Change only when needed
+        _uniform_buffer->set_data(&data, sizeof(data), 0);
+        _uniform_buffer->bind();
+
+        _device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        _device_context->IASetVertexBuffers(0, 2, buffer_pointers, vertex_stride, vertex_offset);
+        _device_context->IASetIndexBuffer(submesh.index_buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+        if (Shared_Ptr<DirectX11_Texture> dx11_texture = submesh.material.texture)
+        {
+            _device_context->PSSetShaderResources(0, 1, dx11_texture->resource_view.GetAddressOf());
+        }
+
+        submesh.material.shader->bind();
+        _device_context->DrawIndexedInstanced(submesh.num_indices, instance_datas.size(),
+            0, 0, 0);
         submesh.material.shader->unbind();
     }
 }
@@ -357,7 +459,6 @@ Shared_Ptr<Mesh> DirectX11_Renderer_Backend::get_mesh(const Shared_Ptr<Mesh_Reso
     if (!dx_mesh)
     {
         dx_mesh = create_mesh(mesh_resource);
-        dx_mesh->upload_data();
     }
 
     return dx_mesh;
@@ -460,7 +561,11 @@ Shared_Ptr<DirectX11_Shader> DirectX11_Renderer_Backend::_create_shader(const Sh
         {"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"NORMAL", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0}
+        {"COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"INSTANCE", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"INSTANCE", 1, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"INSTANCE", 2, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"INSTANCE",3, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_INSTANCE_DATA, 1},
     };
 
     assert(SUCCEEDED(_device->CreateInputLayout(input_element_desc, ARRAYSIZE(input_element_desc),

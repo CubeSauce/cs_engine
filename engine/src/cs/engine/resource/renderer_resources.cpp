@@ -53,8 +53,6 @@ Mesh_Resource::Mesh_Resource(const std::string& filepath, const Mesh_Import_Sett
 
 bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh_Import_Settings& import_settings)
 {
-    name = filepath.c_str();
-
     const mat4 import_mat = import_settings.import_rotation.to_mat4();
     const mat4 import_mat_inv = import_mat.inverse();
 
@@ -84,8 +82,10 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
         vec4 material_color(ai_material_color.r, ai_material_color.g, ai_material_color.b, ai_material_color.a);
 
         Shared_Ptr<Material_Resource> material_resource = Shared_Ptr<Material_Resource>::create();
-        
-        Submesh_Data submesh_data;
+
+        submeshes.push_back({});
+
+        Submesh_Data& submesh_data = submeshes.back();
         submesh_data.bounds = AABB::empty_box;
 
         bool has_uvs = ai_mesh->HasTextureCoords(0);
@@ -153,8 +153,6 @@ bool Mesh_Resource::initialize_from_file(const std::string& filepath, const Mesh
             bounds.expand(vertex.vertex_location);
             submesh_data.vertices.push_back(vertex);
         }
-
-        submeshes.push_back(submesh_data);
     }
 
     return true;

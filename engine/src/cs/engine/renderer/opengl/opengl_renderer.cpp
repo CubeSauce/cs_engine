@@ -39,6 +39,11 @@ void OpenGL_Mesh::upload_data()
 
 }
 
+void OpenGL_Mesh::upload_data(const Dynamic_Array<Instance_Data> &instances)
+{
+
+}
+
 //TODO: Merge between all renderers
 struct
 {
@@ -224,6 +229,12 @@ void OpenGL_Renderer_Backend::draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4
         submesh.material.shader->unbind();
         glBindVertexArray(0);
     }
+}
+
+void OpenGL_Renderer_Backend::draw_mesh_instanced(const Shared_Ptr<Mesh> &mesh,
+    const Dynamic_Array<Instance_Data> &instance_transforms, VR_Eye::Type eye)
+{
+    assert(false);
 }
 
 Shared_Ptr<Buffer> OpenGL_Renderer_Backend::create_vertex_buffer(void *data, uint32 size)

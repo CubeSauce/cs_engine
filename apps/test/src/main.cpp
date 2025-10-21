@@ -34,9 +34,8 @@ struct Player_Entity
 
 	float movement_speed{10.0};
 	vec3 movement_input{0.0f};
-	float look_speed{15_deg};
+	float look_speed{25_deg};
 	vec3 input_mouse{vec3::zero_vector}, input_mouse_previous{vec3::zero_vector}, look_angles{vec3::zero_vector};
-
 };
 
 struct Test_Entity
@@ -83,28 +82,36 @@ struct My_Game
 		if (!unit_sphere.is_valid())
 		{
 			unit_sphere = Shared_Ptr<Mesh_Resource>::create();
+			unit_sphere->name = Name_Id("unit_sphere");
 			unit_sphere->initialize_from_file("assets/meshes/test/unit_sphere.obj");
 		}
 
 		if (!unit_box.is_valid())
 		{
 			unit_box = Shared_Ptr<Mesh_Resource>::create();
+			unit_box->name = Name_Id("unit_box");
 			unit_box->initialize_from_file("assets/meshes/test/unit_box.obj");
 		}
 
 		if (!unit_capsule.is_valid())
 		{
 			unit_capsule = Shared_Ptr<Mesh_Resource>::create();
+			unit_capsule->name = Name_Id("unit_capsule");
 			unit_capsule->initialize_from_file("assets/meshes/test/unit_capsule.obj");
 		}
 
+		Shared_Ptr<Mesh_Resource> rand_m[] = { unit_sphere, unit_box, unit_capsule };
+
 		tests.clear();
-		tests.push_back(_make_test(unit_sphere, vec3(-3.0f, 3.0f, -1.0f),
-		vec3(0.0f, 0.0f, 1.0f), 180_deg));
-		tests.push_back(_make_test(unit_box, vec3(3.0f, 0.0f, 1.0f),
-		vec3(1.0f, 1.0f, 0.0f), 90_deg));
-		tests.push_back(_make_test(unit_capsule, vec3(0.0f, -3.0f, 3.0f),
-			vec3(0.0f, 1.0f, 0.0f), 120_deg));
+		for (int32 i = 0; i < 10000; ++i)
+		{
+			float rx = static_cast<float>(rand() % 10000) / 100.0f;
+			float ry = static_cast<float>(rand() % 10000) / 100.0f;
+			float rz = static_cast<float>(rand() % 10000) / 100.0f;
+			float ra = 360_deg * static_cast<float>(rand() % 1000) / 1000.0f;
+			tests.push_back(_make_test(rand_m[rand() % 3], vec3(rx, ry, rz),
+				vec3(rx, 0, rz).normalized(), ra));
+		}
 
 		initialized = true;
 	}
@@ -136,13 +143,46 @@ struct My_Game
 		_post_update_player(dt);
 	}
 
+	Dynamic_Array<Name_Id> renderer_meshes_used;
+	Hash_Map<Name_Id, Shared_Ptr<Mesh>> renderer_mesh_map;
+	Hash_Map<Name_Id, Dynamic_Array<Instance_Data>> renderer_instance_map;
+
 	void render()
 	{
-		Renderer& renderer = Renderer::get();
-
-		for (Render_Component& component : components.get_array<Render_Component>())
+		for (const Name_Id&  mesh_id : renderer_meshes_used)
 		{
-			renderer.backend->draw_mesh(component.mesh, component.model_matrix);
+			Dynamic_Array<Instance_Data>* p_instances = renderer_instance_map.find(mesh_id);
+			if (p_instances)
+			{
+				p_instances->clear();
+			}
+		}
+		renderer_meshes_used.clear();
+
+		for (Test_Entity& test : tests)
+		{
+			Render_Component& render_component = components.get<Render_Component>(test.h_render);
+			const Name_Id& mesh_id = render_component.mesh->mesh_resource->name;
+			if (renderer_meshes_used.find_first(mesh_id) == -1)
+			{
+				renderer_meshes_used.push_back(mesh_id);
+				renderer_mesh_map.insert(mesh_id, render_component.mesh);
+			}
+
+			Dynamic_Array<Instance_Data>& instances = renderer_instance_map.find_or_add(mesh_id);
+			if (instances.size() == 0)
+			{
+				instances.reserve(tests.size());
+			}
+			instances.push_back({render_component.model_matrix.transposed()});
+		}
+
+		Renderer& renderer = Renderer::get();
+		for (const Name_Id&  mesh_id : renderer_meshes_used)
+		{
+			Shared_Ptr<Mesh>& mesh = renderer_mesh_map.find_or_add(mesh_id);
+			Dynamic_Array<Instance_Data>& instance_datas =  renderer_instance_map.find_or_add(mesh_id);
+			renderer.backend->draw_mesh_instanced(mesh, instance_datas);
 		}
 	}
 
@@ -151,6 +191,10 @@ struct My_Game
 		_shutdown_player();
 		initialized = false;
 		started = false;
+
+		renderer_meshes_used.clear();
+		renderer_mesh_map.clear();
+		renderer_instance_map.clear();
 	}
 
 	void _initialize_camera(uint32 width, uint32 height)
@@ -194,8 +238,7 @@ struct My_Game
 
 		// TODO: this probably should happen in-engine when it's requested to be used (will also handle if we change
 		// the renderer on-fly) as well as reusing the same mesh for multiple instances (this will make copies, ok for now)
-		render_component.mesh = renderer.backend->create_mesh(test_mesh);
-		render_component.mesh->upload_data();
+		render_component.mesh = renderer.backend->get_mesh(test_mesh);
 
 		test.rotate_axis = rotate_axis;
 		test.rotate_speed = rotate_speed;
@@ -247,15 +290,15 @@ struct My_Game
 		player.look_angles.x += mouse_delta.y * player.look_speed;
 		player.look_angles.x = clamp(player.look_angles.x, -85_deg, 85_deg);
 		player.look_angles.z += mouse_delta.x * player.look_speed;
-		const quat look_rotation = quat::from_euler_angles(player.look_angles);
 
 		vec3 editor_xy_movement_input = player.movement_input;
 		editor_xy_movement_input.z = 0.0f;
 
-		const vec3 player_forward_move = look_rotation.mul(editor_xy_movement_input.normalized());
+		const quat yaw_rotation = quat::from_rotation_axis(vec3::up_vector, player.look_angles.z);
+		const vec3 player_forward_move = yaw_rotation.mul(editor_xy_movement_input.normalized());
 		transform_component.local_position += player_forward_move.normalized() * (player.movement_speed * dt);
 
-		player.fpv_camera->orientation = look_rotation;
+		player.fpv_camera->orientation = quat::from_euler_angles(player.look_angles);
 		player.fpv_camera->position = transform_component.local_position;
 	}
 

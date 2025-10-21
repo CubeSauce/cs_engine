@@ -4,6 +4,7 @@ struct VSInput
     float3 normal : NORMAL;
     float2 texcoord: TEXCOORD0;
     float4 color: COLOR0;
+    matrix instance_matrix: INSTANCE;
 };
 
 struct VSOutput
@@ -28,7 +29,8 @@ VSOutput main(VSInput input)
     output.normal = mul(input.normal, (float3x3)WorldInverseTranspose);
     
     output.position = float4(input.position, 1.0);
-    output.position = mul(output.position, World);
+    output.position = mul(output.position, input.instance_matrix);
+    //output.position = mul(output.position, World);
     output.position = mul(output.position, View);
     output.position = mul(output.position, Projection);
     

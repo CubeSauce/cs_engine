@@ -69,6 +69,7 @@ public:
 
     virtual ~OpenGL_Mesh() override {}
     virtual void upload_data() override;
+	virtual void upload_data(const Dynamic_Array<Instance_Data>& instances) override;
 };
 
 class Camera;
@@ -84,7 +85,7 @@ public:
     virtual void end_frame(VR_Eye::Type eye = VR_Eye::None) override;
     virtual void shutdown() override;
     virtual void draw_mesh(const Shared_Ptr<Mesh>& mesh, const mat4& world_transform, VR_Eye::Type eye = VR_Eye::None) override;
-    //virtual void draw_mesh(const Shared_Ptr<Mesh_Resource> &mesh_resource) override;
+    virtual void draw_mesh_instanced(const Shared_Ptr<Mesh>& mesh, const Dynamic_Array<Instance_Data>& instance_transforms, VR_Eye::Type eye = VR_Eye::None) override;
 
     virtual Shared_Ptr<Buffer> create_vertex_buffer(void *data, uint32 size);
     virtual Shared_Ptr<Buffer> create_index_buffer(void *data, uint32 size);
