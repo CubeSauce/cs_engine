@@ -21,6 +21,32 @@ public:
         _size = count;
     }
 
+    Dynamic_Array(const Dynamic_Array& other)
+    {
+        _increase_capacity(other.capacity());
+        for (int64 i = 0; i < other.size(); i++)
+        {
+            _data[i] = other[i];
+        }
+        _size = other.size();
+    }
+
+    Dynamic_Array& operator=(const Dynamic_Array& other)
+    {
+        _increase_capacity(other.capacity());
+        for (int64 i = 0; i < other.size(); i++)
+        {
+            _data[i] = other[i];
+        }
+        _size = other.size();
+        return *this;
+    }
+
+    ~Dynamic_Array()
+    {
+        _allocator.deallocate(_data, _capacity);
+    }
+
     void reserve(int64 new_size)
     {
         _increase_capacity(new_size);

@@ -95,6 +95,36 @@ public:
         delete[] _entries;
     }
 
+    Hash_Map(const Hash_Map& other)
+    {
+        _resize(other._capacity);
+        _size = 0;
+
+        for (int64 i = 0; i < _capacity; ++i)
+        {
+            if (other._entries[i].is_valid())
+            {
+                insert(other._entries[i].pair.a, other._entries[i].pair.b);
+            }
+        }
+    }
+
+    Hash_Map& operator=(const Hash_Map& other)
+    {
+        _resize(other._capacity);
+        _size = 0;
+
+        for (int64 i = 0; i < _capacity; ++i)
+        {
+            if (other._entries[i].is_valid())
+            {
+                insert(other._entries[i].pair.a, other._entries[i].pair.b);
+            }
+        }
+
+        return *this;
+    }
+
     void reserve(int64 capacity)
     {
         _resize(capacity);
