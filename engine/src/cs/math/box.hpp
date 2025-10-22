@@ -28,6 +28,7 @@ public:
     vec3 get_extents() const;
     vec3 get_half_extents() const;
 
+    AABB get_with_offset(const vec3& offset) const;
 private:
     void _check_and_fix();
 };

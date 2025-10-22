@@ -33,7 +33,12 @@ public:
 
 public:
     Name_Id() = default;
-    
+
+    constexpr Name_Id(uint32 id) noexcept
+    :id(id)
+    {
+    }
+
     constexpr Name_Id(const char* string) noexcept
     :id(hash_32_fnv1a_const(string)), str(string)
     {

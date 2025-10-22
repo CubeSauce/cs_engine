@@ -71,3 +71,11 @@ void AABB::_check_and_fix()
         swap(min.z, max.z);
     }
 }
+
+AABB AABB::get_with_offset(const vec3 &offset) const
+{
+    return {
+        min + offset,
+        max + offset
+    };
+}
