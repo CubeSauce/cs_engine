@@ -489,7 +489,6 @@ bool DirectX11_Renderer_Backend::_compile_shader(const char *filename, const cha
     {
         std::string e((char *)error_blob->GetBufferPointer());
         printf("%s", e.c_str());
-        flushall();
         assert(false);
     }
 

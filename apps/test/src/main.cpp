@@ -351,7 +351,6 @@ public:
 		game.initialize();
 
 		printf("DONE\n");
-		flushall();
 	}
 
 	void update(float dt) override
@@ -396,7 +395,6 @@ public:
 	void shutdown() override
 	{
 		printf("Editor shutdown... \n");
-		flushall();
 	}
 
 	[[nodiscard]] bool should_shutdown() const override

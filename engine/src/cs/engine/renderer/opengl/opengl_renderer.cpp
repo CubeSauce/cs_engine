@@ -2,6 +2,8 @@
 #include "cs/engine/window.hpp"
 #include "GL/glew.h"
 
+#define GL_SILENCE_DEPRECATION
+
 #include <fstream>
 #include <sstream>
 
@@ -289,6 +291,8 @@ void checkCompileErrors(GLuint shader, std::string type)
             printf("---------------------------------------------------\n");
         }
     }
+
+    assert(success);
 }
 
 Shared_Ptr<Shader> OpenGL_Renderer_Backend::create_shader(const Shared_Ptr<Shader_Resource> &shader_resource)

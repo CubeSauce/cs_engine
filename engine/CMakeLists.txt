@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5...4.5)
 
-project(cs_engine VERSION 0.0.2 LANGUAGES CXX)
+project(cs_engine VERSION 0.0.2 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
@@ -10,7 +10,10 @@ set(GLFW_VERSION "3.4")
 set(GLEW_VERSION "2.2.0")
 set(ASSIMP_VERSION "6.0.2")
 set(OPENVR_VERSION "2.5.1")
-set(GNS_VERSION "1.4.1")
+
+# Had to add this, as open-vr won't compile on macos
+option(USE_OPENVR OFF)
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 FetchContent_Declare(
         glfw
@@ -29,7 +32,7 @@ FetchContent_Declare(
 
 FetchContent_Declare(
         assimp
-        GIT_REPOSITORY https://github.com/assimp/assimp.git
+        GIT_REPOSITORY "https://github.com/assimp/assimp.git"
         GIT_TAG v${ASSIMP_VERSION}
 )
 
@@ -38,18 +41,6 @@ FetchContent_Declare(
         URL "https://github.com/ValveSoftware/openvr/archive/refs/tags/v${OPENVR_VERSION}.zip"
 )
 
-# Use VCPKG to download OpenSSL and Protobuf dev libs.
-FetchContent_Declare(
-        GameNetworkingSockets
-        GIT_REPOSITORY https://github.com/ValveSoftware/GameNetworkingSockets.git
-        GIT_TAG v${GNS_VERSION}
-)
-
-FetchContent_MakeAvailable(
-        glfw glew stb assimp openvr GameNetworkingSockets
-)
-
-find_package(OpenGL REQUIRED)
 
 if(WIN32)
     set(PLATFORM_WINDOWS TRUE)
@@ -58,6 +49,24 @@ elseif(APPLE)
 elseif(UNIX)
     set(PLATFORM_LINUX TRUE)
 endif()
+
+if (PLATFORM_MACOS)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+endif()
+
+FetchContent_MakeAvailable(
+    glfw glew stb assimp 
+)
+
+if (USE_OPENVR)
+FetchContent_MakeAvailable(
+    openvr
+)
+
+find_package(OpenGL REQUIRED)
 
 add_subdirectory(${glew_SOURCE_DIR}/build/cmake ${glew_SOURCE_DIR})
 
@@ -82,7 +91,12 @@ set_target_properties(cs_openvr PROPERTIES
         IMPORTED_IMPLIB "${openvr_SOURCE_DIR}/lib/${OPENVR_PLATFORM}/openvr_api${OPENVR_LIB_SUFFIX}"
         INTERFACE_INCLUDE_DIRECTORIES "${openvr_SOURCE_DIR}/headers"
 )
+add_compile_definitions(-DCS_WITH_VR_SUPPORT)
+
 # OpenVR
+endif()
+
+add_compile_definitions(-DGL_SILENCE_DEPRECATION)
 
 file(GLOB_RECURSE ${PROJECT_NAME}_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp")
 
@@ -90,7 +104,11 @@ set(CS_ENGINE_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 set(CS_ENGINE_ASSETS ${CS_ENGINE_ASSETS_DIR} PARENT_SCOPE)
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_sources})
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glew_s assimp::assimp cs_openvr GameNetworkingSockets)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw glew_s assimp::assimp)
+if (USE_OPENVR)
+target_link_libraries(${PROJECT_NAME} PRIVATE cs_openvr)
+endif()
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>

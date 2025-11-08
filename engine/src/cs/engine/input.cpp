@@ -1,7 +1,5 @@
 #include "cs/engine/input.hpp"
 
-#include <absl/strings/internal/str_format/extension.h>
-
 #include "cs/math/math.hpp"
 #include "profiling/profiler.hpp"
 

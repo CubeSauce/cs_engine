@@ -277,8 +277,8 @@ void Engine::_initialize_defaults()
     default_texture_shader_resource->source_paths[Renderer_API::DirectX11].pixel_filepath = "assets/shaders/default_texture.hlsl.frag";
     default_texture_shader_resource->source_paths[Renderer_API::DirectX12].vertex_filepath = "assets/shaders/default_texture.hlsl.vert";
     default_texture_shader_resource->source_paths[Renderer_API::DirectX12].pixel_filepath = "assets/shaders/default_texture.hlsl.frag";
-    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/gen/glsl/default_texture_vert.glsl";
-    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath = "assets/shaders/gen/glsl/default_texture_frag.glsl";
+    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].vertex_filepath = "assets/shaders/opengl/default_texture_vert.glsl";
+    default_texture_shader_resource->source_paths[Renderer_API::OpenGL].fragment_filepath = "assets/shaders/opengl/default_texture_frag.glsl";
 
     //TODO: make this blend with white instead of multiple textures
     

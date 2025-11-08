@@ -65,8 +65,6 @@ struct Dynamic_Component_Storage : private Dynamic_Component_Bucket<ComponentTyp
 			Dynamic_Component_Bucket<ComponentTypes>::component_storage.clear();
 			printf("  \'%s\'\n", ComponentTypes::id.c_str());
 		}(), ...);
-
-		flushall();
 	}
 
 	template<typename ComponentType>
